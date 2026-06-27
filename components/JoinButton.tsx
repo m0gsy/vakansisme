@@ -36,6 +36,7 @@ export default function JoinButton({
     if (res.ok) {
       setJoined(true);
       setCount(json.member_count);
+      router.refresh();
     } else {
       setError(json.error ?? "Something went wrong");
     }
