@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import StoryComments from "@/components/StoryComments";
 
 type Params = Promise<{ id: string }>;
 
@@ -26,12 +27,12 @@ export default async function StoryPage({ params }: { params: Params }) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: story } = await supabase
-    .from("stories")
-    .select("*")
-    .eq("id", id)
-    .eq("published", true)
-    .single();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const [{ data: story }, { data: comments }] = await Promise.all([
+    supabase.from("stories").select("*").eq("id", id).eq("published", true).single(),
+    supabase.from("story_comments").select("id, author_id, author_handle, content, created_at").eq("story_id", id).order("created_at", { ascending: true }),
+  ]);
 
   if (!story) notFound();
 
@@ -137,6 +138,12 @@ export default async function StoryPage({ params }: { params: Params }) {
             No content yet.
           </p>
         )}
+
+        <StoryComments
+          storyId={id}
+          initialComments={comments ?? []}
+          currentUserId={user?.id ?? null}
+        />
       </div>
     </div>
   );

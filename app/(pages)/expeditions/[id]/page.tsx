@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import JoinButton from "@/components/JoinButton";
 import RealtimeQuota from "@/components/RealtimeQuota";
 import { difficultyLabel, getDifficulty } from "@/lib/difficulty";
+import ExpeditionGallery from "@/components/ExpeditionGallery";
 
 type Params = Promise<{ id: string }>;
 
@@ -45,11 +46,10 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
   const memberCount = (trip.expedition_members as { count: number }[])[0]?.count ?? 0;
 
-  const { data: members } = await supabase
-    .from("expedition_members")
-    .select("user_id, profiles(username, avatar_url)")
-    .eq("expedition_id", id)
-    .limit(20);
+  const [{ data: members }, { data: gallery }] = await Promise.all([
+    supabase.from("expedition_members").select("user_id, profiles(username, avatar_url)").eq("expedition_id", id).limit(20),
+    supabase.from("expedition_gallery").select("id, uploader_id, uploader_handle, image_url, caption, created_at").eq("expedition_id", id).order("created_at", { ascending: true }),
+  ]);
 
   let userJoined = false;
   if (user) {
@@ -244,6 +244,15 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
               quotaMax={trip.quota_max}
             />
           </div>
+        </div>
+        {/* Gallery */}
+        <div className="max-w-5xl mx-auto px-6" style={{ paddingBottom: "80px" }}>
+          <ExpeditionGallery
+            expeditionId={id}
+            initialPhotos={gallery ?? []}
+            isMember={userJoined}
+            currentUserId={user?.id ?? null}
+          />
         </div>
       </div>
     </div>

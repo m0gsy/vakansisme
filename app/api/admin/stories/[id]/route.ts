@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { sendStoryApprovedEmail, sendStoryRejectedEmail } from "@/lib/email";
 
 type Params = Promise<{ id: string }>;
 
@@ -33,6 +34,24 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
 
   const { error } = await supabase.from("stories").update(updates).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Send notification email (fire-and-forget, don't block response)
+  supabase
+    .from("stories")
+    .select("title, author_id, profiles!stories_author_id_fkey(email, username)")
+    .eq("id", id)
+    .single()
+    .then(({ data: story }) => {
+      if (!story) return;
+      const profile = Array.isArray(story.profiles) ? story.profiles[0] : story.profiles as { email?: string; username?: string } | null;
+      if (!profile?.email) return;
+      if (action === "approve") {
+        sendStoryApprovedEmail(profile.email, profile.username ?? "", story.title, id).catch(() => {});
+      } else {
+        sendStoryRejectedEmail(profile.email, profile.username ?? "", story.title).catch(() => {});
+      }
+    });
+
   return NextResponse.json({ ok: true });
 }
 

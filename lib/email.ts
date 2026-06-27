@@ -70,6 +70,68 @@ function welcomeHtml(username: string) {
   `);
 }
 
+export async function sendStoryApprovedEmail(to: string, username: string, storyTitle: string, storyId: string) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Your story is live — ${storyTitle}`,
+    html: base(`
+      <tr><td>
+        <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.14em;color:#9BFF3C;text-transform:uppercase;">STORY APPROVED</p>
+        <h1 style="margin:0 0 16px;font-size:38px;font-weight:900;letter-spacing:-0.025em;line-height:0.9;color:#F0EDEA;text-transform:uppercase;">
+          ${storyTitle}
+        </h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#8B7355;">
+          Hey @${username}, your story just went live on VAKANSISME. The crew can read it now.
+        </p>
+        <a href="${SITE_URL}/stories/${storyId}" style="display:inline-block;background:#9BFF3C;color:#111111;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:12px 28px;">
+          VIEW STORY →
+        </a>
+      </td></tr>
+    `),
+  });
+}
+
+export async function sendStoryRejectedEmail(to: string, username: string, storyTitle: string) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Story update — ${storyTitle}`,
+    html: base(`
+      <tr><td>
+        <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.14em;color:#FF6B1A;text-transform:uppercase;">STORY NOT APPROVED</p>
+        <h1 style="margin:0 0 16px;font-size:38px;font-weight:900;letter-spacing:-0.025em;line-height:0.9;color:#F0EDEA;text-transform:uppercase;">
+          ${storyTitle}
+        </h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#8B7355;">
+          Hey @${username}, your story wasn't approved this time. You can edit and resubmit from your profile page.
+        </p>
+        <a href="${SITE_URL}/settings" style="display:inline-block;background:rgba(255,107,26,0.15);color:#FF6B1A;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:12px 28px;border:1px solid rgba(255,107,26,0.4);">
+          GO TO PROFILE →
+        </a>
+      </td></tr>
+    `),
+  });
+}
+
+export async function sendNewsletterEmail(to: string[], subject: string, html: string) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return { sent: 0 };
+  const batches = [];
+  for (let i = 0; i < to.length; i += 50) {
+    batches.push(to.slice(i, i + 50));
+  }
+  let sent = 0;
+  for (const batch of batches) {
+    await resend.batch.send(
+      batch.map((email) => ({ from: FROM, to: email, subject, html }))
+    );
+    sent += batch.length;
+  }
+  return { sent };
+}
+
 function joinHtml(username: string, tripName: string, tripLocation: string, dateStart: string) {
   const dateStr = new Date(dateStart).toLocaleDateString("en", {
     weekday: "long",

@@ -39,6 +39,8 @@ export async function GET(request: NextRequest) {
           .eq("id", user.id)
           .single();
         if (profile) {
+          // Save email to profile for notifications
+          supabase.from("profiles").update({ email: user.email }).eq("id", user.id).then(() => {});
           sendWelcomeEmail(user.email, profile.username).catch(() => {});
         }
       }

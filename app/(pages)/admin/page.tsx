@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { ChaosActions, ExpeditionActions, AdminExpeditionForm, StoryModerationActions } from "@/components/AdminActions";
+import NewsletterForm from "@/components/NewsletterForm";
 
 export const metadata = { title: "Admin — VAKANSISME" };
 
@@ -55,7 +56,7 @@ export default async function AdminPage() {
 
   if (!profile?.is_admin) redirect("/");
 
-  const [{ data: chaos }, { data: expeditions }, { data: pendingStories }, { data: allStories }] = await Promise.all([
+  const [{ data: chaos }, { data: expeditions }, { data: pendingStories }, { data: allStories }, { count: subscriberCount }] = await Promise.all([
     supabase
       .from("chaos_submissions")
       .select("id, author_handle, type, caption, image_url, status, created_at")
@@ -78,6 +79,7 @@ export default async function AdminPage() {
       .select("id, author_handle, type, title, status, created_at")
       .order("created_at", { ascending: false })
       .limit(100),
+    supabase.from("subscribers").select("*", { count: "exact", head: true }),
   ]);
 
   const tableStyle: React.CSSProperties = {
@@ -278,6 +280,11 @@ export default async function AdminPage() {
               </table>
             </div>
           )}
+        </Section>
+
+        {/* Newsletter */}
+        <Section title={`NEWSLETTER (${subscriberCount ?? 0} subscribers)`}>
+          <NewsletterForm subscriberCount={subscriberCount ?? 0} />
         </Section>
 
         {/* Expeditions */}
