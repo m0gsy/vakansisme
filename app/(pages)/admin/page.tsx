@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ChaosActions, ExpeditionDeleteButton, AdminExpeditionForm, StoryModerationActions } from "@/components/AdminActions";
+import { ChaosActions, ExpeditionActions, AdminExpeditionForm, StoryModerationActions } from "@/components/AdminActions";
 
 export const metadata = { title: "Admin — VAKANSISME" };
 
@@ -63,7 +63,7 @@ export default async function AdminPage() {
       .limit(100),
     supabase
       .from("expeditions")
-      .select("id, name, location, difficulty, date_start, quota_max, expedition_members(count)")
+      .select("id, name, location, difficulty, price, date_start, date_end, quota_max, leader_handle, image_url, description, expedition_members(count)")
       .order("date_start", { ascending: true })
       .limit(50),
     supabase
@@ -320,7 +320,7 @@ export default async function AdminPage() {
                           {count} / {e.quota_max}
                         </Cell>
                         <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
-                          <ExpeditionDeleteButton id={e.id} />
+                          <ExpeditionActions expedition={e as Parameters<typeof ExpeditionActions>[0]["expedition"]} />
                         </td>
                       </tr>
                     );
