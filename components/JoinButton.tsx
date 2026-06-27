@@ -37,6 +37,9 @@ export default function JoinButton({
       setJoined(true);
       setCount(json.member_count);
       router.refresh();
+    } else if (res.status === 409 && json.error === "Already joined") {
+      setJoined(true);
+      router.refresh();
     } else {
       setError(json.error ?? "Something went wrong");
     }
