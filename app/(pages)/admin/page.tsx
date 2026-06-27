@@ -128,16 +128,19 @@ export default async function AdminPage() {
               {pendingGallery.map((p) => {
                 const trip = Array.isArray(p.expeditions) ? p.expeditions[0] : p.expeditions as { name: string } | null;
                 return (
-                  <div key={p.id} style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.35)", overflow: "hidden" }}>
-                    <div style={{ position: "relative", aspectRatio: "4/3" }}>
+                  <div key={p.id} style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.35)" }}>
+                    <div style={{ position: "relative", width: "100%", height: "165px", overflow: "hidden" }}>
                       <Image src={p.image_url} alt={p.caption ?? ""} fill sizes="220px" className="object-cover" />
                     </div>
                     <div style={{ padding: "10px 12px" }}>
-                      <p className="font-body font-semibold text-muted-ink" style={{ fontSize: "0.62rem", letterSpacing: "0.08em", marginBottom: "2px" }}>
-                        @{p.uploader_handle} · {trip?.name ?? "—"}
+                      <p className="font-body font-semibold text-muted-ink" style={{ fontSize: "0.62rem", letterSpacing: "0.08em", marginBottom: "4px" }}>
+                        @{p.uploader_handle}
+                      </p>
+                      <p className="font-body text-neon-green" style={{ fontSize: "0.6rem", letterSpacing: "0.06em", marginBottom: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {trip?.name ?? "—"}
                       </p>
                       {p.caption && (
-                        <p className="font-body text-off-white/70" style={{ fontSize: "0.72rem", marginBottom: "8px" }}>{p.caption}</p>
+                        <p className="font-body text-off-white/70" style={{ fontSize: "0.72rem", marginBottom: "10px", lineHeight: 1.4 }}>{p.caption}</p>
                       )}
                       <GalleryModerationActions id={p.id} initialStatus={p.status} />
                     </div>

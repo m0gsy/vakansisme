@@ -43,11 +43,13 @@ export default function ExpeditionReviews({
   initialReviews,
   isMember,
   currentUserId,
+  tripStatus,
 }: {
   expeditionId: string;
   initialReviews: Review[];
   isMember: boolean;
   currentUserId: string | null;
+  tripStatus?: string | null;
 }) {
   const toast = useToast();
   const [reviews, setReviews] = useState(initialReviews);
@@ -105,7 +107,14 @@ export default function ExpeditionReviews({
         )}
       </div>
 
-      {isMember && !myReview && (
+      {isMember && tripStatus !== "completed" && !myReview && (
+    <div style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.35)", padding: "14px 20px", marginBottom: "24px" }}>
+      <p className="font-body text-muted-ink" style={{ fontSize: "0.78rem" }}>
+        Rating available once the trip is marked <span style={{ color: "#9BFF3C" }}>completed</span>.
+      </p>
+    </div>
+  )}
+  {isMember && tripStatus === "completed" && !myReview && (
         <div
           style={{
             background: "#1a1a1a",

@@ -146,10 +146,26 @@ export default function JoinButton({
       {joined && !loading && (
         <button
           onClick={handleLeave}
-          className="font-body text-muted-ink hover:text-chaos-orange transition-colors duration-150"
-          style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.7rem", letterSpacing: "0.06em", padding: 0 }}
+          className="font-body font-semibold transition-all duration-150"
+          style={{
+            fontSize: "0.68rem",
+            letterSpacing: "0.12em",
+            padding: "8px 20px",
+            background: "transparent",
+            border: "1px solid rgba(255,107,26,0.4)",
+            color: "#FF6B1A",
+            cursor: "pointer",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(255,107,26,0.1)";
+            e.currentTarget.style.borderColor = "rgba(255,107,26,0.7)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.borderColor = "rgba(255,107,26,0.4)";
+          }}
         >
-          leave trip
+          LEAVE TRIP
         </button>
       )}
 

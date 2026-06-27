@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ImageUpload from "@/components/ImageUpload";
 import { DIFFICULTIES } from "@/lib/difficulty";
+import ExpeditionMapClient from "@/components/ExpeditionMapClient";
 
 const BTN = {
   base: {
@@ -246,6 +247,12 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
               onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")}
             />
           </div>
+          {fields.location && (
+            <div style={{ marginBottom: "12px" }}>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "6px" }}>Map preview</label>
+              <ExpeditionMapClient location={fields.location} />
+            </div>
+          )}
           <div style={{ marginBottom: "12px" }}>
             <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "6px" }}>Cover image</label>
             <ImageUpload folder="expeditions" currentUrl={imageUrl} onUpload={setImageUrl} />

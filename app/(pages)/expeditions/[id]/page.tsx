@@ -331,6 +331,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
           initialPhotos={gallery ?? []}
           isMember={userJoined}
           currentUserId={user?.id ?? null}
+          tripStatus={trip.status}
         />
         <ExpeditionUpdates
           expeditionId={id}
@@ -348,6 +349,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
           initialReviews={(reviews ?? []) as Parameters<typeof ExpeditionReviews>[0]["initialReviews"]}
           isMember={userJoined}
           currentUserId={user?.id ?? null}
+          tripStatus={trip.status}
         />
         <ExpeditionComments
           expeditionId={id}
