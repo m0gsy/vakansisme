@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ChaosActions, ExpeditionActions, AdminExpeditionForm, StoryModerationActions } from "@/components/AdminActions";
+import { ChaosActions, ExpeditionActions, AdminExpeditionForm, StoryModerationActions, GalleryModerationActions } from "@/components/AdminActions";
 import NewsletterForm from "@/components/NewsletterForm";
 
 export const metadata = { title: "Admin — VAKANSISME" };
@@ -56,7 +56,7 @@ export default async function AdminPage() {
 
   if (!profile?.is_admin) redirect("/");
 
-  const [{ data: chaos }, { data: expeditions }, { data: pendingStories }, { data: allStories }, { count: subscriberCount }] = await Promise.all([
+  const [{ data: chaos }, { data: expeditions }, { data: pendingStories }, { data: allStories }, { count: subscriberCount }, { data: pendingGallery }] = await Promise.all([
     supabase
       .from("chaos_submissions")
       .select("id, author_handle, type, caption, image_url, status, created_at")
@@ -80,6 +80,12 @@ export default async function AdminPage() {
       .order("created_at", { ascending: false })
       .limit(100),
     supabase.from("subscribers").select("*", { count: "exact", head: true }),
+    supabase
+      .from("expedition_gallery")
+      .select("id, expedition_id, uploader_handle, image_url, caption, status, created_at, expeditions(name)")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(50),
   ]);
 
   const tableStyle: React.CSSProperties = {
@@ -112,6 +118,35 @@ export default async function AdminPage() {
             CONTROL PANEL
           </h1>
         </div>
+
+        {/* Gallery pending */}
+        <Section title={`GALLERY PENDING (${pendingGallery?.length ?? 0})`}>
+          {!pendingGallery?.length ? (
+            <p className="font-body text-muted-ink" style={{ fontSize: "0.88rem" }}>No photos awaiting review.</p>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
+              {pendingGallery.map((p) => {
+                const trip = Array.isArray(p.expeditions) ? p.expeditions[0] : p.expeditions as { name: string } | null;
+                return (
+                  <div key={p.id} style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.35)", overflow: "hidden" }}>
+                    <div style={{ position: "relative", aspectRatio: "4/3" }}>
+                      <Image src={p.image_url} alt={p.caption ?? ""} fill sizes="220px" className="object-cover" />
+                    </div>
+                    <div style={{ padding: "10px 12px" }}>
+                      <p className="font-body font-semibold text-muted-ink" style={{ fontSize: "0.62rem", letterSpacing: "0.08em", marginBottom: "2px" }}>
+                        @{p.uploader_handle} · {trip?.name ?? "—"}
+                      </p>
+                      {p.caption && (
+                        <p className="font-body text-off-white/70" style={{ fontSize: "0.72rem", marginBottom: "8px" }}>{p.caption}</p>
+                      )}
+                      <GalleryModerationActions id={p.id} initialStatus={p.status} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Section>
 
         {/* Stories pending review */}
         <Section title={`STORIES PENDING (${pendingStories?.length ?? 0})`}>

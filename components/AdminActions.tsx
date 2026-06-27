@@ -514,3 +514,43 @@ export function StoryModerationActions({ id }: { id: string }) {
     </div>
   );
 }
+
+export function GalleryModerationActions({ id, initialStatus }: { id: string; initialStatus: string }) {
+  const router = useRouter();
+  const [status, setStatus] = useState(initialStatus);
+  const [loading, setLoading] = useState(false);
+
+  async function setPhotoStatus(next: "approved" | "rejected") {
+    setLoading(true);
+    await fetch(`/api/admin/gallery/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: next }),
+    });
+    setStatus(next);
+    setLoading(false);
+    router.refresh();
+  }
+
+  async function del() {
+    if (!confirm("Delete this photo permanently?")) return;
+    setLoading(true);
+    await fetch(`/api/admin/gallery/${id}`, { method: "DELETE" });
+    router.refresh();
+  }
+
+  return (
+    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+      <span style={{ fontSize: "0.6rem", letterSpacing: "0.1em", fontWeight: 700, padding: "3px 8px", background: status === "approved" ? "#9BFF3C" : status === "rejected" ? "#FF6B1A" : "rgba(74,59,42,0.4)", color: status === "pending" ? "#8B7355" : "#111111" }}>
+        {status.toUpperCase()}
+      </span>
+      {status !== "approved" && (
+        <button disabled={loading} onClick={() => setPhotoStatus("approved")} style={{ ...BTN.base, background: "#9BFF3C", color: "#111111" }}>APPROVE</button>
+      )}
+      {status !== "rejected" && (
+        <button disabled={loading} onClick={() => setPhotoStatus("rejected")} style={{ ...BTN.base, background: "rgba(255,107,26,0.15)", color: "#FF6B1A", border: "1px solid rgba(255,107,26,0.4)" }}>REJECT</button>
+      )}
+      <button disabled={loading} onClick={del} style={{ ...BTN.base, background: "transparent", color: "#8B7355", border: "1px solid rgba(74,59,42,0.4)" }}>DELETE</button>
+    </div>
+  );
+}
