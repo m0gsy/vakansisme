@@ -46,15 +46,15 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
   const memberCount = (trip.expedition_members as { count: number }[])[0]?.count ?? 0;
 
-  const [{ data: members }, { data: gallery }] = await Promise.all([
+  const [{ data: members }, { data: gallery }, { data: membership }] = await Promise.all([
     supabase.from("expedition_members").select("user_id, profiles(username, avatar_url)").eq("expedition_id", id).limit(20),
     supabase.from("expedition_gallery").select("id, uploader_id, uploader_handle, image_url, caption, created_at").eq("expedition_id", id).order("created_at", { ascending: true }),
+    user
+      ? supabase.from("expedition_members").select("user_id").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
-  let userJoined = false;
-  if (user) {
-    userJoined = members?.some((m) => m.user_id === user.id) ?? false;
-  }
+  const userJoined = !!membership;
 
   const days = daysUntil(trip.date_start);
   const dateStr = new Date(trip.date_start).toLocaleDateString("en", { day: "numeric", month: "long", year: "numeric" });
