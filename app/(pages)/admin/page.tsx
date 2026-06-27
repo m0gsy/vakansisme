@@ -124,23 +124,35 @@ export default async function AdminPage() {
           {!pendingGallery?.length ? (
             <p className="font-body text-muted-ink" style={{ fontSize: "0.88rem" }}>No photos awaiting review.</p>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {pendingGallery.map((p) => {
                 const trip = Array.isArray(p.expeditions) ? p.expeditions[0] : p.expeditions as { name: string } | null;
                 return (
-                  <div key={p.id} style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.35)" }}>
-                    <div style={{ position: "relative", width: "100%", height: "165px", overflow: "hidden" }}>
-                      <Image src={p.image_url} alt={p.caption ?? ""} fill sizes="220px" className="object-cover" />
+                  <div
+                    key={p.id}
+                    style={{
+                      display: "flex",
+                      gap: "16px",
+                      alignItems: "flex-start",
+                      background: "#1a1a1a",
+                      border: "1px solid rgba(74,59,42,0.35)",
+                      padding: "12px",
+                    }}
+                  >
+                    <div style={{ position: "relative", width: "80px", height: "80px", flexShrink: 0, overflow: "hidden" }}>
+                      <Image src={p.image_url} alt={p.caption ?? ""} fill sizes="80px" className="object-cover" />
                     </div>
-                    <div style={{ padding: "10px 12px" }}>
-                      <p className="font-body font-semibold text-muted-ink" style={{ fontSize: "0.62rem", letterSpacing: "0.08em", marginBottom: "4px" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p className="font-body font-semibold text-off-white" style={{ fontSize: "0.75rem", marginBottom: "2px" }}>
                         @{p.uploader_handle}
                       </p>
-                      <p className="font-body text-neon-green" style={{ fontSize: "0.6rem", letterSpacing: "0.06em", marginBottom: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <p className="font-body text-neon-green" style={{ fontSize: "0.65rem", letterSpacing: "0.04em", marginBottom: "4px" }}>
                         {trip?.name ?? "—"}
                       </p>
                       {p.caption && (
-                        <p className="font-body text-off-white/70" style={{ fontSize: "0.72rem", marginBottom: "10px", lineHeight: 1.4 }}>{p.caption}</p>
+                        <p className="font-body text-muted-ink" style={{ fontSize: "0.72rem", lineHeight: 1.4, marginBottom: "8px" }}>
+                          {p.caption}
+                        </p>
                       )}
                       <GalleryModerationActions id={p.id} initialStatus={p.status} />
                     </div>

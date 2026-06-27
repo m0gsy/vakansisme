@@ -131,7 +131,7 @@ export default async function ChaosPage({ searchParams }: { searchParams: Search
                     {card.caption}
                   </p>
                   <p className="font-body text-muted-ink" style={{ fontSize: "0.68rem", letterSpacing: "0.04em" }}>
-                    @{card.author_handle}
+                    {card.author_handle}
                   </p>
                 </div>
               </div>

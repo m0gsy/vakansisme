@@ -27,7 +27,7 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
 
   let query = supabase
     .from("expeditions")
-    .select("id, name, location, difficulty, price, date_start, date_end, quota_max, image_url, expedition_members(count)", { count: "exact" })
+    .select("id, name, location, difficulty, price, date_start, date_end, quota_max, image_url, status, expedition_members(count)", { count: "exact" })
     .order("date_start", { ascending: true });
 
   if (difficulty) query = query.eq("difficulty", difficulty);
@@ -120,13 +120,30 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
                         className="absolute inset-0"
                         style={{ background: "linear-gradient(to top, rgba(31,59,44,0.7) 0%, transparent 50%)" }}
                       />
-                      <div className="absolute bottom-3 left-3">
+                      <div className="absolute bottom-3 left-3" style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                         <span
                           className="font-body font-semibold text-charcoal bg-neon-green"
                           style={{ fontSize: "0.62rem", letterSpacing: "0.06em", padding: "3px 8px" }}
                         >
                           {difficultyLabel(e.difficulty)}
                         </span>
+                        {e.status && e.status !== "upcoming" && (
+                          <span
+                            className="font-body font-semibold"
+                            style={{
+                              fontSize: "0.62rem",
+                              letterSpacing: "0.06em",
+                              padding: "3px 8px",
+                              background:
+                                e.status === "ongoing" ? "#FF6B1A"
+                                : e.status === "completed" ? "#4A3B2A"
+                                : "#7A2E12",
+                              color: "#F0EDEA",
+                            }}
+                          >
+                            {(e.status as string).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="p-5">
