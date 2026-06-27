@@ -52,13 +52,13 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
         }
       }
       // In-app notification
-      supabase.from("notifications").insert({
+      void supabase.from("notifications").insert({
         user_id: story.author_id,
         type: action === "approve" ? "story_approved" : "story_rejected",
         title: action === "approve" ? `Your story was published` : `Your story was not approved`,
         body: story.title,
         link: action === "approve" ? `/stories/${id}` : null,
-      }).catch(() => {});
+      });
     });
 
   return NextResponse.json({ ok: true });

@@ -88,12 +88,12 @@ export async function POST(_req: Request, { params }: { params: Params }) {
           if (leader.email) {
             sendLeaderJoinEmail(leader.email, leader.username, profile.username, trip.name, id).catch(() => {});
           }
-          supabase.from("notifications").insert({
+          void supabase.from("notifications").insert({
             user_id: leader.id,
             type: "join",
             title: `@${profile.username} joined ${trip.name}`,
             link: `/expeditions/${id}`,
-          }).catch(() => {});
+          });
         });
     }
   }
