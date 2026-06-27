@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Barlow_Condensed, Manrope, Special_Elite } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const barlowCondensed = Barlow_Condensed({
@@ -45,7 +46,10 @@ export default function RootLayout({
       lang="en"
       className={`${barlowCondensed.variable} ${manrope.variable} ${specialElite.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
