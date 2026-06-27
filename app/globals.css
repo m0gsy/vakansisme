@@ -1,26 +1,65 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* Colors */
+  --color-charcoal: #111111;
+  --color-forest-dark: #1F3B2C;
+  --color-earth-brown: #4A3B2A;
+  --color-neon-green: #9BFF3C;
+  --color-chaos-orange: #FF6B1A;
+  --color-off-white: #F0EDEA;
+  --color-muted-ink: #7A7570;
+
+  /* Fonts - variables injected by next/font via layout.tsx */
+  --font-display: var(--font-barlow), Impact, 'Arial Narrow', sans-serif;
+  --font-body: var(--font-manrope), system-ui, sans-serif;
+  --font-story: var(--font-special-elite), 'Courier New', monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ───────────── Base ───────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background-color: #111111;
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #111111;
+  color: #F0EDEA;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  line-height: 1.65;
+}
+
+/* ───────────── Grain overlay ───────────── */
+.grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+  position: absolute;
+  inset: 0;
+  opacity: 0.07;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  z-index: 10;
+}
+
+/* ───────────── Scrollbar ───────────── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: #111111; }
+::-webkit-scrollbar-thumb { background: #4A3B2A; }
+* { scrollbar-width: thin; scrollbar-color: #4A3B2A #111111; }
+
+/* ───────────── Reduced motion ───────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

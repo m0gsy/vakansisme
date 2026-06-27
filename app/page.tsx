@@ -1,65 +1,87 @@
-import Image from "next/image";
+import Nav from "@/components/Nav";
+import Hero from "@/components/Hero";
+import Expeditions from "@/components/Expeditions";
+import Stories from "@/components/Stories";
+import ChaosWall from "@/components/ChaosWall";
+import FooterCTA from "@/components/FooterCTA";
+import { createClient } from "@/lib/supabase/server";
+import type { Trip } from "@/types/expedition";
+import type { Story } from "@/types/story";
+import type { ChaosCard } from "@/types/chaos";
 
-export default function Home() {
+async function getTrips(): Promise<Trip[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("expeditions")
+    .select("*, expedition_members(count)")
+    .order("date_start");
+
+  if (!data) return [];
+
+  return data.map((row) => ({
+    id: row.id,
+    name: row.name,
+    location: row.location,
+    difficulty: row.difficulty,
+    description: row.description ?? null,
+    price: row.price,
+    date_start: row.date_start,
+    date_end: row.date_end,
+    leader_handle: row.leader_handle,
+    quota_max: row.quota_max,
+    image_url: row.image_url ?? "",
+    member_count: (row.expedition_members as { count: number }[])[0]?.count ?? 0,
+  }));
+}
+
+async function getChaosCards(): Promise<ChaosCard[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("chaos_submissions")
+    .select("id, author_handle, type, caption, image_url, rotation, accent_color")
+    .eq("status", "approved")
+    .order("created_at", { ascending: false })
+    .limit(8);
+  return data ?? [];
+}
+
+async function getStories(): Promise<Story[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("stories")
+    .select("id, author_handle, type, title, excerpt, image_url, created_at")
+    .eq("published", true)
+    .order("created_at", { ascending: false })
+    .limit(4);
+
+  return data ?? [];
+}
+
+export default async function Home() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const [trips, stories, chaosCards] = await Promise.all([getTrips(), getStories(), getChaosCards()]);
+
+  let joinedIds: string[] = [];
+  if (user) {
+    const { data } = await supabase
+      .from("expedition_members")
+      .select("expedition_id")
+      .eq("user_id", user.id);
+    joinedIds = data?.map((m) => m.expedition_id) ?? [];
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <>
+      <Nav />
+      <main>
+        <Hero />
+        <Expeditions trips={trips} joinedIds={joinedIds} />
+        <Stories stories={stories} />
+        <ChaosWall initialCards={chaosCards} />
       </main>
-    </div>
+      <FooterCTA />
+    </>
   );
 }

@@ -1,0 +1,337 @@
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { ChaosActions, ExpeditionDeleteButton, AdminExpeditionForm, StoryModerationActions } from "@/components/AdminActions";
+
+export const metadata = { title: "Admin — VAKANSISME" };
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section style={{ marginBottom: "56px" }}>
+      <h2
+        className="font-display font-black uppercase text-off-white"
+        style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)", letterSpacing: "-0.02em", marginBottom: "20px" }}
+      >
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function Cell({ children, muted }: { children: React.ReactNode; muted?: boolean }) {
+  return (
+    <td
+      className={muted ? "font-body text-muted-ink" : "font-body text-off-white"}
+      style={{ fontSize: "0.82rem", padding: "12px 16px", verticalAlign: "middle" }}
+    >
+      {children}
+    </td>
+  );
+}
+
+function TH({ children }: { children: React.ReactNode }) {
+  return (
+    <th
+      className="font-body font-semibold text-muted-ink uppercase"
+      style={{ fontSize: "0.6rem", letterSpacing: "0.12em", padding: "10px 16px", textAlign: "left" }}
+    >
+      {children}
+    </th>
+  );
+}
+
+export default async function AdminPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.is_admin) redirect("/");
+
+  const [{ data: chaos }, { data: expeditions }, { data: pendingStories }, { data: allStories }] = await Promise.all([
+    supabase
+      .from("chaos_submissions")
+      .select("id, author_handle, type, caption, image_url, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("expeditions")
+      .select("id, name, location, difficulty, date_start, quota_max, expedition_members(count)")
+      .order("date_start", { ascending: true })
+      .limit(50),
+    supabase
+      .from("stories")
+      .select("id, author_handle, type, title, excerpt, created_at")
+      .eq("published", false)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("stories")
+      .select("id, author_handle, type, title, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100),
+  ]);
+
+  const tableStyle: React.CSSProperties = {
+    width: "100%",
+    borderCollapse: "collapse",
+    background: "#1a1a1a",
+    border: "1px solid rgba(74,59,42,0.35)",
+  };
+
+  const rowStyle: React.CSSProperties = {
+    borderBottom: "1px solid rgba(74,59,42,0.2)",
+  };
+
+  return (
+    <div className="min-h-screen bg-charcoal" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
+      <div className="max-w-6xl mx-auto px-6">
+
+        {/* Header */}
+        <div style={{ marginBottom: "48px" }}>
+          <p
+            className="font-body font-semibold text-chaos-orange uppercase"
+            style={{ fontSize: "0.65rem", letterSpacing: "0.14em", marginBottom: "8px" }}
+          >
+            ADMIN
+          </p>
+          <h1
+            className="font-display font-black uppercase text-off-white"
+            style={{ fontSize: "clamp(2.5rem, 7vw, 5rem)", letterSpacing: "-0.025em", lineHeight: 0.88 }}
+          >
+            CONTROL PANEL
+          </h1>
+        </div>
+
+        {/* Stories pending review */}
+        <Section title={`STORIES PENDING (${pendingStories?.length ?? 0})`}>
+          {!pendingStories?.length ? (
+            <p className="font-body text-muted-ink" style={{ fontSize: "0.88rem" }}>No stories awaiting review.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={tableStyle}>
+                <thead style={{ borderBottom: "1px solid rgba(74,59,42,0.4)" }}>
+                  <tr>
+                    <TH>Title</TH>
+                    <TH>Author</TH>
+                    <TH>Type</TH>
+                    <TH>Date</TH>
+                    <TH>Actions</TH>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingStories.map((s) => (
+                    <tr key={s.id} style={rowStyle}>
+                      <Cell>
+                        <Link
+                          href={`/stories/${s.id}/edit`}
+                          className="hover:text-neon-green transition-colors duration-150"
+                        >
+                          {s.title}
+                        </Link>
+                        {s.excerpt && (
+                          <span className="font-body text-muted-ink block" style={{ fontSize: "0.72rem", marginTop: "2px" }}>
+                            {s.excerpt.length > 70 ? s.excerpt.slice(0, 70) + "…" : s.excerpt}
+                          </span>
+                        )}
+                      </Cell>
+                      <Cell muted>{s.author_handle}</Cell>
+                      <Cell muted>{s.type}</Cell>
+                      <Cell muted>
+                        {new Date(s.created_at).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
+                      </Cell>
+                      <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
+                        <StoryModerationActions id={s.id} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Section>
+
+        {/* Chaos moderation */}
+        <Section title={`CHAOS WALL (${chaos?.length ?? 0})`}>
+          {!chaos?.length ? (
+            <p className="font-body text-muted-ink" style={{ fontSize: "0.88rem" }}>No submissions.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={tableStyle}>
+                <thead style={{ borderBottom: "1px solid rgba(74,59,42,0.4)" }}>
+                  <tr>
+                    <TH>Image</TH>
+                    <TH>Author</TH>
+                    <TH>Type</TH>
+                    <TH>Caption</TH>
+                    <TH>Date</TH>
+                    <TH>Actions</TH>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chaos.map((c) => (
+                    <tr key={c.id} style={rowStyle}>
+                      <Cell>
+                        {c.image_url ? (
+                          <div style={{ position: "relative", width: 48, height: 48, flexShrink: 0 }}>
+                            <Image
+                              src={c.image_url}
+                              alt=""
+                              fill
+                              sizes="48px"
+                              className="object-cover"
+                              style={{ filter: "grayscale(20%)" }}
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            style={{ width: 48, height: 48, background: "rgba(74,59,42,0.3)" }}
+                          />
+                        )}
+                      </Cell>
+                      <Cell>@{c.author_handle}</Cell>
+                      <Cell muted>{c.type}</Cell>
+                      <Cell muted>
+                        {c.caption
+                          ? c.caption.length > 60
+                            ? c.caption.slice(0, 60) + "…"
+                            : c.caption
+                          : "—"}
+                      </Cell>
+                      <Cell muted>
+                        {new Date(c.created_at).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
+                      </Cell>
+                      <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
+                        <ChaosActions id={c.id} initialStatus={c.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Section>
+
+        {/* All stories */}
+        <Section title={`ALL STORIES (${allStories?.length ?? 0})`}>
+          {!allStories?.length ? (
+            <p className="font-body text-muted-ink" style={{ fontSize: "0.88rem" }}>No stories yet.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={tableStyle}>
+                <thead style={{ borderBottom: "1px solid rgba(74,59,42,0.4)" }}>
+                  <tr>
+                    <TH>Title</TH>
+                    <TH>Author</TH>
+                    <TH>Type</TH>
+                    <TH>Status</TH>
+                    <TH>Date</TH>
+                    <TH>Actions</TH>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allStories.map((s) => {
+                    const badge =
+                      s.status === "published"
+                        ? { bg: "#9BFF3C", fg: "#111111" }
+                        : s.status === "pending"
+                        ? { bg: "#FF6B1A", fg: "#111111" }
+                        : { bg: "rgba(74,59,42,0.4)", fg: "#8B7355" };
+                    return (
+                      <tr key={s.id} style={rowStyle}>
+                        <Cell>
+                          <Link
+                            href={s.status === "published" ? `/stories/${s.id}` : `/stories/${s.id}/edit`}
+                            className="hover:text-neon-green transition-colors duration-150"
+                          >
+                            {s.title}
+                          </Link>
+                        </Cell>
+                        <Cell muted>{s.author_handle}</Cell>
+                        <Cell muted>{s.type}</Cell>
+                        <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
+                          <span
+                            className="font-body font-semibold"
+                            style={{ fontSize: "0.6rem", letterSpacing: "0.1em", padding: "3px 8px", background: badge.bg, color: badge.fg, textTransform: "uppercase" }}
+                          >
+                            {s.status}
+                          </span>
+                        </td>
+                        <Cell muted>
+                          {new Date(s.created_at).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
+                        </Cell>
+                        <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
+                          <StoryModerationActions id={s.id} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Section>
+
+        {/* Expeditions */}
+        <Section title={`EXPEDITIONS (${expeditions?.length ?? 0})`}>
+          <AdminExpeditionForm />
+          {!expeditions?.length ? (
+            <p className="font-body text-muted-ink" style={{ fontSize: "0.88rem" }}>No expeditions.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={tableStyle}>
+                <thead style={{ borderBottom: "1px solid rgba(74,59,42,0.4)" }}>
+                  <tr>
+                    <TH>Name</TH>
+                    <TH>Location</TH>
+                    <TH>Difficulty</TH>
+                    <TH>Date</TH>
+                    <TH>Members</TH>
+                    <TH>Actions</TH>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expeditions.map((e) => {
+                    const count = (e.expedition_members as { count: number }[])[0]?.count ?? 0;
+                    return (
+                      <tr key={e.id} style={rowStyle}>
+                        <Cell>
+                          <Link
+                            href={`/expeditions/${e.id}`}
+                            className="hover:text-neon-green transition-colors duration-150"
+                          >
+                            {e.name}
+                          </Link>
+                        </Cell>
+                        <Cell muted>{e.location}</Cell>
+                        <Cell muted>{e.difficulty}</Cell>
+                        <Cell muted>
+                          {new Date(e.date_start).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
+                        </Cell>
+                        <Cell muted>
+                          {count} / {e.quota_max}
+                        </Cell>
+                        <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
+                          <ExpeditionDeleteButton id={e.id} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Section>
+
+      </div>
+    </div>
+  );
+}

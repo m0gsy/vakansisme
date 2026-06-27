@@ -1,0 +1,70 @@
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+
+const VALID_TYPES = ["photo dump", "short story", "video POV", "chaos moment"];
+
+export async function POST(req: Request) {
+  // `submit` true => send for admin review (pending); false/absent => private draft.
+  // Users can never self-publish; only an admin flips a story to published.
+  const { type, title, excerpt, content, image_url, submit } = await req.json();
+
+  if (!VALID_TYPES.includes(type)) {
+    return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+  }
+  if (!title?.trim()) {
+    return NextResponse.json({ error: "Title required" }, { status: 400 });
+  }
+
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: (list) =>
+          list.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          ),
+      },
+    }
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Login required" }, { status: 401 });
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", user.id)
+    .single();
+
+  const author_handle = profile?.username
+    ? `@${profile.username}`
+    : `@${user.email?.split("@")[0] ?? "anon"}`;
+
+  const { data, error } = await supabase
+    .from("stories")
+    .insert({
+      author_id: user.id,
+      author_handle,
+      type,
+      title: title.trim(),
+      excerpt: excerpt?.trim() || null,
+      content: content?.trim() || null,
+      image_url: image_url?.trim() || null,
+      published: false,
+      status: submit === true ? "pending" : "draft",
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ id: data.id });
+}
