@@ -1,0 +1,9 @@
+{
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "caveman@caveman": true,
+    "taste-skill@taste-skill": true,
+    "ponytail@ponytail": true,
+    "impeccable@impeccable": true
+  }
+}

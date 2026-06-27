@@ -141,7 +141,12 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="font-body text-muted-ink text-center mt-8" style={{ fontSize: "0.82rem" }}>
+        <p className="font-body text-muted-ink text-center mt-6" style={{ fontSize: "0.82rem" }}>
+          <Link href="/forgot-password" className="text-muted-ink hover:text-off-white transition-colors duration-150">
+            Forgot password?
+          </Link>
+        </p>
+        <p className="font-body text-muted-ink text-center mt-3" style={{ fontSize: "0.82rem" }}>
           No account?{" "}
           <Link href="/register" className="text-neon-green hover:text-chaos-orange transition-colors duration-150">
             Register here

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 export default function JoinButton({
   tripId,
@@ -10,16 +9,22 @@ export default function JoinButton({
   quotaMax,
   currentUserId,
   initialJoined,
+  initialOnWaitlist,
+  initialWaitlistCount,
 }: {
   tripId: string;
   initialCount: number;
   quotaMax: number;
   currentUserId: string | null;
   initialJoined: boolean;
+  initialOnWaitlist?: boolean;
+  initialWaitlistCount?: number;
 }) {
   const router = useRouter();
   const [count, setCount] = useState(initialCount);
   const [joined, setJoined] = useState(initialJoined);
+  const [onWaitlist, setOnWaitlist] = useState(initialOnWaitlist ?? false);
+  const [waitlistCount, setWaitlistCount] = useState(initialWaitlistCount ?? 0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -59,29 +64,81 @@ export default function JoinButton({
     setLoading(false);
   }
 
+  async function handleWaitlist() {
+    if (!currentUserId) { router.push("/login"); return; }
+    setError("");
+    setLoading(true);
+    const res = await fetch(`/api/expeditions/${tripId}/waitlist`, { method: "POST" });
+    const json = await res.json();
+    if (res.ok) {
+      setOnWaitlist(true);
+      setWaitlistCount(json.waitlist_count);
+    } else {
+      setError(json.error ?? "Something went wrong");
+    }
+    setLoading(false);
+  }
+
+  async function handleLeaveWaitlist() {
+    setLoading(true);
+    const res = await fetch(`/api/expeditions/${tripId}/waitlist`, { method: "DELETE" });
+    const json = await res.json();
+    if (res.ok) {
+      setOnWaitlist(false);
+      setWaitlistCount(json.waitlist_count);
+    }
+    setLoading(false);
+  }
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "8px" }}>
-        <button
-          onClick={joined ? undefined : handleJoin}
-          disabled={loading || (!joined && full)}
-          className="font-body font-semibold transition-all duration-150 disabled:opacity-50"
-          style={{
-            fontSize: "0.75rem",
-            letterSpacing: "0.14em",
-            padding: "14px 40px",
-            border: "none",
-            cursor: (loading || (!joined && full)) ? "not-allowed" : "pointer",
-            background: joined ? "#9BFF3C" : full ? "rgba(74,59,42,0.4)" : "#9BFF3C",
-            color: "#111111",
-          }}
-        >
-          {loading ? "..." : joined ? "JOINED ✓" : full ? "TRIP FULL" : "JOIN TRIP"}
-        </button>
+        {joined ? (
+          <button
+            disabled
+            className="font-body font-semibold"
+            style={{ fontSize: "0.75rem", letterSpacing: "0.14em", padding: "14px 40px", border: "none", background: "#9BFF3C", color: "#111111", opacity: 1 }}
+          >
+            JOINED ✓
+          </button>
+        ) : full ? (
+          <button
+            onClick={onWaitlist ? handleLeaveWaitlist : handleWaitlist}
+            disabled={loading}
+            className="font-body font-semibold transition-all duration-150 disabled:opacity-50"
+            style={{
+              fontSize: "0.75rem",
+              letterSpacing: "0.14em",
+              padding: "14px 40px",
+              border: onWaitlist ? "1px solid rgba(155,255,60,0.4)" : "1px solid rgba(74,59,42,0.4)",
+              background: "transparent",
+              color: onWaitlist ? "#9BFF3C" : "#8B7355",
+              cursor: loading ? "not-allowed" : "pointer",
+            }}
+          >
+            {loading ? "..." : onWaitlist ? "ON WAITLIST ✓" : "JOIN WAITLIST"}
+          </button>
+        ) : (
+          <button
+            onClick={handleJoin}
+            disabled={loading}
+            className="font-body font-semibold transition-all duration-150 disabled:opacity-50"
+            style={{ fontSize: "0.75rem", letterSpacing: "0.14em", padding: "14px 40px", border: "none", background: "#9BFF3C", color: "#111111", cursor: loading ? "not-allowed" : "pointer" }}
+          >
+            {loading ? "JOINING..." : "JOIN TRIP"}
+          </button>
+        )}
         <span className="font-body text-muted-ink" style={{ fontSize: "0.82rem" }}>
           {count} / {quotaMax} slots filled
         </span>
       </div>
+
+      {full && waitlistCount > 0 && (
+        <p className="font-body text-muted-ink" style={{ fontSize: "0.72rem", marginBottom: "4px" }}>
+          {waitlistCount} on waitlist
+        </p>
+      )}
+
       {joined && !loading && (
         <button
           onClick={handleLeave}
@@ -91,6 +148,7 @@ export default function JoinButton({
           leave trip
         </button>
       )}
+
       {error && (
         <p className="font-body text-chaos-orange" style={{ fontSize: "0.78rem", marginTop: "6px" }}>{error}</p>
       )}

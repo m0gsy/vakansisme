@@ -7,6 +7,7 @@ import JoinButton from "@/components/JoinButton";
 import RealtimeQuota from "@/components/RealtimeQuota";
 import { difficultyLabel, getDifficulty } from "@/lib/difficulty";
 import ExpeditionGallery from "@/components/ExpeditionGallery";
+import ExpeditionComments from "@/components/ExpeditionComments";
 
 type Params = Promise<{ id: string }>;
 
@@ -46,15 +47,21 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
   const memberCount = (trip.expedition_members as { count: number }[])[0]?.count ?? 0;
 
-  const [{ data: members }, { data: gallery }, { data: membership }] = await Promise.all([
+  const [{ data: members }, { data: gallery }, { data: membership }, { data: comments }, { data: waitlistRow }, { count: waitlistCount }] = await Promise.all([
     supabase.from("expedition_members").select("user_id, profiles(username, avatar_url)").eq("expedition_id", id).limit(20),
     supabase.from("expedition_gallery").select("id, uploader_id, uploader_handle, image_url, caption, created_at").eq("expedition_id", id).order("created_at", { ascending: true }),
     user
       ? supabase.from("expedition_members").select("user_id").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase.from("expedition_comments").select("id, author_id, author_handle, content, created_at").eq("expedition_id", id).order("created_at", { ascending: true }),
+    user
+      ? supabase.from("expedition_waitlist").select("user_id").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase.from("expedition_waitlist").select("*", { count: "exact", head: true }).eq("expedition_id", id),
   ]);
 
   const userJoined = !!membership;
+  const onWaitlist = !!waitlistRow;
 
   const days = daysUntil(trip.date_start);
   const dateStr = new Date(trip.date_start).toLocaleDateString("en", { day: "numeric", month: "long", year: "numeric" });
@@ -177,6 +184,8 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                 quotaMax={trip.quota_max}
                 currentUserId={user?.id ?? null}
                 initialJoined={userJoined}
+                initialOnWaitlist={onWaitlist}
+                initialWaitlistCount={waitlistCount ?? 0}
               />
             </div>
 
@@ -255,6 +264,11 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
           expeditionId={id}
           initialPhotos={gallery ?? []}
           isMember={userJoined}
+          currentUserId={user?.id ?? null}
+        />
+        <ExpeditionComments
+          expeditionId={id}
+          initialComments={comments ?? []}
           currentUserId={user?.id ?? null}
         />
       </div>

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import StoryComments from "@/components/StoryComments";
+import StoryLikeButton from "@/components/StoryLikeButton";
 
 type Params = Promise<{ id: string }>;
 
@@ -29,9 +30,13 @@ export default async function StoryPage({ params }: { params: Params }) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: story }, { data: comments }] = await Promise.all([
+  const [{ data: story }, { data: comments }, { count: likeCount }, { data: userLike }] = await Promise.all([
     supabase.from("stories").select("*").eq("id", id).eq("published", true).single(),
     supabase.from("story_comments").select("id, author_id, author_handle, content, created_at").eq("story_id", id).order("created_at", { ascending: true }),
+    supabase.from("story_likes").select("*", { count: "exact", head: true }).eq("story_id", id),
+    user
+      ? supabase.from("story_likes").select("user_id").eq("story_id", id).eq("user_id", user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   if (!story) notFound();
@@ -113,6 +118,16 @@ export default async function StoryPage({ params }: { params: Params }) {
           <span className="font-body text-muted-ink" style={{ fontSize: "0.78rem" }}>
             {new Date(story.created_at).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
           </span>
+        </div>
+
+        {/* Like */}
+        <div style={{ marginBottom: "32px" }}>
+          <StoryLikeButton
+            storyId={id}
+            initialCount={likeCount ?? 0}
+            initialLiked={!!userLike}
+            currentUserId={user?.id ?? null}
+          />
         </div>
 
         {/* Excerpt */}

@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { sendJoinConfirmationEmail } from "@/lib/email";
+import { sendJoinConfirmationEmail, sendLeaderJoinEmail } from "@/lib/email";
 
 type Params = Promise<{ id: string }>;
 
@@ -62,7 +62,7 @@ export async function POST(_req: Request, { params }: { params: Params }) {
 
   const { data: trip } = await supabase
     .from("expeditions")
-    .select("name, location, date_start")
+    .select("name, location, date_start, leader_handle")
     .eq("id", id)
     .single();
 
@@ -74,6 +74,21 @@ export async function POST(_req: Request, { params }: { params: Params }) {
       trip.location,
       trip.date_start
     ).catch(() => {});
+
+    // Notify leader
+    const leaderHandle = trip.leader_handle?.replace(/^@/, "");
+    if (leaderHandle) {
+      supabase
+        .from("profiles")
+        .select("email, username")
+        .eq("username", leaderHandle)
+        .maybeSingle()
+        .then(({ data: leader }) => {
+          if (leader?.email && leader.username !== profile.username) {
+            sendLeaderJoinEmail(leader.email, leader.username, profile.username, trip.name, id).catch(() => {});
+          }
+        });
+    }
   }
 
   return NextResponse.json({ success: true, member_count: count + 1 });

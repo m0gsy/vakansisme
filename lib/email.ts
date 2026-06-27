@@ -116,6 +116,69 @@ export async function sendStoryRejectedEmail(to: string, username: string, story
   });
 }
 
+export async function sendLeaderJoinEmail(
+  to: string,
+  leaderUsername: string,
+  memberUsername: string,
+  tripName: string,
+  tripId: string
+) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `@${memberUsername} joined your trip — ${tripName}`,
+    html: base(`
+      <tr><td>
+        <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.14em;color:#9BFF3C;text-transform:uppercase;">NEW CREW MEMBER</p>
+        <h1 style="margin:0 0 16px;font-size:38px;font-weight:900;letter-spacing:-0.025em;line-height:0.9;color:#F0EDEA;text-transform:uppercase;">
+          ${tripName}
+        </h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#8B7355;">
+          Hey @${leaderUsername}, <strong style="color:#F0EDEA;">@${memberUsername}</strong> just joined your expedition.
+        </p>
+        <a href="${SITE_URL}/expeditions/${tripId}" style="display:inline-block;background:#9BFF3C;color:#111111;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:12px 28px;">
+          VIEW EXPEDITION →
+        </a>
+      </td></tr>
+    `),
+  });
+}
+
+export async function sendGalleryStatusEmail(
+  to: string,
+  username: string,
+  status: "approved" | "rejected",
+  tripName: string
+) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
+  const approved = status === "approved";
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: approved ? `Your photo is live — ${tripName}` : `Photo update — ${tripName}`,
+    html: base(`
+      <tr><td>
+        <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.14em;color:${approved ? "#9BFF3C" : "#FF6B1A"};text-transform:uppercase;">
+          PHOTO ${approved ? "APPROVED" : "NOT APPROVED"}
+        </p>
+        <h1 style="margin:0 0 16px;font-size:38px;font-weight:900;letter-spacing:-0.025em;line-height:0.9;color:#F0EDEA;text-transform:uppercase;">
+          ${tripName}
+        </h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#8B7355;">
+          ${approved
+            ? `Hey @${username}, your photo is now live in the trip gallery.`
+            : `Hey @${username}, your photo wasn't approved for the gallery this time.`
+          }
+        </p>
+        <a href="${SITE_URL}" style="display:inline-block;background:${approved ? "#9BFF3C" : "rgba(255,107,26,0.15)"};color:${approved ? "#111111" : "#FF6B1A"};font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:12px 28px;${approved ? "" : "border:1px solid rgba(255,107,26,0.4);"}">
+          VIEW EXPEDITIONS →
+        </a>
+      </td></tr>
+    `),
+  });
+}
+
 export async function sendNewsletterEmail(to: string[], subject: string, html: string) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return { sent: 0 };
   const batches = [];
