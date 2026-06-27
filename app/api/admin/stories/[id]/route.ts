@@ -35,7 +35,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
   const { error } = await supabase.from("stories").update(updates).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Send notification email (fire-and-forget, don't block response)
+  // Email + in-app notification (fire-and-forget)
   supabase
     .from("stories")
     .select("title, author_id, profiles!stories_author_id_fkey(email, username)")
@@ -44,12 +44,21 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     .then(({ data: story }) => {
       if (!story) return;
       const profile = Array.isArray(story.profiles) ? story.profiles[0] : story.profiles as { email?: string; username?: string } | null;
-      if (!profile?.email) return;
-      if (action === "approve") {
-        sendStoryApprovedEmail(profile.email, profile.username ?? "", story.title, id).catch(() => {});
-      } else {
-        sendStoryRejectedEmail(profile.email, profile.username ?? "", story.title).catch(() => {});
+      if (profile?.email) {
+        if (action === "approve") {
+          sendStoryApprovedEmail(profile.email, profile.username ?? "", story.title, id).catch(() => {});
+        } else {
+          sendStoryRejectedEmail(profile.email, profile.username ?? "", story.title).catch(() => {});
+        }
       }
+      // In-app notification
+      supabase.from("notifications").insert({
+        user_id: story.author_id,
+        type: action === "approve" ? "story_approved" : "story_rejected",
+        title: action === "approve" ? `Your story was published` : `Your story was not approved`,
+        body: story.title,
+        link: action === "approve" ? `/stories/${id}` : null,
+      }).catch(() => {});
     });
 
   return NextResponse.json({ ok: true });

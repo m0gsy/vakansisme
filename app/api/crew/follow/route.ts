@@ -50,6 +50,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  // In-app notification (fire-and-forget)
+  supabase.from("profiles").select("username").eq("id", user.id).single().then(({ data: followerProfile }) => {
+    supabase.from("notifications").insert({
+      user_id: following_id,
+      type: "new_follower",
+      title: `@${followerProfile?.username ?? "someone"} followed you`,
+      link: `/u/${followerProfile?.username ?? ""}`,
+    }).catch(() => {});
+  });
+
   return NextResponse.json({ success: true });
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -30,6 +30,24 @@ export default function NewStoryPage() {
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftId = useRef<string | null>(null);
+
+  function scheduleSave(fields: { type: string; title: string; excerpt: string; content: string; image_url: string }) {
+    if (!fields.title.trim()) return;
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(async () => {
+      const body: Record<string, unknown> = { ...fields, submit: false };
+      if (draftId.current) body.id = draftId.current;
+      const res = await fetch("/api/stories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.id) draftId.current = json.id;
+        setSavedAt(new Date());
+      }
+    }, 2000);
+  }
 
   useEffect(() => {
     const supabase = createClient();
@@ -104,7 +122,7 @@ export default function NewStoryPage() {
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setType(t)}
+                  onClick={() => { setType(t); scheduleSave({ type: t, title, excerpt, content, image_url: imageUrl }); }}
                   className="font-body font-semibold transition-all duration-150"
                   style={{
                     fontSize: "0.68rem",
@@ -134,7 +152,7 @@ export default function NewStoryPage() {
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => { setTitle(e.target.value); scheduleSave({ type, title: e.target.value, excerpt, content, image_url: imageUrl }); }}
               required
               placeholder="Give it a name"
               className="font-display font-bold uppercase text-off-white placeholder:text-muted-ink focus:outline-none"
@@ -155,7 +173,7 @@ export default function NewStoryPage() {
             <input
               type="text"
               value={excerpt}
-              onChange={(e) => setExcerpt(e.target.value)}
+              onChange={(e) => { setExcerpt(e.target.value); scheduleSave({ type, title, excerpt: e.target.value, content, image_url: imageUrl }); }}
               maxLength={160}
               placeholder="One punchy line"
               className="font-body text-off-white placeholder:text-muted-ink focus:outline-none"
@@ -175,7 +193,7 @@ export default function NewStoryPage() {
             </label>
             <textarea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => { setContent(e.target.value); scheduleSave({ type, title, excerpt, content: e.target.value, image_url: imageUrl }); }}
               rows={12}
               placeholder="What actually happened out there..."
               className="font-body text-off-white placeholder:text-muted-ink focus:outline-none resize-none"
@@ -206,6 +224,11 @@ export default function NewStoryPage() {
             </p>
           )}
 
+          {savedAt && (
+            <p className="font-body text-muted-ink" style={{ fontSize: "0.68rem", letterSpacing: "0.06em" }}>
+              Draft saved {savedAt.toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit" })}
+            </p>
+          )}
           <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
             <button
               type="submit"

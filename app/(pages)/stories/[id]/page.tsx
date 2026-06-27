@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import StoryComments from "@/components/StoryComments";
 import StoryLikeButton from "@/components/StoryLikeButton";
+import ShareButtons from "@/components/ShareButtons";
 
 type Params = Promise<{ id: string }>;
 
@@ -40,6 +41,16 @@ export default async function StoryPage({ params }: { params: Params }) {
   ]);
 
   if (!story) notFound();
+
+  const { data: related } = await supabase
+    .from("stories")
+    .select("id, title, type, image_url, author_handle")
+    .eq("published", true)
+    .eq("type", story.type)
+    .neq("id", id)
+    .limit(3);
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.com";
 
   return (
     <div className="min-h-screen bg-charcoal">
@@ -120,14 +131,15 @@ export default async function StoryPage({ params }: { params: Params }) {
           </span>
         </div>
 
-        {/* Like */}
-        <div style={{ marginBottom: "32px" }}>
+        {/* Like + Share */}
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", marginBottom: "32px" }}>
           <StoryLikeButton
             storyId={id}
             initialCount={likeCount ?? 0}
             initialLiked={!!userLike}
             currentUserId={user?.id ?? null}
           />
+          <ShareButtons title={story.title} url={`${siteUrl}/stories/${id}`} />
         </div>
 
         {/* Excerpt */}
@@ -159,6 +171,52 @@ export default async function StoryPage({ params }: { params: Params }) {
           initialComments={comments ?? []}
           currentUserId={user?.id ?? null}
         />
+
+        {/* Related stories */}
+        {!!related?.length && (
+          <section style={{ marginTop: "64px", paddingTop: "40px", borderTop: "1px solid rgba(74,59,42,0.3)" }}>
+            <h2
+              className="font-display font-black uppercase text-off-white"
+              style={{ fontSize: "clamp(1rem, 2.5vw, 1.4rem)", letterSpacing: "-0.02em", marginBottom: "20px" }}
+            >
+              MORE {story.type.toUpperCase()}
+            </h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {related.map((r) => (
+                <Link
+                  key={r.id}
+                  href={`/stories/${r.id}`}
+                  className="group"
+                  style={{
+                    display: "flex",
+                    gap: "14px",
+                    alignItems: "center",
+                    padding: "12px 14px",
+                    background: "#1a1a1a",
+                    border: "1px solid rgba(74,59,42,0.3)",
+                  }}
+                >
+                  {r.image_url && (
+                    <div className="relative flex-shrink-0" style={{ width: "56px", height: "40px" }}>
+                      <Image src={r.image_url} alt={r.title} fill sizes="56px" className="object-cover" style={{ filter: "grayscale(20%)" }} />
+                    </div>
+                  )}
+                  <div>
+                    <p
+                      className="font-display font-bold uppercase text-off-white group-hover:text-neon-green transition-colors duration-150"
+                      style={{ fontSize: "0.85rem", letterSpacing: "-0.01em" }}
+                    >
+                      {r.title}
+                    </p>
+                    <p className="font-body text-muted-ink" style={{ fontSize: "0.68rem", marginTop: "2px" }}>
+                      {r.author_handle}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

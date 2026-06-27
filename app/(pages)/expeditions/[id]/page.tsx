@@ -8,6 +8,8 @@ import RealtimeQuota from "@/components/RealtimeQuota";
 import { difficultyLabel, getDifficulty } from "@/lib/difficulty";
 import ExpeditionGallery from "@/components/ExpeditionGallery";
 import ExpeditionComments from "@/components/ExpeditionComments";
+import ExpeditionUpdates from "@/components/ExpeditionUpdates";
+import ShareButtons from "@/components/ShareButtons";
 
 type Params = Promise<{ id: string }>;
 
@@ -47,7 +49,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
   const memberCount = (trip.expedition_members as { count: number }[])[0]?.count ?? 0;
 
-  const [{ data: members }, { data: gallery }, { data: membership }, { data: comments }, { data: waitlistRow }, { count: waitlistCount }] = await Promise.all([
+  const [{ data: members }, { data: gallery }, { data: membership }, { data: comments }, { data: waitlistRow }, { count: waitlistCount }, { data: updates }] = await Promise.all([
     supabase.from("expedition_members").select("user_id, profiles(username, avatar_url)").eq("expedition_id", id).limit(20),
     supabase.from("expedition_gallery").select("id, uploader_id, uploader_handle, image_url, caption, created_at").eq("expedition_id", id).order("created_at", { ascending: true }),
     user
@@ -58,10 +60,17 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
       ? supabase.from("expedition_waitlist").select("user_id").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.from("expedition_waitlist").select("*", { count: "exact", head: true }).eq("expedition_id", id),
+    supabase.from("expedition_updates").select("id, author_id, content, created_at, profiles(username)").eq("expedition_id", id).order("created_at", { ascending: false }),
   ]);
 
   const userJoined = !!membership;
   const onWaitlist = !!waitlistRow;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.com";
+  const leaderHandle = trip.leader_handle?.replace(/^@/, "");
+  const { data: callerProfile } = user
+    ? await supabase.from("profiles").select("username, is_admin").eq("id", user.id).single()
+    : { data: null };
+  const isLeader = !!(callerProfile && (callerProfile.username === leaderHandle || callerProfile.is_admin));
 
   const days = daysUntil(trip.date_start);
   const dateStr = new Date(trip.date_start).toLocaleDateString("en", { day: "numeric", month: "long", year: "numeric" });
@@ -124,13 +133,29 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
         <div style={{ display: "flex", gap: "56px", flexWrap: "wrap", alignItems: "flex-start" }}>
           {/* Main info */}
           <div style={{ flex: "2 1 320px" }}>
-            {/* Difficulty tag */}
-            <span
-              className="font-body font-semibold text-charcoal bg-neon-green inline-block"
-              style={{ fontSize: "0.65rem", letterSpacing: "0.1em", padding: "4px 10px", marginBottom: "16px" }}
-            >
-              {difficultyLabel(trip.difficulty)}
-            </span>
+            {/* Status + Difficulty tags */}
+            <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "16px", flexWrap: "wrap" }}>
+              <span
+                className="font-body font-semibold text-charcoal bg-neon-green inline-block"
+                style={{ fontSize: "0.65rem", letterSpacing: "0.1em", padding: "4px 10px" }}
+              >
+                {difficultyLabel(trip.difficulty)}
+              </span>
+              {trip.status && trip.status !== "upcoming" && (
+                <span
+                  className="font-body font-semibold inline-block"
+                  style={{
+                    fontSize: "0.65rem",
+                    letterSpacing: "0.1em",
+                    padding: "4px 10px",
+                    background: trip.status === "ongoing" ? "#FF6B1A" : trip.status === "completed" ? "#4A3B2A" : "#7A2E12",
+                    color: "#F0EDEA",
+                  }}
+                >
+                  {(trip.status as string).toUpperCase()}
+                </span>
+              )}
+            </div>
 
             <h1
               className="font-display font-black uppercase text-off-white"
@@ -176,6 +201,11 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
               </div>
             )}
 
+            {/* Share */}
+            <div style={{ marginBottom: "20px" }}>
+              <ShareButtons title={trip.name} url={`${siteUrl}/expeditions/${id}`} />
+            </div>
+
             {/* Join */}
             <div style={{ marginBottom: "48px" }}>
               <JoinButton
@@ -203,20 +233,32 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                     const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles as { username: string; avatar_url: string | null } | null;
                     if (!profile) return null;
                     return (
-                      <Link
-                        key={m.user_id}
-                        href={`/u/${profile.username}`}
-                        className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-150"
-                        style={{
-                          fontSize: "0.72rem",
-                          letterSpacing: "0.06em",
-                          padding: "6px 12px",
-                          border: "1px solid rgba(74,59,42,0.4)",
-                          background: "#1a1a1a",
-                        }}
-                      >
-                        @{profile.username}
-                      </Link>
+                      <div key={m.user_id} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <Link
+                          href={`/u/${profile.username}`}
+                          className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-150"
+                          style={{ fontSize: "0.72rem", letterSpacing: "0.06em", padding: "6px 12px", border: "1px solid rgba(74,59,42,0.4)", background: "#1a1a1a" }}
+                        >
+                          @{profile.username}
+                        </Link>
+                        {isLeader && m.user_id !== user?.id && (
+                          <form action={`/api/expeditions/${id}/members/${m.user_id}`} method="DELETE">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!confirm(`Remove @${profile.username}?`)) return;
+                                await fetch(`/api/expeditions/${id}/members/${m.user_id}`, { method: "DELETE" });
+                                window.location.reload();
+                              }}
+                              className="font-body text-muted-ink hover:text-chaos-orange transition-colors duration-150"
+                              style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.6rem", padding: "4px 6px" }}
+                              title="Remove member"
+                            >
+                              ✕
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -265,6 +307,12 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
           initialPhotos={gallery ?? []}
           isMember={userJoined}
           currentUserId={user?.id ?? null}
+        />
+        <ExpeditionUpdates
+          expeditionId={id}
+          initialUpdates={(updates ?? []) as Parameters<typeof ExpeditionUpdates>[0]["initialUpdates"]}
+          currentUserId={user?.id ?? null}
+          isLeader={isLeader}
         />
         <ExpeditionComments
           expeditionId={id}

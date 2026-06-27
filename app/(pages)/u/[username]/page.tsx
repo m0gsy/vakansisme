@@ -16,7 +16,7 @@ export default async function ProfilePage({ params }: { params: Params }) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, bio, avatar_url, follows!follows_following_id_fkey(count)")
+    .select("id, username, bio, avatar_url, instagram_handle, strava_url, follows!follows_following_id_fkey(count)")
     .eq("username", username)
     .single();
 
@@ -36,7 +36,7 @@ export default async function ProfilePage({ params }: { params: Params }) {
     isFollowing = !!data;
   }
 
-  const [{ data: stories }, { data: expeditions }, { data: chaos }] = await Promise.all([
+  const [{ data: stories }, { data: expeditions }, { data: chaos }, { count: storyCount }, { count: tripCount }] = await Promise.all([
     supabase
       .from("stories")
       .select("id, type, title, excerpt, image_url, created_at")
@@ -56,6 +56,15 @@ export default async function ProfilePage({ params }: { params: Params }) {
       .eq("status", "approved")
       .order("created_at", { ascending: false })
       .limit(3),
+    supabase
+      .from("stories")
+      .select("*", { count: "exact", head: true })
+      .eq("author_id", profile.id)
+      .eq("published", true),
+    supabase
+      .from("expedition_members")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", profile.id),
   ]);
 
   let drafts: Array<{ id: string; type: string; title: string; created_at: string; status: string }> = [];
@@ -111,9 +120,55 @@ export default async function ProfilePage({ params }: { params: Params }) {
               @{profile.username}
             </h1>
             {profile.bio && (
-              <p className="font-body text-muted-ink" style={{ fontSize: "0.88rem", marginBottom: "16px", maxWidth: "48ch" }}>
+              <p className="font-body text-muted-ink" style={{ fontSize: "0.88rem", marginBottom: "12px", maxWidth: "48ch" }}>
                 {profile.bio}
               </p>
+            )}
+
+            {/* Stats */}
+            <div style={{ display: "flex", gap: "24px", marginBottom: "16px", flexWrap: "wrap" }}>
+              {[
+                { label: "TRIPS", value: tripCount ?? 0 },
+                { label: "STORIES", value: storyCount ?? 0 },
+                { label: "FOLLOWERS", value: followerCount },
+              ].map(({ label, value }) => (
+                <div key={label}>
+                  <p className="font-display font-black text-off-white" style={{ fontSize: "1.2rem", letterSpacing: "-0.02em", lineHeight: 1 }}>
+                    {value}
+                  </p>
+                  <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.14em", marginTop: "2px" }}>
+                    {label}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Social links */}
+            {(profile.instagram_handle || profile.strava_url) && (
+              <div style={{ display: "flex", gap: "12px", marginBottom: "16px", flexWrap: "wrap" }}>
+                {profile.instagram_handle && (
+                  <a
+                    href={`https://instagram.com/${profile.instagram_handle}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-150"
+                    style={{ fontSize: "0.68rem", letterSpacing: "0.08em", border: "1px solid rgba(74,59,42,0.4)", padding: "6px 14px", textDecoration: "none" }}
+                  >
+                    IG @{profile.instagram_handle}
+                  </a>
+                )}
+                {profile.strava_url && (
+                  <a
+                    href={profile.strava_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-150"
+                    style={{ fontSize: "0.68rem", letterSpacing: "0.08em", border: "1px solid rgba(74,59,42,0.4)", padding: "6px 14px", textDecoration: "none" }}
+                  >
+                    STRAVA ↗
+                  </a>
+                )}
+              </div>
             )}
 
             {isSelf ? (

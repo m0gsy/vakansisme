@@ -75,18 +75,25 @@ export async function POST(_req: Request, { params }: { params: Params }) {
       trip.date_start
     ).catch(() => {});
 
-    // Notify leader
+    // Notify leader (email + in-app)
     const leaderHandle = trip.leader_handle?.replace(/^@/, "");
     if (leaderHandle) {
       supabase
         .from("profiles")
-        .select("email, username")
+        .select("id, email, username")
         .eq("username", leaderHandle)
         .maybeSingle()
         .then(({ data: leader }) => {
-          if (leader?.email && leader.username !== profile.username) {
+          if (!leader || leader.username === profile.username) return;
+          if (leader.email) {
             sendLeaderJoinEmail(leader.email, leader.username, profile.username, trip.name, id).catch(() => {});
           }
+          supabase.from("notifications").insert({
+            user_id: leader.id,
+            type: "join",
+            title: `@${profile.username} joined ${trip.name}`,
+            link: `/expeditions/${id}`,
+          }).catch(() => {});
         });
     }
   }

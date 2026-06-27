@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import NotificationBell from "@/components/NotificationBell";
 
 const links = [
   { href: "/expeditions", label: "EXPEDITIONS" },
@@ -91,6 +92,18 @@ export default function Nav() {
                 >
                   MY STORIES
                 </Link>
+              </li>
+              <li>
+                <Link
+                  href="/trips"
+                  className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
+                  style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
+                >
+                  MY TRIPS
+                </Link>
+              </li>
+              <li>
+                <NotificationBell />
               </li>
               <li>
                 <Link
@@ -218,6 +231,14 @@ export default function Nav() {
                     style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}
                   >
                     MY STORIES
+                  </Link>
+                  <Link
+                    href="/trips"
+                    onClick={() => setMenuOpen(false)}
+                    className="font-body font-semibold text-off-white/60"
+                    style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}
+                  >
+                    MY TRIPS
                   </Link>
                   <Link
                     href={`/u/${username}`}

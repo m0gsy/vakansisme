@@ -112,6 +112,8 @@ export function ExpeditionDeleteButton({ id }: { id: string }) {
   );
 }
 
+const EXPEDITION_STATUSES = ["upcoming", "ongoing", "completed", "cancelled"] as const;
+
 type ExpeditionData = {
   id: string;
   name: string;
@@ -124,6 +126,7 @@ type ExpeditionData = {
   leader_handle: string;
   image_url?: string | null;
   description?: string | null;
+  status?: string | null;
 };
 
 export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }) {
@@ -142,6 +145,7 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
     quota_max: String(expedition.quota_max),
     leader_handle: expedition.leader_handle,
     description: expedition.description ?? "",
+    status: expedition.status ?? "upcoming",
   });
 
   function set(key: string, val: string) {
@@ -213,6 +217,19 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
               >
                 {DIFFICULTIES.map((d) => (
                   <option key={d.value} value={d.value} style={{ background: "#111111" }}>{d.label} — Lv.{d.level}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Status</label>
+              <select
+                value={fields.status}
+                onChange={(e) => set("status", e.target.value)}
+                className="font-body text-off-white focus:outline-none"
+                style={{ ...fieldStyle, cursor: "pointer" }}
+              >
+                {EXPEDITION_STATUSES.map((s) => (
+                  <option key={s} value={s} style={{ background: "#111111" }}>{s.toUpperCase()}</option>
                 ))}
               </select>
             </div>

@@ -24,6 +24,8 @@ export default function SettingsPage() {
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [instagramHandle, setInstagramHandle] = useState("");
+  const [stravaUrl, setStravaUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -35,13 +37,15 @@ export default function SettingsPage() {
       setUserId(data.user.id);
       const { data: profile } = await supabase
         .from("profiles")
-        .select("username, bio, avatar_url")
+        .select("username, bio, avatar_url, instagram_handle, strava_url")
         .eq("id", data.user.id)
         .single();
       if (profile) {
         setUsername(profile.username ?? "");
         setBio(profile.bio ?? "");
         setAvatarUrl(profile.avatar_url ?? "");
+        setInstagramHandle(profile.instagram_handle ?? "");
+        setStravaUrl(profile.strava_url ?? "");
       }
       setReady(true);
     });
@@ -56,7 +60,13 @@ export default function SettingsPage() {
     const supabase = createClient();
     const { error } = await supabase
       .from("profiles")
-      .update({ username: username.trim(), bio: bio.trim() || null, avatar_url: avatarUrl || null })
+      .update({
+        username: username.trim(),
+        bio: bio.trim() || null,
+        avatar_url: avatarUrl || null,
+        instagram_handle: instagramHandle.trim().replace(/^@/, "") || null,
+        strava_url: stravaUrl.trim() || null,
+      })
       .eq("id", userId);
 
     if (error) {
@@ -137,6 +147,47 @@ export default function SettingsPage() {
               placeholder="Who are you out there?"
               className="font-body text-off-white placeholder:text-muted-ink focus:outline-none resize-none"
               style={{ ...inputStyle, lineHeight: 1.7 }}
+              onFocus={(e) => (e.currentTarget.style.borderBottomColor = "#9BFF3C")}
+              onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")}
+            />
+          </div>
+
+          {/* Instagram */}
+          <div>
+            <label
+              className="font-body font-semibold text-muted-ink uppercase block mb-2"
+              style={{ fontSize: "0.65rem", letterSpacing: "0.12em" }}
+            >
+              Instagram <span style={{ textTransform: "none", letterSpacing: 0 }}>(without @)</span>
+            </label>
+            <input
+              type="text"
+              value={instagramHandle}
+              onChange={(e) => setInstagramHandle(e.target.value.replace(/\s/g, ""))}
+              maxLength={30}
+              placeholder="yourhandle"
+              className="font-body text-off-white placeholder:text-muted-ink focus:outline-none"
+              style={inputStyle}
+              onFocus={(e) => (e.currentTarget.style.borderBottomColor = "#9BFF3C")}
+              onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")}
+            />
+          </div>
+
+          {/* Strava */}
+          <div>
+            <label
+              className="font-body font-semibold text-muted-ink uppercase block mb-2"
+              style={{ fontSize: "0.65rem", letterSpacing: "0.12em" }}
+            >
+              Strava URL <span style={{ textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+            </label>
+            <input
+              type="url"
+              value={stravaUrl}
+              onChange={(e) => setStravaUrl(e.target.value)}
+              placeholder="https://www.strava.com/athletes/..."
+              className="font-body text-off-white placeholder:text-muted-ink focus:outline-none"
+              style={inputStyle}
               onFocus={(e) => (e.currentTarget.style.borderBottomColor = "#9BFF3C")}
               onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")}
             />
