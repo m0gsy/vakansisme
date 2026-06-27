@@ -85,6 +85,15 @@ export default function Nav() {
             <>
               <li>
                 <Link
+                  href="/stories/mine"
+                  className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
+                  style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
+                >
+                  MY STORIES
+                </Link>
+              </li>
+              <li>
+                <Link
                   href={`/u/${username}`}
                   className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-200"
                   style={{ fontSize: "0.7rem", letterSpacing: "0.08em" }}
@@ -202,12 +211,22 @@ export default function Nav() {
               ))}
               {user ? (
                 <li style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <span
+                  <Link
+                    href="/stories/mine"
+                    onClick={() => setMenuOpen(false)}
+                    className="font-body font-semibold text-off-white/60"
+                    style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}
+                  >
+                    MY STORIES
+                  </Link>
+                  <Link
+                    href={`/u/${username}`}
+                    onClick={() => setMenuOpen(false)}
                     className="font-body font-semibold text-muted-ink"
                     style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}
                   >
                     @{username}
-                  </span>
+                  </Link>
                   <button
                     onClick={() => { setMenuOpen(false); handleSignOut(); }}
                     className="inline-block font-body font-semibold text-charcoal bg-chaos-orange"
