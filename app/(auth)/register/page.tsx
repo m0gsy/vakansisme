@@ -30,7 +30,7 @@ export default function RegisterPage() {
     });
 
     if (error) {
-      setError(error.message);
+      setError(error.message || error.code || JSON.stringify(error));
       setLoading(false);
     } else {
       setSuccess(true);
