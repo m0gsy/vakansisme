@@ -63,7 +63,13 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
   return (
     <div className="min-h-screen bg-charcoal">
       {/* Hero */}
-      <div className="relative w-full" style={{ height: "clamp(300px, 50vw, 560px)" }}>
+      <div
+        className="relative w-full"
+        style={{
+          height: "clamp(300px, 50vw, 560px)",
+          background: trip.image_url ? undefined : "repeating-linear-gradient(135deg, #1a1a1a 0px, #1a1a1a 20px, #111111 20px, #111111 40px)",
+        }}
+      >
         {trip.image_url && (
           <Image
             src={trip.image_url}
@@ -245,15 +251,12 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
             />
           </div>
         </div>
-        {/* Gallery */}
-        <div className="max-w-5xl mx-auto px-6" style={{ paddingBottom: "80px" }}>
-          <ExpeditionGallery
-            expeditionId={id}
-            initialPhotos={gallery ?? []}
-            isMember={userJoined}
-            currentUserId={user?.id ?? null}
-          />
-        </div>
+        <ExpeditionGallery
+          expeditionId={id}
+          initialPhotos={gallery ?? []}
+          isMember={userJoined}
+          currentUserId={user?.id ?? null}
+        />
       </div>
     </div>
   );
