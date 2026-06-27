@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import ImageUpload from "@/components/ImageUpload";
 
 const TYPES = ["photo dump", "short story", "video POV", "chaos moment"] as const;
+const TAG_SUGGESTIONS = ["indonesia", "gunung", "pantai", "kota", "solo", "couple", "backpacker", "budget", "offroad", "night hike"];
 
 const inputStyle = {
   background: "transparent",
@@ -27,6 +28,8 @@ export default function NewStoryPage() {
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -71,7 +74,7 @@ export default function NewStoryPage() {
     const res = await fetch("/api/stories", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, title, excerpt, content, image_url: imageUrl, submit: forReview }),
+      body: JSON.stringify({ type, title, excerpt, content, image_url: imageUrl, tags, submit: forReview }),
     });
     const json = await res.json();
 
@@ -216,6 +219,78 @@ export default function NewStoryPage() {
               currentUrl={imageUrl}
               onUpload={(url) => setImageUrl(url)}
             />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label
+              className="font-body font-semibold text-muted-ink uppercase block mb-2"
+              style={{ fontSize: "0.65rem", letterSpacing: "0.12em" }}
+            >
+              Tags <span style={{ textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+            </label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "10px" }}>
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "4px 10px",
+                    background: "rgba(155,255,60,0.1)",
+                    border: "1px solid rgba(155,255,60,0.3)",
+                    fontSize: "0.65rem",
+                    letterSpacing: "0.08em",
+                    color: "#9BFF3C",
+                  }}
+                >
+                  #{tag}
+                  <button
+                    type="button"
+                    onClick={() => setTags((t) => t.filter((x) => x !== tag))}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0, lineHeight: 1, fontSize: "0.7rem" }}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === ",") {
+                    e.preventDefault();
+                    const t = tagInput.trim().replace(/^#/, "");
+                    if (t && !tags.includes(t) && tags.length < 5) {
+                      setTags((prev) => [...prev, t]);
+                      setTagInput("");
+                    }
+                  }
+                }}
+                placeholder="Add tag, press Enter..."
+                maxLength={30}
+                className="font-body text-off-white placeholder:text-muted-ink focus:outline-none"
+                style={{ ...inputStyle, fontSize: "0.85rem", flex: 1 }}
+                onFocus={(e) => (e.currentTarget.style.borderBottomColor = "#9BFF3C")}
+                onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")}
+              />
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px" }}>
+              {TAG_SUGGESTIONS.filter((s) => !tags.includes(s)).slice(0, 6).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => { if (tags.length < 5) setTags((prev) => [...prev, s]); }}
+                  className="font-body text-muted-ink hover:text-off-white transition-colors duration-150"
+                  style={{ background: "none", border: "1px solid rgba(74,59,42,0.35)", padding: "3px 8px", fontSize: "0.6rem", cursor: "pointer" }}
+                >
+                  #{s}
+                </button>
+              ))}
+            </div>
           </div>
 
           {error && (

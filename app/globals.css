@@ -54,6 +54,54 @@ body {
 ::-webkit-scrollbar-thumb { background: #4A3B2A; }
 * { scrollbar-width: thin; scrollbar-color: #4A3B2A #111111; }
 
+/* ───────────── Markdown prose (used by MarkdownContent) ───────────── */
+.prose-vakansisme h1, .prose-vakansisme h2, .prose-vakansisme h3 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #F0EDEA;
+  letter-spacing: -0.02em;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  line-height: 0.92;
+}
+.prose-vakansisme h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); }
+.prose-vakansisme h2 { font-size: clamp(1.2rem, 3vw, 1.8rem); }
+.prose-vakansisme h3 { font-size: 1.1rem; }
+.prose-vakansisme p { margin-bottom: 1.4rem; }
+.prose-vakansisme strong { color: #F0EDEA; font-weight: 700; }
+.prose-vakansisme em { color: rgba(240,237,234,0.8); font-style: italic; }
+.prose-vakansisme a { color: #9BFF3C; text-decoration: underline; text-underline-offset: 3px; }
+.prose-vakansisme a:hover { color: #FF6B1A; }
+.prose-vakansisme ul, .prose-vakansisme ol { padding-left: 1.5rem; margin-bottom: 1.4rem; }
+.prose-vakansisme li { margin-bottom: 0.4rem; }
+.prose-vakansisme blockquote {
+  border-left: 2px solid #9BFF3C;
+  padding-left: 1.2rem;
+  margin: 1.6rem 0;
+  color: rgba(240,237,234,0.65);
+  font-style: italic;
+}
+.prose-vakansisme code {
+  font-family: 'Courier New', monospace;
+  background: #1a1a1a;
+  padding: 2px 6px;
+  font-size: 0.85em;
+  color: #9BFF3C;
+}
+.prose-vakansisme pre {
+  background: #1a1a1a;
+  padding: 1rem;
+  overflow-x: auto;
+  margin-bottom: 1.4rem;
+  border: 1px solid rgba(74,59,42,0.4);
+}
+.prose-vakansisme hr {
+  border: none;
+  border-top: 1px solid rgba(74,59,42,0.4);
+  margin: 2rem 0;
+}
+
 /* ───────────── Reduced motion ───────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

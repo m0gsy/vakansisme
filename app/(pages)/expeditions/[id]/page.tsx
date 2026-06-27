@@ -10,6 +10,10 @@ import ExpeditionGallery from "@/components/ExpeditionGallery";
 import ExpeditionComments from "@/components/ExpeditionComments";
 import ExpeditionUpdates from "@/components/ExpeditionUpdates";
 import ShareButtons from "@/components/ShareButtons";
+import BookmarkButton from "@/components/BookmarkButton";
+import PackingList from "@/components/PackingList";
+import ExpeditionReviews from "@/components/ExpeditionReviews";
+import ExpeditionMapClient from "@/components/ExpeditionMapClient";
 
 type Params = Promise<{ id: string }>;
 
@@ -49,7 +53,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
   const memberCount = (trip.expedition_members as { count: number }[])[0]?.count ?? 0;
 
-  const [{ data: members }, { data: gallery }, { data: membership }, { data: comments }, { data: waitlistRow }, { count: waitlistCount }, { data: updates }] = await Promise.all([
+  const [{ data: members }, { data: gallery }, { data: membership }, { data: comments }, { data: waitlistRow }, { count: waitlistCount }, { data: updates }, { data: packingItems }, { data: reviews }, { data: bookmarkRow }] = await Promise.all([
     supabase.from("expedition_members").select("user_id, profiles(username, avatar_url)").eq("expedition_id", id).limit(20),
     supabase.from("expedition_gallery").select("id, uploader_id, uploader_handle, image_url, caption, created_at").eq("expedition_id", id).order("created_at", { ascending: true }),
     user
@@ -61,10 +65,16 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
       : Promise.resolve({ data: null }),
     supabase.from("expedition_waitlist").select("*", { count: "exact", head: true }).eq("expedition_id", id),
     supabase.from("expedition_updates").select("id, author_id, content, created_at, profiles(username)").eq("expedition_id", id).order("created_at", { ascending: false }),
+    supabase.from("expedition_packing_items").select("id, label").eq("expedition_id", id).order("created_at", { ascending: true }),
+    supabase.from("expedition_reviews").select("id, reviewer_id, rating, content, created_at, profiles(username, avatar_url)").eq("expedition_id", id).order("created_at", { ascending: false }),
+    user
+      ? supabase.from("bookmarks").select("user_id").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const userJoined = !!membership;
   const onWaitlist = !!waitlistRow;
+  const isBookmarked = !!bookmarkRow;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.com";
   const leaderHandle = trip.leader_handle?.replace(/^@/, "");
   const { data: callerProfile } = user
@@ -201,9 +211,14 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
               </div>
             )}
 
-            {/* Share */}
-            <div style={{ marginBottom: "20px" }}>
+            {/* Share + Bookmark */}
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", marginBottom: "20px" }}>
               <ShareButtons title={trip.name} url={`${siteUrl}/expeditions/${id}`} />
+              <BookmarkButton
+                expeditionId={id}
+                initialBookmarked={isBookmarked}
+                currentUserId={user?.id ?? null}
+              />
             </div>
 
             {/* Join */}
@@ -300,6 +315,15 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
               initialCount={memberCount}
               quotaMax={trip.quota_max}
             />
+            <div>
+              <p
+                className="font-body font-semibold text-muted-ink uppercase"
+                style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "10px" }}
+              >
+                LOCATION
+              </p>
+              <ExpeditionMapClient location={trip.location} />
+            </div>
           </div>
         </div>
         <ExpeditionGallery
@@ -313,6 +337,17 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
           initialUpdates={(updates ?? []) as Parameters<typeof ExpeditionUpdates>[0]["initialUpdates"]}
           currentUserId={user?.id ?? null}
           isLeader={isLeader}
+        />
+        <PackingList
+          expeditionId={id}
+          initialItems={packingItems ?? []}
+          isLeader={isLeader}
+        />
+        <ExpeditionReviews
+          expeditionId={id}
+          initialReviews={(reviews ?? []) as Parameters<typeof ExpeditionReviews>[0]["initialReviews"]}
+          isMember={userJoined}
+          currentUserId={user?.id ?? null}
         />
         <ExpeditionComments
           expeditionId={id}

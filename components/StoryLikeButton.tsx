@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/Toast";
 
 export default function StoryLikeButton({
   storyId,
@@ -15,6 +16,7 @@ export default function StoryLikeButton({
   currentUserId: string | null;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
   const [loading, setLoading] = useState(false);
@@ -27,6 +29,7 @@ export default function StoryLikeButton({
     if (res.ok) {
       setLiked(!liked);
       setCount((c) => liked ? c - 1 : c + 1);
+      if (!liked) toast("Liked.");
     }
     setLoading(false);
   }

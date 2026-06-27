@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/Toast";
 
 export default function JoinButton({
   tripId,
@@ -21,6 +22,7 @@ export default function JoinButton({
   initialWaitlistCount?: number;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [count, setCount] = useState(initialCount);
   const [joined, setJoined] = useState(initialJoined);
   const [onWaitlist, setOnWaitlist] = useState(initialOnWaitlist ?? false);
@@ -39,12 +41,14 @@ export default function JoinButton({
     if (res.ok) {
       setJoined(true);
       setCount(json.member_count);
+      toast("Joined! See you on the trail.");
       router.refresh();
     } else if (res.status === 409 && json.error === "Already joined") {
       setJoined(true);
       router.refresh();
     } else {
       setError(json.error ?? "Something went wrong");
+      toast(json.error ?? "Something went wrong", "error");
     }
     setLoading(false);
   }

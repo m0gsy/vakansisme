@@ -7,7 +7,7 @@ const VALID_TYPES = ["photo dump", "short story", "video POV", "chaos moment"];
 export async function POST(req: Request) {
   // `submit` true => send for admin review (pending); false/absent => private draft.
   // Users can never self-publish; only an admin flips a story to published.
-  const { type, title, excerpt, content, image_url, submit } = await req.json();
+  const { type, title, excerpt, content, image_url, tags, submit } = await req.json();
 
   if (!VALID_TYPES.includes(type)) {
     return NextResponse.json({ error: "Invalid type" }, { status: 400 });
@@ -56,6 +56,7 @@ export async function POST(req: Request) {
       excerpt: excerpt?.trim() || null,
       content: content?.trim() || null,
       image_url: image_url?.trim() || null,
+      tags: Array.isArray(tags) ? tags.slice(0, 5).map((t: string) => t.trim().toLowerCase()).filter(Boolean) : [],
       published: false,
       status: submit === true ? "pending" : "draft",
     })

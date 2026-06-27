@@ -12,19 +12,29 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
 
   const supabase = await createClient();
 
+  const ftsQuery = query.trim().split(/\s+/).filter(Boolean).map((w) => `${w}:*`).join(" & ");
+
   const [{ data: expeditions }, { data: stories }, { data: profiles }] = query
     ? await Promise.all([
         supabase
           .from("expeditions")
           .select("id, name, location, difficulty, image_url, date_start")
-          .or(`name.ilike.%${query}%,location.ilike.%${query}%`)
-          .limit(5),
+          .textSearch("fts", ftsQuery, { type: "websearch", config: "english" })
+          .limit(6)
+          .then(async (r) => r.error
+            ? supabase.from("expeditions").select("id, name, location, difficulty, image_url, date_start").or(`name.ilike.%${query}%,location.ilike.%${query}%`).limit(6)
+            : r
+          ),
         supabase
           .from("stories")
           .select("id, type, title, excerpt, image_url, author_handle")
           .eq("published", true)
-          .or(`title.ilike.%${query}%,excerpt.ilike.%${query}%`)
-          .limit(5),
+          .textSearch("fts", ftsQuery, { type: "websearch", config: "english" })
+          .limit(6)
+          .then(async (r) => r.error
+            ? supabase.from("stories").select("id, type, title, excerpt, image_url, author_handle").eq("published", true).or(`title.ilike.%${query}%,excerpt.ilike.%${query}%`).limit(6)
+            : r
+          ),
         supabase
           .from("profiles")
           .select("id, username, bio, avatar_url")

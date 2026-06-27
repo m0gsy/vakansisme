@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ChaosActions, ExpeditionActions, AdminExpeditionForm, StoryModerationActions, GalleryModerationActions } from "@/components/AdminActions";
+import { ChaosActions, ExpeditionActions, AdminExpeditionForm, StoryModerationActions, GalleryModerationActions, AdminExportButtons, AdminAutoStatusButton } from "@/components/AdminActions";
 import NewsletterForm from "@/components/NewsletterForm";
 
 export const metadata = { title: "Admin — VAKANSISME" };
@@ -317,6 +317,11 @@ export default async function AdminPage() {
           )}
         </Section>
 
+        {/* Export */}
+        <Section title="EXPORT DATA">
+          <AdminExportButtons />
+        </Section>
+
         {/* Newsletter */}
         <Section title={`NEWSLETTER (${subscriberCount ?? 0} subscribers)`}>
           <NewsletterForm subscriberCount={subscriberCount ?? 0} />
@@ -324,6 +329,9 @@ export default async function AdminPage() {
 
         {/* Expeditions */}
         <Section title={`EXPEDITIONS (${expeditions?.length ?? 0})`}>
+          <div style={{ marginBottom: "20px" }}>
+            <AdminAutoStatusButton />
+          </div>
           <AdminExpeditionForm />
           {!expeditions?.length ? (
             <p className="font-body text-muted-ink" style={{ fontSize: "0.88rem" }}>No expeditions.</p>

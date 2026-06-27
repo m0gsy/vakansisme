@@ -103,6 +103,24 @@ export default function Nav() {
                 </Link>
               </li>
               <li>
+                <Link
+                  href="/feed"
+                  className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
+                  style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
+                >
+                  FEED
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/bookmarks"
+                  className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
+                  style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
+                >
+                  SAVED
+                </Link>
+              </li>
+              <li>
                 <NotificationBell />
               </li>
               <li>

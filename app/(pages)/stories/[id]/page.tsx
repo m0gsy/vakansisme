@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import StoryComments from "@/components/StoryComments";
 import StoryLikeButton from "@/components/StoryLikeButton";
 import ShareButtons from "@/components/ShareButtons";
+import MarkdownContent from "@/components/MarkdownContent";
+import ViewCounter from "@/components/ViewCounter";
 
 type Params = Promise<{ id: string }>;
 
@@ -131,6 +133,21 @@ export default async function StoryPage({ params }: { params: Params }) {
           </span>
         </div>
 
+        {/* Tags */}
+        {!!story.tags?.length && (
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "20px" }}>
+            {(story.tags as string[]).map((tag) => (
+              <span
+                key={tag}
+                className="font-body"
+                style={{ fontSize: "0.62rem", letterSpacing: "0.08em", padding: "3px 8px", border: "1px solid rgba(155,255,60,0.25)", color: "#9BFF3C" }}
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Like + Share */}
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", marginBottom: "32px" }}>
           <StoryLikeButton
@@ -152,14 +169,11 @@ export default async function StoryPage({ params }: { params: Params }) {
           </p>
         )}
 
+        <ViewCounter storyId={id} />
+
         {/* Content */}
         {story.content ? (
-          <div
-            className="font-body text-off-white/75"
-            style={{ fontSize: "1rem", lineHeight: 1.85, whiteSpace: "pre-wrap" }}
-          >
-            {story.content}
-          </div>
+          <MarkdownContent content={story.content} />
         ) : (
           <p className="font-body text-muted-ink" style={{ fontSize: "0.9rem" }}>
             No content yet.

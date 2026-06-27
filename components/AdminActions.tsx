@@ -532,6 +532,61 @@ export function StoryModerationActions({ id }: { id: string }) {
   );
 }
 
+export function AdminExportButtons() {
+  function download(type: string) {
+    window.location.href = `/api/admin/export?type=${type}`;
+  }
+  return (
+    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+      {[
+        { type: "members", label: "EXPEDITION MEMBERS" },
+        { type: "subscribers", label: "NEWSLETTER SUBSCRIBERS" },
+        { type: "users", label: "ALL USERS" },
+      ].map(({ type, label }) => (
+        <button
+          key={type}
+          onClick={() => download(type)}
+          style={{ ...BTN.base, background: "#1a1a1a", color: "#8B7355", border: "1px solid rgba(74,59,42,0.4)", padding: "10px 20px" }}
+        >
+          ↓ {label} CSV
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function AdminAutoStatusButton() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+
+  async function run() {
+    setLoading(true);
+    const res = await fetch("/api/admin/auto-status", { method: "POST" });
+    if (res.ok) {
+      const { updated } = await res.json();
+      setResult(`Updated: ${updated.ongoing} → ongoing, ${updated.completed} → completed`);
+      router.refresh();
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+      <button
+        onClick={run}
+        disabled={loading}
+        style={{ ...BTN.base, background: loading ? "#1a1a1a" : "#FF6B1A", color: "#111111", padding: "10px 22px", opacity: loading ? 0.6 : 1 }}
+      >
+        {loading ? "UPDATING..." : "AUTO-UPDATE STATUS"}
+      </button>
+      {result && (
+        <span className="font-body text-muted-ink" style={{ fontSize: "0.72rem" }}>{result}</span>
+      )}
+    </div>
+  );
+}
+
 export function GalleryModerationActions({ id, initialStatus }: { id: string; initialStatus: string }) {
   const router = useRouter();
   const [status, setStatus] = useState(initialStatus);

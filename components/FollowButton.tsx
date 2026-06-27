@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/Toast";
 
 export default function FollowButton({
   targetId,
@@ -15,6 +16,7 @@ export default function FollowButton({
   currentUserId: string | null;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [following, setFollowing] = useState(initialFollowing);
   const [count, setCount] = useState(initialCount);
   const [loading, setLoading] = useState(false);
@@ -30,6 +32,7 @@ export default function FollowButton({
     if (res.ok) {
       setFollowing((f) => !f);
       setCount((c) => c + (following ? -1 : 1));
+      toast(following ? "Unfollowed." : "Following!", following ? "info" : "success");
     }
     setLoading(false);
   }
