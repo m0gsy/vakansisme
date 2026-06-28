@@ -8,19 +8,31 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import NotificationBell from "@/components/NotificationBell";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import type { Locale } from "@/lib/i18n";
+import { dict } from "@/lib/i18n";
 
-const links = [
-  { href: "/expeditions", label: "EXPEDITIONS" },
-  { href: "/stories", label: "JOURNAL" },
-  { href: "/crew", label: "CREW" },
-  { href: "/chaos", label: "CHAOS WALL" },
-];
+function getNavLinks(locale: Locale) {
+  const d = dict[locale];
+  return [
+    { href: "/expeditions", label: d.nav_expeditions },
+    { href: "/stories", label: d.nav_journal },
+    { href: "/crew", label: d.nav_crew },
+    { href: "/chaos", label: d.nav_chaos },
+  ];
+}
 
 export default function Nav() {
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [locale, setLocale] = useState<Locale>("id");
+
+  useEffect(() => {
+    const m = document.cookie.match(/(?:^|;)\s*locale=(\w+)/);
+    setLocale(m?.[1] === "en" ? "en" : "id");
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -44,6 +56,8 @@ export default function Nav() {
   }
 
   const username = user?.user_metadata?.username ?? user?.email?.split("@")[0];
+  const d = dict[locale];
+  const links = getNavLinks(locale);
 
   return (
     <header
@@ -90,7 +104,7 @@ export default function Nav() {
                   className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
                   style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
                 >
-                  MY STORIES
+                  {d.nav_my_stories}
                 </Link>
               </li>
               <li>
@@ -99,7 +113,7 @@ export default function Nav() {
                   className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
                   style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
                 >
-                  MY TRIPS
+                  {d.nav_my_trips}
                 </Link>
               </li>
               <li>
@@ -108,7 +122,7 @@ export default function Nav() {
                   className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
                   style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
                 >
-                  FEED
+                  {d.nav_feed}
                 </Link>
               </li>
               <li>
@@ -117,7 +131,7 @@ export default function Nav() {
                   className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
                   style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
                 >
-                  SAVED
+                  {d.nav_saved}
                 </Link>
               </li>
               <li>
@@ -138,7 +152,7 @@ export default function Nav() {
                   className="font-body font-semibold text-off-white/60 hover:text-chaos-orange transition-colors duration-150"
                   style={{ fontSize: "0.7rem", letterSpacing: "0.1em", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                 >
-                  SIGN OUT
+                  {d.nav_sign_out}
                 </button>
               </li>
             </>
@@ -150,7 +164,7 @@ export default function Nav() {
                   className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
                   style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
                 >
-                  SIGN IN
+                  {d.nav_sign_in}
                 </Link>
               </li>
               <li>
@@ -159,11 +173,14 @@ export default function Nav() {
                   className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150"
                   style={{ fontSize: "0.7rem", letterSpacing: "0.12em", padding: "9px 20px" }}
                 >
-                  JOIN TRIP
+                  {d.nav_join_trip}
                 </Link>
               </li>
             </>
           )}
+          <li>
+            <LanguageSwitcher current={locale} />
+          </li>
         </ul>
 
         {/* Search */}
@@ -185,24 +202,15 @@ export default function Nav() {
         >
           <span
             className="block h-px bg-off-white transition-all duration-300"
-            style={{
-              width: "24px",
-              transform: menuOpen ? "rotate(45deg) translateY(6px)" : "none",
-            }}
+            style={{ width: "24px", transform: menuOpen ? "rotate(45deg) translateY(6px)" : "none" }}
           />
           <span
             className="block h-px bg-off-white transition-all duration-300"
-            style={{
-              width: "24px",
-              opacity: menuOpen ? 0 : 1,
-            }}
+            style={{ width: "24px", opacity: menuOpen ? 0 : 1 }}
           />
           <span
             className="block h-px bg-off-white transition-all duration-300"
-            style={{
-              width: menuOpen ? "24px" : "16px",
-              transform: menuOpen ? "rotate(-45deg) translateY(-6px) translateX(8px)" : "none",
-            }}
+            style={{ width: menuOpen ? "24px" : "16px", transform: menuOpen ? "rotate(-45deg) translateY(-6px) translateX(8px)" : "none" }}
           />
         </button>
       </nav>
@@ -217,10 +225,7 @@ export default function Nav() {
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="md:hidden overflow-hidden"
-            style={{
-              background: "rgba(17,17,17,0.97)",
-              borderTop: "1px solid rgba(74,59,42,0.3)",
-            }}
+            style={{ background: "rgba(17,17,17,0.97)", borderTop: "1px solid rgba(74,59,42,0.3)" }}
           >
             <ul className="flex flex-col px-6 py-8 gap-6">
               {links.map((link, i) => (
@@ -242,56 +247,33 @@ export default function Nav() {
               ))}
               {user ? (
                 <li style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <Link
-                    href="/stories/mine"
-                    onClick={() => setMenuOpen(false)}
-                    className="font-body font-semibold text-off-white/60"
-                    style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}
-                  >
-                    MY STORIES
+                  <Link href="/stories/mine" onClick={() => setMenuOpen(false)} className="font-body font-semibold text-off-white/60" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
+                    {d.nav_my_stories}
                   </Link>
-                  <Link
-                    href="/trips"
-                    onClick={() => setMenuOpen(false)}
-                    className="font-body font-semibold text-off-white/60"
-                    style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}
-                  >
-                    MY TRIPS
+                  <Link href="/trips" onClick={() => setMenuOpen(false)} className="font-body font-semibold text-off-white/60" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
+                    {d.nav_my_trips}
                   </Link>
-                  <Link
-                    href={`/u/${username}`}
-                    onClick={() => setMenuOpen(false)}
-                    className="font-body font-semibold text-muted-ink"
-                    style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}
-                  >
+                  <Link href={`/u/${username}`} onClick={() => setMenuOpen(false)} className="font-body font-semibold text-muted-ink" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
                     @{username}
                   </Link>
+                  <LanguageSwitcher current={locale} />
                   <button
                     onClick={() => { setMenuOpen(false); handleSignOut(); }}
                     className="inline-block font-body font-semibold text-charcoal bg-chaos-orange"
                     style={{ fontSize: "0.75rem", letterSpacing: "0.12em", padding: "12px 28px", border: "none", cursor: "pointer", textAlign: "left" }}
                   >
-                    SIGN OUT
+                    {d.nav_sign_out}
                   </button>
                 </li>
               ) : (
                 <li style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <Link
-                    href="/login"
-                    onClick={() => setMenuOpen(false)}
-                    className="inline-block font-body font-semibold text-charcoal bg-neon-green"
-                    style={{ fontSize: "0.75rem", letterSpacing: "0.12em", padding: "12px 28px" }}
-                  >
-                    SIGN IN
+                  <Link href="/login" onClick={() => setMenuOpen(false)} className="inline-block font-body font-semibold text-charcoal bg-neon-green" style={{ fontSize: "0.75rem", letterSpacing: "0.12em", padding: "12px 28px" }}>
+                    {d.nav_sign_in}
                   </Link>
-                  <Link
-                    href="/expeditions"
-                    onClick={() => setMenuOpen(false)}
-                    className="font-body font-semibold text-off-white/60"
-                    style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}
-                  >
-                    JOIN TRIP →
+                  <Link href="/expeditions" onClick={() => setMenuOpen(false)} className="font-body font-semibold text-off-white/60" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
+                    {d.nav_join_trip} →
                   </Link>
+                  <LanguageSwitcher current={locale} />
                 </li>
               )}
             </ul>

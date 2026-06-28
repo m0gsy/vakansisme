@@ -21,6 +21,7 @@ const inputStyle = {
 };
 
 type Expedition = { id: string; name: string };
+type Series = { id: string; title: string };
 
 export default function NewStoryPage() {
   const router = useRouter();
@@ -36,6 +37,9 @@ export default function NewStoryPage() {
   const [tagInput, setTagInput] = useState("");
   const [username, setUsername] = useState("");
   const [expeditions, setExpeditions] = useState<Expedition[]>([]);
+  const [seriesList, setSeriesList] = useState<Series[]>([]);
+  const [seriesId, setSeriesId] = useState("");
+  const [seriesOrder, setSeriesOrder] = useState(1);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
@@ -61,9 +65,10 @@ export default function NewStoryPage() {
     const supabase = createClient();
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) { router.replace("/login"); return; }
-      const [{ data: profile }, { data: joined }] = await Promise.all([
+      const [{ data: profile }, { data: joined }, { data: mySeries }] = await Promise.all([
         supabase.from("profiles").select("username").eq("id", data.user.id).single(),
         supabase.from("expedition_members").select("expedition_id, expeditions(id, name)").eq("user_id", data.user.id).limit(20),
+        supabase.from("story_series").select("id, title").eq("author_id", data.user.id).order("created_at", { ascending: false }),
       ]);
       setUsername(profile?.username ?? "");
       const exps = joined?.flatMap((j) => {
@@ -71,6 +76,7 @@ export default function NewStoryPage() {
         return e ? [e] : [];
       }) ?? [];
       setExpeditions(exps);
+      setSeriesList(mySeries ?? []);
       setChecked(true);
     });
   }, [router]);
@@ -87,6 +93,8 @@ export default function NewStoryPage() {
         type, title, excerpt, content, image_url: imageUrl,
         audio_url: audioUrl || null,
         expedition_id: expeditionId || null,
+        series_id: seriesId || null,
+        series_order: seriesId ? seriesOrder : null,
         tags, submit: forReview,
       }),
     });
@@ -150,6 +158,42 @@ export default function NewStoryPage() {
                   <option key={exp.id} value={exp.id} style={{ background: "#1a1a1a" }}>{exp.name}</option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {/* Link to series */}
+          {seriesList.length > 0 && (
+            <div>
+              <label className="font-body font-semibold text-muted-ink uppercase block mb-2" style={{ fontSize: "0.65rem", letterSpacing: "0.12em" }}>
+                Tambahkan ke seri <span style={{ textTransform: "none", letterSpacing: 0 }}>(opsional)</span>
+              </label>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <select
+                  value={seriesId}
+                  onChange={(e) => setSeriesId(e.target.value)}
+                  className="font-body text-off-white focus:outline-none"
+                  style={{ ...inputStyle, fontSize: "0.9rem", cursor: "pointer", flex: "2 1 160px" }}
+                  onFocus={(e) => (e.currentTarget.style.borderBottomColor = "#9BFF3C")}
+                  onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")}
+                >
+                  <option value="" style={{ background: "#1a1a1a" }}>— Tidak ada —</option>
+                  {seriesList.map((s) => (
+                    <option key={s.id} value={s.id} style={{ background: "#1a1a1a" }}>{s.title}</option>
+                  ))}
+                </select>
+                {seriesId && (
+                  <input
+                    type="number"
+                    min={1}
+                    value={seriesOrder}
+                    onChange={(e) => setSeriesOrder(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="font-body text-off-white focus:outline-none"
+                    style={{ ...inputStyle, width: "80px", textAlign: "center" }}
+                    placeholder="Urutan"
+                    title="Urutan dalam seri"
+                  />
+                )}
+              </div>
             </div>
           )}
 

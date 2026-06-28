@@ -16,12 +16,30 @@ export async function GET(_req: Request, { params }: { params: Params }) {
   const { id } = await params;
   const cookieStore = await cookies();
   const supabase = makeSupabase(cookieStore);
-  const { data } = await supabase
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data: items } = await supabase
     .from("expedition_packing_items")
-    .select("id, label, created_at")
+    .select("id, label, category, quantity, created_at")
     .eq("expedition_id", id)
+    .order("category", { ascending: true })
     .order("created_at", { ascending: true });
-  return NextResponse.json(data ?? []);
+
+  if (!items) return NextResponse.json([]);
+
+  // Fetch user's checks if logged in
+  if (user) {
+    const { data: checks } = await supabase
+      .from("packing_checks")
+      .select("item_id")
+      .eq("user_id", user.id)
+      .in("item_id", items.map((i) => i.id));
+
+    const checkedSet = new Set(checks?.map((c) => c.item_id) ?? []);
+    return NextResponse.json(items.map((i) => ({ ...i, checked: checkedSet.has(i.id) })));
+  }
+
+  return NextResponse.json(items.map((i) => ({ ...i, checked: false })));
 }
 
 export async function POST(req: Request, { params }: { params: Params }) {
@@ -31,17 +49,41 @@ export async function POST(req: Request, { params }: { params: Params }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
-  const { label } = await req.json();
-  if (!label?.trim()) return NextResponse.json({ error: "Label required" }, { status: 400 });
+  const body = await req.json();
+  const label = body.label?.trim();
+  const category = body.category?.trim() || "general";
+  const quantity = Number(body.quantity) || 1;
+
+  if (!label) return NextResponse.json({ error: "Label required" }, { status: 400 });
 
   const { data, error } = await supabase
     .from("expedition_packing_items")
-    .insert({ expedition_id: id, label: label.trim() })
-    .select("id, label, created_at")
+    .insert({ expedition_id: id, label, category, quantity })
+    .select("id, label, category, quantity, created_at")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json(data);
+  return NextResponse.json({ ...data, checked: false });
+}
+
+// PATCH — toggle personal check-off
+export async function PATCH(req: Request, { params }: { params: Params }) {
+  const { id: _expeditionId } = await params;
+  const cookieStore = await cookies();
+  const supabase = makeSupabase(cookieStore);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
+
+  const { itemId, checked } = await req.json();
+  if (!itemId) return NextResponse.json({ error: "itemId required" }, { status: 400 });
+
+  if (checked) {
+    await supabase.from("packing_checks").upsert({ item_id: itemId, user_id: user.id }, { onConflict: "item_id,user_id" });
+  } else {
+    await supabase.from("packing_checks").delete().eq("item_id", itemId).eq("user_id", user.id);
+  }
+
+  return NextResponse.json({ success: true });
 }
 
 export async function DELETE(req: Request, { params }: { params: Params }) {

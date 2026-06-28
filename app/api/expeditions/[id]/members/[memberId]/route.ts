@@ -1,62 +1,70 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 type Params = Promise<{ id: string; memberId: string }>;
 
-export async function DELETE(_req: Request, { params }: { params: Params }) {
-  const { id, memberId } = await params;
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (list) => list.forEach(({ name, value, options }) => cookieStore.set(name, value, options)),
-      },
-    }
-  );
-
+async function getLeaderOrAdmin(supabase: Awaited<ReturnType<typeof createClient>>, expeditionId: string) {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
+  if (!user) return null;
+  const { data: profile } = await supabase.from("profiles").select("username, is_admin").eq("id", user.id).single();
+  if (!profile) return null;
+  if (profile.is_admin) return user;
+  const { data: trip } = await supabase.from("expeditions").select("leader_handle").eq("id", expeditionId).single();
+  const leaderHandle = trip?.leader_handle?.replace(/^@/, "");
+  return leaderHandle === profile.username ? user : null;
+}
 
-  // Verify caller is the expedition leader
-  const { data: expedition } = await supabase
-    .from("expeditions")
-    .select("leader_handle")
-    .eq("id", id)
-    .single();
+// PATCH — approve or reject a pending member
+export async function PATCH(req: Request, { params }: { params: Params }) {
+  const { id, memberId } = await params;
+  const supabase = await createClient();
 
-  if (!expedition) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const leader = await getLeaderOrAdmin(supabase, id);
+  if (!leader) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const leaderHandle = expedition.leader_handle?.replace(/^@/, "");
-  const { data: callerProfile } = await supabase
-    .from("profiles")
-    .select("username")
-    .eq("id", user.id)
-    .single();
-
-  if (!callerProfile || callerProfile.username !== leaderHandle) {
-    // Also allow admin
-    const { data: adminCheck } = await supabase
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", user.id)
-      .single();
-    if (!adminCheck?.is_admin) {
-      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-    }
+  const { action } = await req.json();
+  if (action !== "approve" && action !== "reject") {
+    return NextResponse.json({ error: "action must be approve or reject" }, { status: 400 });
   }
 
+  if (action === "reject") {
+    await supabase.from("expedition_members").delete().eq("expedition_id", id).eq("user_id", memberId);
+    void supabase.from("notifications").insert({
+      user_id: memberId,
+      type: "join_rejected",
+      title: "Lamaran ekspedisimu tidak diterima.",
+      link: `/expeditions/${id}`,
+    });
+    return NextResponse.json({ success: true });
+  }
+
+  // approve
   const { error } = await supabase
     .from("expedition_members")
-    .delete()
+    .update({ status: "approved" })
     .eq("expedition_id", id)
     .eq("user_id", memberId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
+  void supabase.from("notifications").insert({
+    user_id: memberId,
+    type: "join_approved",
+    title: "Lamaranmu diterima — kamu masuk!",
+    link: `/expeditions/${id}`,
+  });
+
+  return NextResponse.json({ success: true });
+}
+
+// DELETE — kick member
+export async function DELETE(_req: Request, { params }: { params: Params }) {
+  const { id, memberId } = await params;
+  const supabase = await createClient();
+
+  const leader = await getLeaderOrAdmin(supabase, id);
+  if (!leader) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  await supabase.from("expedition_members").delete().eq("expedition_id", id).eq("user_id", memberId);
   return NextResponse.json({ success: true });
 }

@@ -6,7 +6,7 @@ const VALID_TYPES = ["photo dump", "short story", "video POV", "chaos moment"];
 const MAX_CONTENT_LENGTH = 50000;
 
 export async function POST(req: Request) {
-  const { type, title, excerpt, content, image_url, audio_url, expedition_id, tags, submit } = await req.json();
+  const { type, title, excerpt, content, image_url, audio_url, expedition_id, series_id, series_order, tags, submit } = await req.json();
 
   if (!VALID_TYPES.includes(type)) return NextResponse.json({ error: "Invalid type" }, { status: 400 });
   if (!title?.trim()) return NextResponse.json({ error: "Title required" }, { status: 400 });
@@ -44,6 +44,8 @@ export async function POST(req: Request) {
       image_url: image_url?.trim() || null,
       audio_url: audio_url?.trim() || null,
       expedition_id: expedition_id || null,
+      series_id: series_id || null,
+      series_order: series_id && series_order ? Number(series_order) : 0,
       tags: Array.isArray(tags) ? tags.slice(0, 5).map((t: string) => t.trim().toLowerCase()).filter(Boolean) : [],
       published: false,
       status: submit === true ? "pending" : "draft",

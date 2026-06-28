@@ -33,10 +33,10 @@ export async function POST(req: Request, { params }: { params: Params }) {
   const body = await req.json().catch(() => ({}));
   const notes = typeof body.notes === "string" ? body.notes.slice(0, 500) : null;
 
-  // Check quota before inserting
+  // Check quota (approved members only) before inserting
   const { data: expedition } = await supabase
     .from("expeditions")
-    .select("quota_max, expedition_members(count)")
+    .select("quota_max, requires_approval")
     .eq("id", id)
     .single();
 
@@ -44,14 +44,22 @@ export async function POST(req: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "Expedition not found" }, { status: 404 });
   }
 
-  const count = (expedition.expedition_members as { count: number }[])[0]?.count ?? 0;
+  const { count: approvedCount } = await supabase
+    .from("expedition_members")
+    .select("*", { count: "exact", head: true })
+    .eq("expedition_id", id)
+    .eq("status", "approved");
+
+  const count = approvedCount ?? 0;
   if (count >= expedition.quota_max) {
     return NextResponse.json({ error: "Trip is full" }, { status: 409 });
   }
 
+  const memberStatus = expedition.requires_approval ? "pending" : "approved";
+
   const { error } = await supabase
     .from("expedition_members")
-    .insert({ expedition_id: id, user_id: user.id, ...(notes ? { notes } : {}) });
+    .insert({ expedition_id: id, user_id: user.id, status: memberStatus, ...(notes ? { notes } : {}) });
 
   if (error) {
     // unique violation = already joined
@@ -106,7 +114,10 @@ export async function POST(req: Request, { params }: { params: Params }) {
     }
   }
 
-  return NextResponse.json({ success: true, member_count: count + 1 });
+  if (memberStatus === "pending") {
+    return NextResponse.json({ success: true, pending: true, member_count: count });
+  }
+  return NextResponse.json({ success: true, pending: false, member_count: count + 1 });
 }
 
 export async function DELETE(_req: Request, { params }: { params: Params }) {

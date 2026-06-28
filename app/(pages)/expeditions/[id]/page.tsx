@@ -14,6 +14,8 @@ import BookmarkButton from "@/components/BookmarkButton";
 import PackingList from "@/components/PackingList";
 import ExpeditionReviews from "@/components/ExpeditionReviews";
 import ExpeditionMapClient from "@/components/ExpeditionMapClient";
+import { getLocale } from "@/lib/locale";
+import { t } from "@/lib/i18n";
 
 type Params = Promise<{ id: string }>;
 
@@ -40,24 +42,29 @@ function daysUntil(dateStr: string) {
 export default async function ExpeditionPage({ params }: { params: Params }) {
   const { id } = await params;
   const supabase = await createClient();
+  const locale = await getLocale();
 
   const { data: { user } } = await supabase.auth.getUser();
 
   const { data: trip } = await supabase
     .from("expeditions")
-    .select("*, expedition_members(count), application_prompt")
+    .select("*, application_prompt, requires_approval")
     .eq("id", id)
     .single();
 
   if (!trip) notFound();
 
-  const memberCount = (trip.expedition_members as { count: number }[])[0]?.count ?? 0;
+  const { count: memberCount } = await supabase
+    .from("expedition_members")
+    .select("*", { count: "exact", head: true })
+    .eq("expedition_id", id)
+    .eq("status", "approved");
 
   const [{ data: members }, { data: gallery }, { data: membership }, { data: comments }, { data: waitlistRow }, { count: waitlistCount }, { data: updates }, { data: packingItems }, { data: reviews }, { data: bookmarkRow }] = await Promise.all([
-    supabase.from("expedition_members").select("user_id, profiles(username, avatar_url)").eq("expedition_id", id).limit(20),
+    supabase.from("expedition_members").select("user_id, status, profiles(username, avatar_url)").eq("expedition_id", id).neq("status", "rejected").limit(30),
     supabase.from("expedition_gallery").select("id, uploader_id, uploader_handle, image_url, caption, created_at").eq("expedition_id", id).order("created_at", { ascending: true }),
     user
-      ? supabase.from("expedition_members").select("user_id").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
+      ? supabase.from("expedition_members").select("user_id, status").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.from("expedition_comments").select("id, author_id, author_handle, content, created_at").eq("expedition_id", id).order("created_at", { ascending: true }),
     user
@@ -65,7 +72,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
       : Promise.resolve({ data: null }),
     supabase.from("expedition_waitlist").select("*", { count: "exact", head: true }).eq("expedition_id", id),
     supabase.from("expedition_updates").select("id, author_id, content, created_at, profiles(username)").eq("expedition_id", id).order("created_at", { ascending: false }),
-    supabase.from("expedition_packing_items").select("id, label").eq("expedition_id", id).order("created_at", { ascending: true }),
+    supabase.from("expedition_packing_items").select("id, label, category, quantity").eq("expedition_id", id).order("created_at", { ascending: true }),
     supabase.from("expedition_reviews").select("id, reviewer_id, rating, content, created_at, profiles(username, avatar_url)").eq("expedition_id", id).order("created_at", { ascending: false }),
     user
       ? supabase.from("bookmarks").select("user_id").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
@@ -79,8 +86,14 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
     .ilike("location", `%${trip.location.split(",")[0].trim()}%`)
     .limit(3);
 
-  const userJoined = !!membership;
+  const membershipStatus = (membership as { status?: string } | null)?.status;
+  const userJoined = membershipStatus === "approved";
+  const userPending = membershipStatus === "pending";
   const onWaitlist = !!waitlistRow;
+
+  // Leader sees pending members for approval
+  const approvedMembers = (members ?? []).filter((m) => (m as { status?: string }).status !== "pending");
+  const pendingMembers = (members ?? []).filter((m) => (m as { status?: string }).status === "pending");
   const isBookmarked = !!bookmarkRow;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.com";
   const leaderHandle = trip.leader_handle?.replace(/^@/, "");
@@ -132,7 +145,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
               {days}
             </p>
             <p className="font-body font-semibold text-charcoal uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.1em" }}>
-              days left
+              {t(locale, "days_left")}
             </p>
           </div>
         )}
@@ -140,11 +153,11 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
       <div className="max-w-5xl mx-auto px-6" style={{ paddingTop: "40px", paddingBottom: "80px" }}>
         <Link
-          href="/#expeditions"
+          href="/expeditions"
           className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-200 inline-block mb-8"
           style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
         >
-          ← EXPEDITIONS
+          {t(locale, "back_to_expeditions")}
         </Link>
 
         <div style={{ display: "flex", gap: "56px", flexWrap: "wrap", alignItems: "flex-start" }}>
@@ -232,7 +245,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
             <div style={{ marginBottom: "48px" }}>
               <JoinButton
                 tripId={trip.id}
-                initialCount={memberCount}
+                initialCount={memberCount ?? 0}
                 quotaMax={trip.quota_max}
                 currentUserId={user?.id ?? null}
                 initialJoined={userJoined}
@@ -240,18 +253,62 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                 initialWaitlistCount={waitlistCount ?? 0}
                 tripStatus={trip.status}
               applicationPrompt={trip.application_prompt ?? null}
+              initialPending={userPending}
+              locale={locale}
               />
             </div>
 
             {/* Members */}
-            {!!members?.length && (
+            {/* Pending members — leader only */}
+            {isLeader && pendingMembers.length > 0 && (
+              <div style={{ marginBottom: "32px", padding: "16px 20px", background: "#1a1a1a", border: "1px solid rgba(155,255,60,0.2)" }}>
+                <p className="font-body font-semibold text-neon-green uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "12px" }}>
+                  {t(locale, "pending_members")} ({pendingMembers.length})
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {pendingMembers.map((m) => {
+                    const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles as { username: string } | null;
+                    if (!profile) return null;
+                    return (
+                      <div key={m.user_id} style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                        <span className="font-body font-semibold text-off-white" style={{ fontSize: "0.78rem", letterSpacing: "0.04em", flex: 1 }}>
+                          @{profile.username}
+                        </span>
+                        <button
+                          onClick={async () => {
+                            await fetch(`/api/expeditions/${id}/members/${m.user_id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
+                            window.location.reload();
+                          }}
+                          className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150"
+                          style={{ fontSize: "0.6rem", letterSpacing: "0.1em", padding: "5px 12px", border: "none", cursor: "pointer" }}
+                        >
+                          {t(locale, "approve")}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            await fetch(`/api/expeditions/${id}/members/${m.user_id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reject" }) });
+                            window.location.reload();
+                          }}
+                          className="font-body font-semibold text-off-white hover:text-chaos-orange transition-colors duration-150"
+                          style={{ fontSize: "0.6rem", letterSpacing: "0.1em", padding: "5px 12px", border: "1px solid rgba(255,107,26,0.4)", background: "transparent", cursor: "pointer" }}
+                        >
+                          {t(locale, "reject")}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {!!approvedMembers.length && (
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "14px", flexWrap: "wrap" }}>
                   <p
                     className="font-body font-semibold text-muted-ink uppercase"
                     style={{ fontSize: "0.65rem", letterSpacing: "0.12em" }}
                   >
-                    Crew ({memberCount})
+                    {t(locale, "crew")} ({memberCount ?? 0})
                   </p>
                   {isLeader && (
                     <a
@@ -260,12 +317,12 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                       className="font-body font-semibold text-muted-ink hover:text-neon-green transition-colors duration-150"
                       style={{ fontSize: "0.58rem", letterSpacing: "0.1em", border: "1px solid rgba(74,59,42,0.4)", padding: "4px 10px", textDecoration: "none" }}
                     >
-                      ↓ EXPORT CSV
+                      {t(locale, "export_csv")}
                     </a>
                   )}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                  {members.map((m) => {
+                  {approvedMembers.map((m) => {
                     const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles as { username: string; avatar_url: string | null } | null;
                     if (!profile) return null;
                     return (
@@ -315,9 +372,9 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
             }}
           >
             {[
-              { label: "DATE", value: `${dateStr} – ${dateEndStr}` },
-              { label: "PRICE", value: trip.price },
-              { label: "LEADER", value: trip.leader_handle },
+              { label: t(locale, "date"), value: `${dateStr} – ${dateEndStr}` },
+              { label: t(locale, "price"), value: trip.price },
+              { label: t(locale, "leader"), value: trip.leader_handle },
             ].map(({ label, value }) => (
               <div key={label}>
                 <p
@@ -333,7 +390,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
             ))}
             <RealtimeQuota
               expeditionId={trip.id}
-              initialCount={memberCount}
+              initialCount={memberCount ?? 0}
               quotaMax={trip.quota_max}
             />
             <div>
@@ -341,7 +398,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                 className="font-body font-semibold text-muted-ink uppercase"
                 style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "10px" }}
               >
-                LOCATION
+                {t(locale, "location")}
               </p>
               <ExpeditionMapClient location={trip.location} />
             </div>
@@ -362,8 +419,9 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
         />
         <PackingList
           expeditionId={id}
-          initialItems={packingItems ?? []}
+          initialItems={(packingItems ?? []).map((i) => ({ ...i, category: (i as { category?: string }).category ?? "general", quantity: (i as { quantity?: number }).quantity ?? 1, checked: false }))}
           isLeader={isLeader}
+          isMember={userJoined}
         />
         <ExpeditionReviews
           expeditionId={id}
@@ -381,7 +439,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
         {similar && similar.length > 0 && (
           <section style={{ marginTop: "64px", paddingTop: "40px", borderTop: "1px solid rgba(74,59,42,0.3)" }}>
             <h2 className="font-display font-black uppercase text-off-white" style={{ fontSize: "clamp(1rem, 2.5vw, 1.4rem)", letterSpacing: "-0.02em", marginBottom: "16px" }}>
-              NEARBY EXPEDITIONS
+              {t(locale, "nearby")}
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {similar.map((s) => (
