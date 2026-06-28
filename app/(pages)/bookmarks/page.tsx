@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getLocale } from "@/lib/locale";
+import { t } from "@/lib/i18n";
 
 export const metadata = { title: "Bookmarks — VAKANSISME" };
 
@@ -9,7 +11,10 @@ const FALLBACK = "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?a
 
 export default async function BookmarksPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data: { user } }, locale] = await Promise.all([
+    supabase.auth.getUser(),
+    getLocale(),
+  ]);
   if (!user) redirect("/login");
 
   const { data: bookmarks } = await supabase
@@ -22,7 +27,7 @@ export default async function BookmarksPage() {
     <div className="min-h-screen bg-charcoal" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
       <div className="max-w-3xl mx-auto px-6">
         <h1 className="font-display font-black uppercase text-off-white" style={{ fontSize: "clamp(2.5rem, 7vw, 5rem)", letterSpacing: "-0.025em", lineHeight: 0.88, marginBottom: "12px" }}>
-          BOOKMARKS
+          {t(locale, "page_bookmarks")}
         </h1>
         <p className="font-body text-muted-ink mb-12" style={{ fontSize: "0.88rem" }}>
           {bookmarks?.length ?? 0} saved expedition{bookmarks?.length !== 1 ? "s" : ""}.
@@ -30,9 +35,9 @@ export default async function BookmarksPage() {
 
         {!bookmarks?.length && (
           <div style={{ textAlign: "center", padding: "80px 0" }}>
-            <p className="font-display font-black uppercase text-muted-ink" style={{ fontSize: "1.5rem", letterSpacing: "-0.02em", marginBottom: "16px" }}>NOTHING SAVED</p>
+            <p className="font-display font-black uppercase text-muted-ink" style={{ fontSize: "1.5rem", letterSpacing: "-0.02em", marginBottom: "16px" }}>{t(locale, "bookmark_none_saved")}</p>
             <Link href="/expeditions" className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150" style={{ fontSize: "0.72rem", letterSpacing: "0.14em", padding: "12px 28px" }}>
-              BROWSE EXPEDITIONS →
+              {t(locale, "bookmark_browse")}
             </Link>
           </div>
         )}

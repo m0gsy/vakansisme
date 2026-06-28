@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getLocale } from "@/lib/locale";
+import { t } from "@/lib/i18n";
 
 export const metadata = { title: "Feed — VAKANSISME" };
 
@@ -9,7 +11,10 @@ const FALLBACK = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?a
 
 export default async function FeedPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data: { user } }, locale] = await Promise.all([
+    supabase.auth.getUser(),
+    getLocale(),
+  ]);
   if (!user) redirect("/login");
 
   const [{ data: follows }, { data: blocks }] = await Promise.all([
@@ -25,13 +30,13 @@ export default async function FeedPage() {
       <div className="min-h-screen bg-charcoal" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
         <div className="max-w-2xl mx-auto px-6" style={{ textAlign: "center", paddingTop: "80px" }}>
           <h1 className="font-display font-black uppercase text-off-white" style={{ fontSize: "clamp(2rem, 6vw, 4rem)", letterSpacing: "-0.025em", marginBottom: "16px" }}>
-            YOUR FEED
+            {t(locale, "feed_empty_title")}
           </h1>
           <p className="font-body text-muted-ink" style={{ fontSize: "0.9rem", marginBottom: "32px" }}>
-            Follow crew members to see their activity here.
+            {t(locale, "feed_empty_body")}
           </p>
           <Link href="/crew" className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150" style={{ fontSize: "0.72rem", letterSpacing: "0.14em", padding: "12px 28px" }}>
-            FIND CREW →
+            {t(locale, "feed_find_crew")}
           </Link>
         </div>
       </div>
@@ -78,7 +83,7 @@ export default async function FeedPage() {
     <div className="min-h-screen bg-charcoal" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
       <div className="max-w-2xl mx-auto px-6">
         <h1 className="font-display font-black uppercase text-off-white" style={{ fontSize: "clamp(2.5rem, 7vw, 5rem)", letterSpacing: "-0.025em", lineHeight: 0.88, marginBottom: "12px" }}>
-          YOUR FEED
+          {t(locale, "page_feed")}
         </h1>
         <p className="font-body text-muted-ink mb-12" style={{ fontSize: "0.88rem" }}>
           Activity from {followingIds.length} crew you follow.

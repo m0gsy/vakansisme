@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import Image from "next/image";
 import Link from "next/link";
+import { getLocale } from "@/lib/locale";
+import { t } from "@/lib/i18n";
 
 const FALLBACK = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80";
 
@@ -11,7 +13,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   const query = q?.trim() ?? "";
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data: { user } }, locale] = await Promise.all([
+    supabase.auth.getUser(),
+    getLocale(),
+  ]);
 
   let blockedIds: string[] = [];
   if (user) {
@@ -74,7 +79,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
             className="font-display font-black uppercase text-off-white block"
             style={{ fontSize: "clamp(2.5rem, 8vw, 5.5rem)", letterSpacing: "-0.025em", lineHeight: 0.88, marginBottom: "24px" }}
           >
-            SEARCH
+            {t(locale, "page_search")}
           </label>
           <div style={{ display: "flex", gap: "0", borderBottom: "2px solid #4A3B2A" }}>
             <input
@@ -83,7 +88,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
               type="search"
               defaultValue={query}
               autoFocus
-              placeholder="expedition, story, crew..."
+              placeholder={t(locale, "search_placeholder")}
               className="font-body text-off-white placeholder:text-muted-ink focus:outline-none flex-1"
               style={{ background: "transparent", border: "none", padding: "12px 0", fontSize: "1.1rem" }}
             />
@@ -107,7 +112,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
         {/* No results */}
         {query && !hasResults && (
           <p className="font-story text-muted-ink" style={{ fontSize: "0.95rem" }}>
-            Nothing found for &ldquo;{query}&rdquo;. Try different words.
+            {t(locale, "search_no_results")}
           </p>
         )}
 

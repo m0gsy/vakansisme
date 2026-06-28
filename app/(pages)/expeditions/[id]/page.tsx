@@ -14,6 +14,7 @@ import BookmarkButton from "@/components/BookmarkButton";
 import PackingList from "@/components/PackingList";
 import ExpeditionReviews from "@/components/ExpeditionReviews";
 import ExpeditionMapClient from "@/components/ExpeditionMapClient";
+import PayButton from "@/components/PayButton";
 import { getLocale } from "@/lib/locale";
 import { t } from "@/lib/i18n";
 
@@ -86,6 +87,11 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
     .neq("id", id)
     .ilike("location", `%${trip.location.split(",")[0].trim()}%`)
     .limit(3);
+
+  const priceAmount = (trip as { price_amount?: number }).price_amount ?? 0;
+  const isPaid = user && priceAmount > 0
+    ? await supabase.from("expedition_payments").select("status").eq("user_id", user.id).eq("expedition_id", id).eq("status", "paid").maybeSingle().then((r) => !!r.data)
+    : false;
 
   const membershipStatus = (membership as { status?: string } | null)?.status;
   const userJoined = membershipStatus === "approved";
@@ -244,19 +250,28 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
             {/* Join */}
             <div style={{ marginBottom: "48px" }}>
-              <JoinButton
-                tripId={trip.id}
-                initialCount={memberCount ?? 0}
-                quotaMax={trip.quota_max}
-                currentUserId={user?.id ?? null}
-                initialJoined={userJoined}
-                initialOnWaitlist={onWaitlist}
-                initialWaitlistCount={waitlistCount ?? 0}
-                tripStatus={trip.status}
-              applicationPrompt={trip.application_prompt ?? null}
-              initialPending={userPending}
-              locale={locale}
-              />
+              {priceAmount > 0 && !userJoined ? (
+                <PayButton
+                  expeditionId={trip.id}
+                  priceAmount={priceAmount}
+                  currentUserId={user?.id ?? null}
+                  alreadyPaid={isPaid}
+                />
+              ) : (
+                <JoinButton
+                  tripId={trip.id}
+                  initialCount={memberCount ?? 0}
+                  quotaMax={trip.quota_max}
+                  currentUserId={user?.id ?? null}
+                  initialJoined={userJoined}
+                  initialOnWaitlist={onWaitlist}
+                  initialWaitlistCount={waitlistCount ?? 0}
+                  tripStatus={trip.status}
+                  applicationPrompt={trip.application_prompt ?? null}
+                  initialPending={userPending}
+                  locale={locale}
+                />
+              )}
             </div>
 
             {/* Members */}
