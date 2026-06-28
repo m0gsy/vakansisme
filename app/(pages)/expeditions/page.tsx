@@ -44,7 +44,8 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
 
   let query = supabase
     .from("expeditions")
-    .select("id, name, location, difficulty, price, date_start, date_end, quota_max, image_url, status, expedition_members(count)", { count: "exact" })
+    .select("id, name, location, difficulty, price, date_start, date_end, quota_max, image_url, status, featured, expedition_members(count)", { count: "exact" })
+    .order("featured", { ascending: false })
     .order("date_start", { ascending: true });
 
   if (difficulty) query = query.eq("difficulty", difficulty);
@@ -151,6 +152,11 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
                         style={{ filter: "grayscale(15%)" }}
                       />
                       <div aria-hidden="true" className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(31,59,44,0.7) 0%, transparent 50%)" }} />
+                      {(e as { featured?: boolean }).featured && (
+                        <div className="absolute top-3 right-3">
+                          <span className="font-body font-semibold text-charcoal" style={{ fontSize: "0.6rem", letterSpacing: "0.1em", padding: "3px 8px", background: "#9BFF3C" }}>★ FEATURED</span>
+                        </div>
+                      )}
                       <div className="absolute bottom-3 left-3" style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                         <span
                           className="font-body font-semibold text-charcoal bg-neon-green"

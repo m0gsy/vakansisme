@@ -15,6 +15,7 @@ async function getTrips(): Promise<Trip[]> {
   const { data } = await supabase
     .from("expeditions")
     .select("*, expedition_members(count)")
+    .order("featured", { ascending: false })
     .order("date_start");
 
   if (!data) return [];
@@ -52,6 +53,7 @@ async function getStories(): Promise<Story[]> {
     .from("stories")
     .select("id, author_handle, type, title, excerpt, image_url, created_at")
     .eq("published", true)
+    .order("featured", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(4);
 

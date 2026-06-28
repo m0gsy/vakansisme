@@ -130,12 +130,15 @@ type ExpeditionData = {
   status?: string | null;
   requires_approval?: boolean | null;
   application_prompt?: string | null;
+  featured?: boolean | null;
 };
 
 export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [featLoading, setFeatLoading] = useState(false);
+  const [featured, setFeatured] = useState(expedition.featured ?? false);
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState(expedition.image_url ?? "");
   const [editRequiresApproval, setEditRequiresApproval] = useState(expedition.requires_approval ?? false);
@@ -303,6 +306,17 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
     );
   }
 
+  async function toggleFeatured() {
+    setFeatLoading(true);
+    const res = await fetch(`/api/admin/expeditions/${expedition.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...expedition, featured: !featured }),
+    });
+    if (res.ok) setFeatured((f) => !f);
+    setFeatLoading(false);
+  }
+
   return (
     <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
       <button
@@ -310,6 +324,13 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
         style={{ ...BTN.base, background: "rgba(155,255,60,0.1)", color: "#9BFF3C", border: "1px solid rgba(155,255,60,0.3)" }}
       >
         EDIT
+      </button>
+      <button
+        disabled={featLoading}
+        onClick={toggleFeatured}
+        style={{ ...BTN.base, background: featured ? "#9BFF3C" : "transparent", color: featured ? "#111111" : "#8B7355", border: "1px solid rgba(155,255,60,0.3)" }}
+      >
+        {featLoading ? "…" : featured ? "★ FEATURED" : "☆ FEATURE"}
       </button>
       <button
         disabled={loading}
@@ -545,10 +566,12 @@ export function AdminExpeditionForm() {
   );
 }
 
-export function StoryModerationActions({ id }: { id: string }) {
+export function StoryModerationActions({ id, initialFeatured = false }: { id: string; initialFeatured?: boolean }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [featLoading, setFeatLoading] = useState(false);
   const [done, setDone] = useState<string | null>(null);
+  const [featured, setFeatured] = useState(initialFeatured);
 
   async function moderate(action: "approve" | "reject") {
     setLoading(true);
@@ -563,6 +586,17 @@ export function StoryModerationActions({ id }: { id: string }) {
     } else {
       setLoading(false);
     }
+  }
+
+  async function toggleFeatured() {
+    setFeatLoading(true);
+    const res = await fetch(`/api/admin/stories/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ featured: !featured }),
+    });
+    if (res.ok) setFeatured((f) => !f);
+    setFeatLoading(false);
   }
 
   async function del() {
@@ -583,7 +617,7 @@ export function StoryModerationActions({ id }: { id: string }) {
   }
 
   return (
-    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+    <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
       <button
         disabled={loading}
         onClick={() => moderate("approve")}
@@ -597,6 +631,13 @@ export function StoryModerationActions({ id }: { id: string }) {
         style={{ ...BTN.base, background: "rgba(255,107,26,0.15)", color: "#FF6B1A", border: "1px solid rgba(255,107,26,0.4)" }}
       >
         REJECT
+      </button>
+      <button
+        disabled={featLoading}
+        onClick={toggleFeatured}
+        style={{ ...BTN.base, background: featured ? "#9BFF3C" : "transparent", color: featured ? "#111111" : "#8B7355", border: "1px solid rgba(155,255,60,0.3)" }}
+      >
+        {featLoading ? "…" : featured ? "★" : "☆"}
       </button>
       <button
         disabled={loading}
@@ -706,16 +747,42 @@ export function AdminRemindersButton() {
 }
 
 export function AdminUsersSection() {
-  const [users, setUsers] = useState<{ id: string; username: string; created_at: string; is_admin: boolean }[]>([]);
+  const [users, setUsers] = useState<{ id: string; username: string; created_at: string; is_admin: boolean; is_banned: boolean }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/users").then((r) => r.json()).then(({ users: u }) => {
       setUsers(u ?? []);
       setLoading(false);
     });
+    // Get current user id for self-guard
+    fetch("/api/auth/me").then((r) => r.ok ? r.json() : null).then((d) => {
+      if (d?.id) setCurrentUserId(d.id);
+    }).catch(() => {});
   }, []);
+
+  async function doAction(userId: string, action: "ban" | "unban" | "promote" | "demote") {
+    setActionLoading(`${userId}:${action}`);
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    if (res.ok) {
+      setUsers((prev) => prev.map((u) => {
+        if (u.id !== userId) return u;
+        return {
+          ...u,
+          is_banned: action === "ban" ? true : action === "unban" ? false : u.is_banned,
+          is_admin: action === "promote" ? true : action === "demote" ? false : u.is_admin,
+        };
+      }));
+    }
+    setActionLoading(null);
+  }
 
   const filtered = users.filter((u) => !search || u.username.toLowerCase().includes(search.toLowerCase()));
 
@@ -734,19 +801,43 @@ export function AdminUsersSection() {
         <p className="font-body text-muted-ink" style={{ fontSize: "0.82rem" }}>Loading...</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          {filtered.slice(0, 50).map((u) => (
-            <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.25)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <a href={`/u/${u.username}`} className="font-body font-semibold text-off-white hover:text-neon-green transition-colors" style={{ fontSize: "0.8rem" }}>
-                  @{u.username}
-                </a>
-                {u.is_admin && <span className="font-body font-semibold" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", padding: "2px 6px", background: "#FF6B1A", color: "#111111" }}>ADMIN</span>}
+          {filtered.slice(0, 50).map((u) => {
+            const isSelf = u.id === currentUserId;
+            return (
+              <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: u.is_banned ? "rgba(127,0,0,0.08)" : "#1a1a1a", border: `1px solid ${u.is_banned ? "rgba(255,107,26,0.25)" : "rgba(74,59,42,0.25)"}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <a href={`/u/${u.username}`} className="font-body font-semibold text-off-white hover:text-neon-green transition-colors" style={{ fontSize: "0.8rem" }}>
+                    @{u.username}
+                  </a>
+                  {u.is_admin && <span className="font-body font-semibold" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", padding: "2px 6px", background: "#FF6B1A", color: "#111111" }}>ADMIN</span>}
+                  {u.is_banned && <span className="font-body font-semibold" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", padding: "2px 6px", background: "rgba(255,60,60,0.2)", color: "#FF6B1A", border: "1px solid rgba(255,107,26,0.4)" }}>🚫 BANNED</span>}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span className="font-body text-muted-ink" style={{ fontSize: "0.68rem", marginRight: "6px" }}>
+                    {new Date(u.created_at).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
+                  </span>
+                  {!isSelf && (
+                    <>
+                      <button
+                        disabled={!!actionLoading}
+                        onClick={() => doAction(u.id, u.is_banned ? "unban" : "ban")}
+                        style={{ ...BTN.base, background: u.is_banned ? "rgba(155,255,60,0.1)" : "rgba(255,60,60,0.1)", color: u.is_banned ? "#9BFF3C" : "#FF6B1A", border: `1px solid ${u.is_banned ? "rgba(155,255,60,0.3)" : "rgba(255,107,26,0.4)"}` }}
+                      >
+                        {actionLoading === `${u.id}:${u.is_banned ? "unban" : "ban"}` ? "…" : u.is_banned ? "UNBAN" : "BAN"}
+                      </button>
+                      <button
+                        disabled={!!actionLoading}
+                        onClick={() => doAction(u.id, u.is_admin ? "demote" : "promote")}
+                        style={{ ...BTN.base, background: "transparent", color: "#8B7355", border: "1px solid rgba(74,59,42,0.4)" }}
+                      >
+                        {actionLoading === `${u.id}:${u.is_admin ? "demote" : "promote"}` ? "…" : u.is_admin ? "DEMOTE" : "PROMOTE"}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-              <span className="font-body text-muted-ink" style={{ fontSize: "0.68rem" }}>
-                {new Date(u.created_at).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
-              </span>
-            </div>
-          ))}
+            );
+          })}
           {filtered.length > 50 && (
             <p className="font-body text-muted-ink" style={{ fontSize: "0.72rem", paddingTop: "8px" }}>Showing 50 of {filtered.length} users.</p>
           )}

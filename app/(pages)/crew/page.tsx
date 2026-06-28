@@ -18,20 +18,28 @@ export default async function CrewPage({ searchParams }: { searchParams: SearchP
   const locale = await getLocale();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: profiles, count } = await supabase
+  let blockedIds: string[] = [];
+  const followingSet = new Set<string>();
+  if (user) {
+    const [{ data: following }, { data: blocks }] = await Promise.all([
+      supabase.from("follows").select("following_id").eq("follower_id", user.id),
+      supabase.from("user_blocks").select("blocked_id").eq("blocker_id", user.id),
+    ]);
+    following?.forEach((f) => followingSet.add(f.following_id));
+    blockedIds = (blocks ?? []).map((b) => b.blocked_id);
+  }
+
+  let profilesQuery = supabase
     .from("profiles")
     .select("id, username, bio, avatar_url, follows!follows_following_id_fkey(count)", { count: "exact" })
     .order("created_at")
     .range(from, to);
 
-  const followingSet = new Set<string>();
-  if (user) {
-    const { data: following } = await supabase
-      .from("follows")
-      .select("following_id")
-      .eq("follower_id", user.id);
-    following?.forEach((f) => followingSet.add(f.following_id));
+  if (blockedIds.length) {
+    profilesQuery = profilesQuery.not("id", "in", `(${blockedIds.join(",")})`);
   }
+
+  const { data: profiles, count } = await profilesQuery;
 
   const members = (profiles ?? []).map((p) => ({
     id: p.id,
@@ -58,7 +66,7 @@ export default async function CrewPage({ searchParams }: { searchParams: SearchP
           {count ?? 0} {locale === "id" ? "anggota." : "members."} {t(locale, "crew_subtitle")}
         </p>
 
-        <CrewGrid members={members} currentUserId={user?.id ?? null} />
+        <CrewGrid members={members} currentUserId={user?.id ?? null} blockedIds={blockedIds} />
 
         {/* Pagination */}
         {totalPages > 1 && (

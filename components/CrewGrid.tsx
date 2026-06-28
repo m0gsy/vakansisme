@@ -16,9 +16,11 @@ type Member = {
 export default function CrewGrid({
   members,
   currentUserId,
+  blockedIds = [],
 }: {
   members: Member[];
   currentUserId: string | null;
+  blockedIds?: string[];
 }) {
   const router = useRouter();
   const [followState, setFollowState] = useState<Record<string, boolean>>(
@@ -28,6 +30,8 @@ export default function CrewGrid({
     Object.fromEntries(members.map((m) => [m.id, m.follower_count]))
   );
   const [loading, setLoading] = useState<string | null>(null);
+  const [blockState, setBlockState] = useState<Set<string>>(new Set(blockedIds));
+  const [blockLoading, setBlockLoading] = useState<string | null>(null);
 
   async function toggleFollow(memberId: string) {
     if (!currentUserId) { router.push("/login"); return; }
@@ -46,6 +50,38 @@ export default function CrewGrid({
       setCounts((prev) => ({ ...prev, [memberId]: prev[memberId] + (isFollowing ? -1 : 1) }));
     }
     setLoading(null);
+  }
+
+  async function toggleBlock(memberId: string) {
+    if (!currentUserId) { router.push("/login"); return; }
+
+    const isBlocked = blockState.has(memberId);
+    setBlockLoading(memberId);
+
+    const res = await fetch("/api/crew/block", {
+      method: isBlocked ? "DELETE" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ blocked_id: memberId }),
+    });
+
+    if (res.ok) {
+      setBlockState((prev) => {
+        const next = new Set(prev);
+        if (isBlocked) next.delete(memberId); else next.add(memberId);
+        return next;
+      });
+      if (!isBlocked && followState[memberId]) {
+        // unfollow when blocking
+        await fetch("/api/crew/follow", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ following_id: memberId }),
+        });
+        setFollowState((prev) => ({ ...prev, [memberId]: false }));
+        setCounts((prev) => ({ ...prev, [memberId]: Math.max(0, prev[memberId] - 1) }));
+      }
+    }
+    setBlockLoading(null);
   }
 
   if (members.length === 0) {
@@ -102,23 +138,43 @@ export default function CrewGrid({
           </p>
 
           {!member.is_self && (
-            <button
-              onClick={() => toggleFollow(member.id)}
-              disabled={loading === member.id}
-              className="font-body font-semibold transition-all duration-150 disabled:opacity-50"
-              style={{
-                fontSize: "0.65rem",
-                letterSpacing: "0.12em",
-                padding: "8px 18px",
-                border: "1px solid",
-                cursor: loading === member.id ? "not-allowed" : "pointer",
-                background: followState[member.id] ? "transparent" : "#9BFF3C",
-                color: followState[member.id] ? "#7A7570" : "#111111",
-                borderColor: followState[member.id] ? "rgba(74,59,42,0.5)" : "#9BFF3C",
-              }}
-            >
-              {loading === member.id ? "..." : followState[member.id] ? "FOLLOWING" : "FOLLOW"}
-            </button>
+            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+              {!blockState.has(member.id) && (
+                <button
+                  onClick={() => toggleFollow(member.id)}
+                  disabled={loading === member.id}
+                  className="font-body font-semibold transition-all duration-150 disabled:opacity-50"
+                  style={{
+                    fontSize: "0.65rem",
+                    letterSpacing: "0.12em",
+                    padding: "8px 18px",
+                    border: "1px solid",
+                    cursor: loading === member.id ? "not-allowed" : "pointer",
+                    background: followState[member.id] ? "transparent" : "#9BFF3C",
+                    color: followState[member.id] ? "#7A7570" : "#111111",
+                    borderColor: followState[member.id] ? "rgba(74,59,42,0.5)" : "#9BFF3C",
+                  }}
+                >
+                  {loading === member.id ? "..." : followState[member.id] ? "FOLLOWING" : "FOLLOW"}
+                </button>
+              )}
+              <button
+                onClick={() => toggleBlock(member.id)}
+                disabled={blockLoading === member.id}
+                className="font-body font-semibold transition-all duration-150 disabled:opacity-50"
+                style={{
+                  fontSize: "0.6rem",
+                  letterSpacing: "0.1em",
+                  padding: "8px 12px",
+                  border: "1px solid rgba(74,59,42,0.4)",
+                  cursor: blockLoading === member.id ? "not-allowed" : "pointer",
+                  background: "transparent",
+                  color: blockState.has(member.id) ? "#9BFF3C" : "#8B7355",
+                }}
+              >
+                {blockLoading === member.id ? "..." : blockState.has(member.id) ? "UNBLOCK" : "BLOCK"}
+              </button>
+            </div>
           )}
         </div>
       ))}

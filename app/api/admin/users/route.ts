@@ -10,7 +10,7 @@ export async function GET() {
 
   const { data: users } = await supabase
     .from("profiles")
-    .select("id, username, bio, avatar_url, created_at, is_admin")
+    .select("id, username, bio, avatar_url, created_at, is_admin, is_banned")
     .order("created_at", { ascending: false })
     .limit(200);
 

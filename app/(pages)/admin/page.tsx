@@ -64,19 +64,19 @@ export default async function AdminPage() {
       .limit(100),
     supabase
       .from("expeditions")
-      .select("id, name, location, difficulty, price, date_start, date_end, quota_max, leader_handle, image_url, description, expedition_members(count)")
+      .select("id, name, location, difficulty, price, date_start, date_end, quota_max, leader_handle, image_url, description, requires_approval, application_prompt, featured, expedition_members(count)")
       .order("date_start", { ascending: true })
       .limit(50),
     supabase
       .from("stories")
-      .select("id, author_handle, type, title, excerpt, created_at")
+      .select("id, author_handle, type, title, excerpt, created_at, featured")
       .eq("published", false)
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(100),
     supabase
       .from("stories")
-      .select("id, author_handle, type, title, status, created_at")
+      .select("id, author_handle, type, title, status, created_at, featured")
       .order("created_at", { ascending: false })
       .limit(100),
     supabase.from("newsletter_subscribers").select("*", { count: "exact", head: true }),
@@ -201,7 +201,7 @@ export default async function AdminPage() {
                         {new Date(s.created_at).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
                       </Cell>
                       <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
-                        <StoryModerationActions id={s.id} />
+                        <StoryModerationActions id={s.id} initialFeatured={(s as { featured?: boolean }).featured ?? false} />
                       </td>
                     </tr>
                   ))}
@@ -321,7 +321,7 @@ export default async function AdminPage() {
                           {new Date(s.created_at).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
                         </Cell>
                         <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
-                          <StoryModerationActions id={s.id} />
+                          <StoryModerationActions id={s.id} initialFeatured={(s as { featured?: boolean }).featured ?? false} />
                         </td>
                       </tr>
                     );

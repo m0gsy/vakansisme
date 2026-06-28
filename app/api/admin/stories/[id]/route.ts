@@ -21,7 +21,15 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
   const { supabase, isAdmin } = await requireAdmin();
   if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { action } = await req.json();
+  const body = await req.json();
+  const { action, featured } = body;
+
+  // Feature toggle
+  if (featured !== undefined) {
+    const { error } = await supabase.from("stories").update({ featured: !!featured }).eq("id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
 
   const updates =
     action === "approve"

@@ -11,6 +11,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   const query = q?.trim() ?? "";
 
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let blockedIds: string[] = [];
+  if (user) {
+    const { data: blocks } = await supabase.from("user_blocks").select("blocked_id").eq("blocker_id", user.id);
+    blockedIds = (blocks ?? []).map((b) => b.blocked_id);
+  }
 
   const ftsQuery = query.trim().split(/\s+/).filter(Boolean).map((w) => `${w}:*`).join(" & ");
 
@@ -27,19 +34,30 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
           ),
         supabase
           .from("stories")
-          .select("id, type, title, excerpt, image_url, author_handle")
+          .select("id, type, title, excerpt, image_url, author_handle, author_id")
           .eq("published", true)
           .textSearch("fts", ftsQuery, { type: "websearch", config: "english" })
           .limit(6)
-          .then(async (r) => r.error
-            ? supabase.from("stories").select("id, type, title, excerpt, image_url, author_handle").eq("published", true).or(`title.ilike.%${query}%,excerpt.ilike.%${query}%`).limit(6)
-            : r
-          ),
+          .then(async (r) => {
+            const base = r.error
+              ? await supabase.from("stories").select("id, type, title, excerpt, image_url, author_handle, author_id").eq("published", true).or(`title.ilike.%${query}%,excerpt.ilike.%${query}%`).limit(6)
+              : r;
+            if (blockedIds.length && base.data) {
+              return { ...base, data: base.data.filter((s) => !blockedIds.includes(s.author_id)) };
+            }
+            return base;
+          }),
         supabase
           .from("profiles")
           .select("id, username, bio, avatar_url")
           .ilike("username", `%${query}%`)
-          .limit(5),
+          .limit(5)
+          .then((r) => {
+            if (blockedIds.length && r.data) {
+              return { ...r, data: r.data.filter((p) => !blockedIds.includes(p.id)) };
+            }
+            return r;
+          }),
       ])
     : [{ data: [] }, { data: [] }, { data: [] }];
 

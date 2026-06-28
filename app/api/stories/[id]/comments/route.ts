@@ -47,11 +47,12 @@ export async function POST(req: Request, { params }: { params: Params }) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username")
+    .select("username, is_banned")
     .eq("id", user.id)
     .single();
 
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 400 });
+  if (profile.is_banned) return NextResponse.json({ error: "Account suspended" }, { status: 403 });
 
   const { data, error } = await supabase
     .from("story_comments")

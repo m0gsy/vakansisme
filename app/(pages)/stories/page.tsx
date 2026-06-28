@@ -21,14 +21,22 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
   const locale = await getLocale();
   const { data: { user } } = await supabase.auth.getUser();
 
+  let blockedIds: string[] = [];
+  if (user) {
+    const { data: blocks } = await supabase.from("user_blocks").select("blocked_id").eq("blocker_id", user.id);
+    blockedIds = (blocks ?? []).map((b) => b.blocked_id);
+  }
+
   let query = supabase
     .from("stories")
-    .select("id, author_handle, type, title, excerpt, image_url, created_at, tags, view_count", { count: "exact" })
+    .select("id, author_id, author_handle, type, title, excerpt, image_url, created_at, tags, view_count, featured", { count: "exact" })
     .eq("published", true)
+    .order("featured", { ascending: false })
     .order("created_at", { ascending: false });
 
   if (type) query = query.eq("type", type);
   if (tag) query = query.contains("tags", [tag]);
+  if (blockedIds.length) query = query.not("author_id", "in", `(${blockedIds.join(",")})`);
 
   const { data: stories, count } = await query.range(from, to);
 

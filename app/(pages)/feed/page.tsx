@@ -12,12 +12,13 @@ export default async function FeedPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: follows } = await supabase
-    .from("follows")
-    .select("following_id")
-    .eq("follower_id", user.id);
+  const [{ data: follows }, { data: blocks }] = await Promise.all([
+    supabase.from("follows").select("following_id").eq("follower_id", user.id),
+    supabase.from("user_blocks").select("blocked_id").eq("blocker_id", user.id),
+  ]);
 
   const followingIds = (follows ?? []).map((f) => f.following_id);
+  const blockedIds = (blocks ?? []).map((b) => b.blocked_id);
 
   if (!followingIds.length) {
     return (
@@ -37,14 +38,17 @@ export default async function FeedPage() {
     );
   }
 
+  let storiesQuery = supabase
+    .from("stories")
+    .select("id, title, type, image_url, created_at, author_handle, author_id")
+    .eq("published", true)
+    .in("author_id", followingIds)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (blockedIds.length) storiesQuery = storiesQuery.not("author_id", "in", `(${blockedIds.join(",")})`);
+
   const [{ data: stories }, { data: joins }] = await Promise.all([
-    supabase
-      .from("stories")
-      .select("id, title, type, image_url, created_at, author_handle, author_id")
-      .eq("published", true)
-      .in("author_id", followingIds)
-      .order("created_at", { ascending: false })
-      .limit(20),
+    storiesQuery,
     supabase
       .from("expedition_members")
       .select("user_id, joined_at, expedition_id, profiles(username), expeditions(id, name, location)")

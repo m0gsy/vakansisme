@@ -30,6 +30,9 @@ export async function POST(req: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "Login required" }, { status: 401 });
   }
 
+  const { data: banCheck } = await supabase.from("profiles").select("is_banned").eq("id", user.id).single();
+  if (banCheck?.is_banned) return NextResponse.json({ error: "Account suspended" }, { status: 403 });
+
   const body = await req.json().catch(() => ({}));
   const notes = typeof body.notes === "string" ? body.notes.slice(0, 500) : null;
 
