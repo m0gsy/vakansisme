@@ -1,14 +1,13 @@
 import webpush from "web-push";
 import { createClient } from "@/lib/supabase/server";
 
-webpush.setVapidDetails(
-  "mailto:admin@vakansisme.com",
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
-
 export async function sendPushToUser(userId: string, payload: { title: string; body?: string; url?: string }) {
-  if (!process.env.VAPID_PRIVATE_KEY) return;
+  if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return;
+  webpush.setVapidDetails(
+    "mailto:admin@vakansisme.com",
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
   try {
     const supabase = await createClient();
     const { data: subs } = await supabase
