@@ -11,4 +11,5 @@ export type Trip = {
   quota_max: number;
   image_url: string;
   member_count: number;
+  featured?: boolean;
 };

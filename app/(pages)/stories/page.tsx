@@ -202,6 +202,9 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
                       style={{ filter: "grayscale(20%) brightness(0.85)" }}
                     />
                     <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(31,59,44,0.6) 0%, transparent 60%)" }} />
+                    {(story as { featured?: boolean }).featured && (
+                      <span className="font-body font-semibold text-charcoal absolute top-3 right-3" style={{ fontSize: "0.58rem", letterSpacing: "0.1em", padding: "2px 7px", background: "#9BFF3C" }}>★ FEATURED</span>
+                    )}
                     <span className="font-body font-semibold text-neon-green uppercase absolute bottom-3 left-3" style={{ fontSize: "0.6rem", letterSpacing: "0.14em" }}>
                       {story.type}
                     </span>

@@ -33,6 +33,7 @@ async function getTrips(): Promise<Trip[]> {
     quota_max: row.quota_max,
     image_url: row.image_url ?? "",
     member_count: (row.expedition_members as { count: number }[])[0]?.count ?? 0,
+    featured: row.featured ?? false,
   }));
 }
 
