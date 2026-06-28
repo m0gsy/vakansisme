@@ -82,7 +82,7 @@ export default function Hero() {
             textWrap: "pretty",
           }}
         >
-          You'll be exhausted, freezing cold, but somehow you'll want to come back for more.
+          You&apos;ll be exhausted, freezing cold, but somehow you&apos;ll want to come back for more.
         </motion.p>
 
         {/* CTAs */}

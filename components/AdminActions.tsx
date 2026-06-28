@@ -652,6 +652,7 @@ export function StoryModerationActions({ id, initialFeatured = false }: { id: st
 
 export function AdminExportButtons() {
   function download(type: string) {
+    // eslint-disable-next-line react-hooks/immutability
     window.location.href = `/api/admin/export?type=${type}`;
   }
   return (

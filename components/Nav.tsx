@@ -65,6 +65,7 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
 
   // Sync locale when prop changes (after router.refresh())
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocale(initialLocale);
   }, [initialLocale]);
 

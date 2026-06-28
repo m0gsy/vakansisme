@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
   const { segment } = await req.clone().json().catch(() => ({ segment: "all" })) as { segment?: string };
 
-  let emailsQuery = supabase.from("newsletter_subscribers").select("email");
+  const emailsQuery = supabase.from("newsletter_subscribers").select("email");
   const { data: subscribers } = await emailsQuery;
 
   let emails = (subscribers ?? []).map((s: { email: string }) => s.email).filter(Boolean);
