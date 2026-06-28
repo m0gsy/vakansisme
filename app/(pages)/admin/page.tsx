@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ChaosActions, ExpeditionActions, AdminExpeditionForm, StoryModerationActions, GalleryModerationActions, AdminExportButtons, AdminAutoStatusButton } from "@/components/AdminActions";
+import { ChaosActions, ExpeditionActions, AdminExpeditionForm, StoryModerationActions, GalleryModerationActions, AdminExportButtons, AdminAutoStatusButton, AdminRemindersButton, AdminUsersSection, AdminReportsSection } from "@/components/AdminActions";
 import NewsletterForm from "@/components/NewsletterForm";
 
 export const metadata = { title: "Admin — VAKANSISME" };
@@ -79,7 +79,7 @@ export default async function AdminPage() {
       .select("id, author_handle, type, title, status, created_at")
       .order("created_at", { ascending: false })
       .limit(100),
-    supabase.from("subscribers").select("*", { count: "exact", head: true }),
+    supabase.from("newsletter_subscribers").select("*", { count: "exact", head: true }),
     supabase
       .from("expedition_gallery")
       .select("id, expedition_id, uploader_handle, image_url, caption, status, created_at, expeditions(name)")
@@ -340,6 +340,21 @@ export default async function AdminPage() {
         {/* Newsletter */}
         <Section title={`NEWSLETTER (${subscriberCount ?? 0} subscribers)`}>
           <NewsletterForm subscriberCount={subscriberCount ?? 0} />
+        </Section>
+
+        {/* Reminders */}
+        <Section title="TRIP REMINDERS">
+          <AdminRemindersButton />
+        </Section>
+
+        {/* Content Reports */}
+        <Section title="CONTENT REPORTS">
+          <AdminReportsSection />
+        </Section>
+
+        {/* Users */}
+        <Section title="USERS">
+          <AdminUsersSection />
         </Section>
 
         {/* Expeditions */}

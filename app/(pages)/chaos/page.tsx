@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import Image from "next/image";
 import ChaosSubmitButton from "@/components/ChaosSubmitButton";
+import ChaosReact from "@/components/ChaosReact";
 import { CHAOS_TYPES } from "@/types/chaos";
 
 export const metadata = { title: "Chaos Wall — VAKANSISME" };
@@ -17,6 +18,7 @@ export default async function ChaosPage({ searchParams }: { searchParams: Search
   const to = from + PAGE_SIZE - 1;
 
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   let query = supabase
     .from("chaos_submissions")
@@ -28,6 +30,19 @@ export default async function ChaosPage({ searchParams }: { searchParams: Search
 
   const { data: cards, count } = await query.range(from, to);
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE);
+
+  // Fetch reactions for this page
+  const cardIds = (cards ?? []).map((c) => c.id);
+  const { data: reactionRows } = cardIds.length
+    ? await supabase.from("chaos_reactions").select("chaos_id, user_id").in("chaos_id", cardIds)
+    : { data: [] };
+
+  const reactionCounts = Object.fromEntries(
+    cardIds.map((id) => [id, (reactionRows ?? []).filter((r) => r.chaos_id === id).length])
+  );
+  const userReacted = new Set(
+    (reactionRows ?? []).filter((r) => r.user_id === user?.id).map((r) => r.chaos_id)
+  );
 
   const pillHref = (t?: string) => (t ? `/chaos?type=${encodeURIComponent(t)}` : "/chaos");
   const pageHref = (p: number) => `/chaos?${type ? `type=${encodeURIComponent(type)}&` : ""}page=${p}`;
@@ -130,9 +145,17 @@ export default async function ChaosPage({ searchParams }: { searchParams: Search
                   <p className="font-story text-off-white" style={{ fontSize: "0.88rem", lineHeight: 1.7, marginTop: "12px", marginBottom: "12px" }}>
                     {card.caption}
                   </p>
-                  <p className="font-body text-muted-ink" style={{ fontSize: "0.68rem", letterSpacing: "0.04em" }}>
-                    {card.author_handle}
-                  </p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <p className="font-body text-muted-ink" style={{ fontSize: "0.68rem", letterSpacing: "0.04em" }}>
+                      {card.author_handle}
+                    </p>
+                    <ChaosReact
+                      chaosId={card.id}
+                      initialCount={reactionCounts[card.id] ?? 0}
+                      initialReacted={userReacted.has(card.id)}
+                      currentUserId={user?.id ?? null}
+                    />
+                  </div>
                 </div>
               </div>
             ))}

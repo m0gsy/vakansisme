@@ -15,13 +15,31 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "subject and html required" }, { status: 400 });
   }
 
-  const { data: subscribers } = await supabase
-    .from("subscribers")
-    .select("email");
+  const { segment } = await req.clone().json().catch(() => ({ segment: "all" })) as { segment?: string };
 
-  if (!subscribers?.length) return NextResponse.json({ sent: 0 });
+  let emailsQuery = supabase.from("newsletter_subscribers").select("email");
+  const { data: subscribers } = await emailsQuery;
 
-  const emails = subscribers.map((s) => s.email).filter(Boolean);
+  let emails = (subscribers ?? []).map((s: { email: string }) => s.email).filter(Boolean);
+
+  // Segment: "members" = users who joined at least 1 expedition
+  if (segment === "members") {
+    const { data: memberProfiles } = await supabase
+      .from("expedition_members")
+      .select("profiles!expedition_members_user_id_fkey(email)")
+      .limit(2000);
+    const memberEmails = new Set(
+      (memberProfiles ?? []).flatMap((m: Record<string, unknown>) => {
+        const p = m.profiles as { email?: string } | { email?: string }[] | null;
+        if (!p) return [];
+        return Array.isArray(p) ? p.map((x) => x.email).filter(Boolean) : [p.email].filter(Boolean);
+      })
+    );
+    emails = emails.filter((e: string) => memberEmails.has(e));
+  }
+
+  if (!emails.length) return NextResponse.json({ sent: 0 });
+
   const { sent } = await sendNewsletterEmail(emails, subject.trim(), html.trim());
   return NextResponse.json({ sent });
 }

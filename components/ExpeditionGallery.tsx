@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import ImageUpload from "@/components/ImageUpload";
+import GalleryLightbox from "@/components/GalleryLightbox";
 
 type Photo = {
   id: string;
@@ -32,6 +33,7 @@ export default function ExpeditionGallery({
   const [caption, setCaption] = useState("");
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   async function handleUpload(url: string) {
     setNewUrl(url);
@@ -136,10 +138,20 @@ export default function ExpeditionGallery({
       )}
 
       {/* Gallery grid */}
+      {lightboxIdx !== null && (
+        <GalleryLightbox
+          photos={photos}
+          initialIndex={lightboxIdx}
+          onClose={() => setLightboxIdx(null)}
+        />
+      )}
+
       {photos.length > 0 ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "8px" }}>
-          {photos.map((p) => (
-            <div key={p.id} style={{ position: "relative", aspectRatio: "1", overflow: "hidden", background: "#1a1a1a" }}>
+          {photos.map((p, idx) => (
+            <div key={p.id} style={{ position: "relative", aspectRatio: "1", overflow: "hidden", background: "#1a1a1a", cursor: "pointer" }}
+              onClick={() => setLightboxIdx(idx)}
+            >
               <Image
                 src={p.image_url}
                 alt={p.caption ?? ""}

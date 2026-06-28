@@ -133,6 +133,8 @@ export async function DELETE(_req: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "Cannot leave a trip that has already completed." }, { status: 403 });
   }
 
+  const { data: expInfo } = await supabase.from("expeditions").select("name").eq("id", id).single();
+
   const { error } = await supabase
     .from("expedition_members")
     .delete()
@@ -140,6 +142,23 @@ export async function DELETE(_req: Request, { params }: { params: Params }) {
     .eq("user_id", user.id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  // Notify first person on waitlist that a spot opened
+  supabase
+    .from("expedition_waitlist")
+    .select("user_id")
+    .eq("expedition_id", id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .then(({ data: waitlist }) => {
+      if (!waitlist?.[0]) return;
+      void supabase.from("notifications").insert({
+        user_id: waitlist[0].user_id,
+        type: "waitlist_spot",
+        title: `A spot opened on ${expInfo?.name ?? "your waitlisted trip"} — join now`,
+        link: `/expeditions/${id}`,
+      });
+    });
 
   const { count: memberCount } = await supabase
     .from("expedition_members")

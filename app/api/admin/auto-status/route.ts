@@ -1,12 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
-export async function POST() {
+export async function POST(req: Request) {
+  const cronSecret = process.env.CRON_SECRET;
+  const isCron = cronSecret && req.headers.get("authorization") === `Bearer ${cronSecret}`;
+
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
-  if (!profile?.is_admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  if (!isCron) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
+    if (!profile?.is_admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const now = new Date().toISOString();
 
@@ -26,7 +32,6 @@ export async function POST() {
       .select("id, name"),
   ]);
 
-  // Notify members of each updated expedition (fire-and-forget)
   async function notifyBatch(rows: { id: string; name: string }[], newStatus: "ongoing" | "completed") {
     for (const exp of rows) {
       const { data: members } = await supabase

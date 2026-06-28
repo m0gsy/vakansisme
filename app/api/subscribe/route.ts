@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   );
 
   const { error } = await supabase
-    .from("email_subscribers")
+    .from("newsletter_subscribers")
     .insert({ email });
 
   if (error) {

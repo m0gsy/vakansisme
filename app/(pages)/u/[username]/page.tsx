@@ -36,7 +36,7 @@ export default async function ProfilePage({ params }: { params: Params }) {
     isFollowing = !!data;
   }
 
-  const [{ data: stories }, { data: expeditions }, { data: chaos }, { count: storyCount }, { count: tripCount }] = await Promise.all([
+  const [{ data: stories }, { data: expeditions }, { data: chaos }, { count: storyCount }, { count: tripCount }, { data: ledExpeditions }] = await Promise.all([
     supabase
       .from("stories")
       .select("id, type, title, excerpt, image_url, created_at")
@@ -65,6 +65,12 @@ export default async function ProfilePage({ params }: { params: Params }) {
       .from("expedition_members")
       .select("*", { count: "exact", head: true })
       .eq("user_id", profile.id),
+    supabase
+      .from("expeditions")
+      .select("id, name, location, date_start, status")
+      .ilike("leader_handle", `%${username}%`)
+      .order("date_start", { ascending: false })
+      .limit(6),
   ]);
 
   let drafts: Array<{ id: string; type: string; title: string; created_at: string; status: string }> = [];
@@ -322,6 +328,37 @@ export default async function ProfilePage({ params }: { params: Params }) {
                   </div>
                 );
               })}
+            </div>
+          </section>
+        )}
+
+        {/* Led expeditions */}
+        {!!ledExpeditions?.length && (
+          <section style={{ marginBottom: "56px" }}>
+            <h2
+              className="font-display font-black uppercase text-off-white"
+              style={{ fontSize: "clamp(1.5rem, 4vw, 2.5rem)", letterSpacing: "-0.02em", marginBottom: "24px" }}
+            >
+              LEADING
+            </h2>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+              {ledExpeditions.map((exp) => (
+                <a
+                  key={exp.id}
+                  href={`/expeditions/${exp.id}`}
+                  style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.35)", padding: "16px 20px", flex: "1 1 200px", textDecoration: "none" }}
+                >
+                  <p className="font-body font-semibold uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.12em", color: exp.status === "ongoing" ? "#FF6B1A" : exp.status === "completed" ? "#4A3B2A" : "#9BFF3C", marginBottom: "6px" }}>
+                    {exp.status} · {new Date(exp.date_start).toLocaleDateString("en", { month: "short", year: "numeric" })}
+                  </p>
+                  <p className="font-display font-bold uppercase text-off-white" style={{ fontSize: "0.95rem", letterSpacing: "-0.01em" }}>
+                    {exp.name}
+                  </p>
+                  <p className="font-body text-muted-ink" style={{ fontSize: "0.75rem", marginTop: "4px" }}>
+                    {exp.location}
+                  </p>
+                </a>
+              ))}
             </div>
           </section>
         )}

@@ -8,6 +8,13 @@ import StoryLikeButton from "@/components/StoryLikeButton";
 import ShareButtons from "@/components/ShareButtons";
 import MarkdownContent from "@/components/MarkdownContent";
 import ViewCounter from "@/components/ViewCounter";
+import ReportButton from "@/components/ReportButton";
+
+function readingTime(content: string | null): string {
+  const words = (content ?? "").split(/\s+/).filter(Boolean).length;
+  const mins = Math.max(1, Math.round(words / 200));
+  return `${mins} min read`;
+}
 
 type Params = Promise<{ id: string }>;
 
@@ -131,6 +138,15 @@ export default async function StoryPage({ params }: { params: Params }) {
           <span className="font-body text-muted-ink" style={{ fontSize: "0.78rem" }}>
             {new Date(story.created_at).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
           </span>
+          <span className="font-body text-muted-ink" style={{ fontSize: "0.78rem" }}>
+            {readingTime(story.content)}
+          </span>
+          {story.view_count > 0 && (
+            <span className="font-body text-muted-ink" style={{ fontSize: "0.78rem" }}>
+              {story.view_count} view{story.view_count !== 1 ? "s" : ""}
+            </span>
+          )}
+          <ReportButton contentType="story" contentId={id} currentUserId={user?.id ?? null} />
         </div>
 
         {/* Tags */}

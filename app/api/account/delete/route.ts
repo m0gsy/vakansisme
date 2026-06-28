@@ -1,0 +1,19 @@
+import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { NextResponse } from "next/server";
+
+export async function DELETE(req: Request) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
+
+  const { confirm } = await req.json();
+  if (confirm !== "DELETE") return NextResponse.json({ error: 'Send { confirm: "DELETE" } to confirm' }, { status: 400 });
+
+  // Use service role to delete auth user (cascades to profiles + all related data via FK)
+  const service = createServiceClient();
+  const { error } = await service.auth.admin.deleteUser(user.id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ ok: true });
+}

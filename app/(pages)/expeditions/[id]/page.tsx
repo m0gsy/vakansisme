@@ -238,12 +238,24 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
             {/* Members */}
             {!!members?.length && (
               <div>
-                <p
-                  className="font-body font-semibold text-muted-ink uppercase"
-                  style={{ fontSize: "0.65rem", letterSpacing: "0.12em", marginBottom: "14px" }}
-                >
-                  Crew ({memberCount})
-                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "14px", flexWrap: "wrap" }}>
+                  <p
+                    className="font-body font-semibold text-muted-ink uppercase"
+                    style={{ fontSize: "0.65rem", letterSpacing: "0.12em" }}
+                  >
+                    Crew ({memberCount})
+                  </p>
+                  {isLeader && (
+                    <a
+                      href={`/api/expeditions/${id}/export`}
+                      download
+                      className="font-body font-semibold text-muted-ink hover:text-neon-green transition-colors duration-150"
+                      style={{ fontSize: "0.58rem", letterSpacing: "0.1em", border: "1px solid rgba(74,59,42,0.4)", padding: "4px 10px", textDecoration: "none" }}
+                    >
+                      ↓ EXPORT CSV
+                    </a>
+                  )}
+                </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                   {members.map((m) => {
                     const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles as { username: string; avatar_url: string | null } | null;
