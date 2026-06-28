@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
   if (!profile?.is_admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { name, location, difficulty, price, date_start, date_end, quota_max, leader_handle, image_url, description } = await req.json();
+  const { name, location, difficulty, price, date_start, date_end, quota_max, leader_handle, image_url, description, requires_approval, application_prompt } = await req.json();
 
   if (!name || !location || !difficulty || !price || !date_start || !date_end || !quota_max || !leader_handle) {
     return NextResponse.json({ error: "All fields required except image and description" }, { status: 400 });
@@ -34,10 +34,27 @@ export async function POST(req: Request) {
       leader_handle: leader_handle.trim(),
       image_url: image_url?.trim() || null,
       description: description?.trim() || null,
+      requires_approval: requires_approval ?? false,
+      application_prompt: application_prompt?.trim() || null,
     })
     .select("id")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  // Auto-join the leader as an approved member
+  const handle = leader_handle.trim().replace(/^@/, "");
+  const { data: leaderProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("username", handle)
+    .maybeSingle();
+  if (leaderProfile?.id) {
+    await supabase.from("expedition_members").upsert(
+      { expedition_id: data.id, user_id: leaderProfile.id, status: "approved" },
+      { onConflict: "expedition_id,user_id" }
+    );
+  }
+
   return NextResponse.json({ id: data.id });
 }

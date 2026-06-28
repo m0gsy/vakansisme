@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import CrewGrid from "@/components/CrewGrid";
+import { getLocale } from "@/lib/locale";
+import { t } from "@/lib/i18n";
 
 const PAGE_SIZE = 24;
 
@@ -13,6 +15,7 @@ export default async function CrewPage({ searchParams }: { searchParams: SearchP
   const to = from + PAGE_SIZE - 1;
 
   const supabase = await createClient();
+  const locale = await getLocale();
   const { data: { user } } = await supabase.auth.getUser();
 
   const { data: profiles, count } = await supabase
@@ -49,10 +52,10 @@ export default async function CrewPage({ searchParams }: { searchParams: SearchP
           className="font-display font-black uppercase text-off-white"
           style={{ fontSize: "clamp(3rem, 8vw, 6rem)", letterSpacing: "-0.025em", lineHeight: 0.88, marginBottom: "16px" }}
         >
-          THE CREW
+          {t(locale, "page_crew")}
         </h1>
         <p className="font-body text-muted-ink" style={{ fontSize: "0.9rem", marginBottom: "56px" }}>
-          {count ?? 0} members. All equally lost.
+          {count ?? 0} {locale === "id" ? "anggota." : "members."} {t(locale, "crew_subtitle")}
         </p>
 
         <CrewGrid members={members} currentUserId={user?.id ?? null} />

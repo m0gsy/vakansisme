@@ -93,6 +93,16 @@ export async function DELETE(req: Request, { params }: { params: Params }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
+  // Only leader or admin can delete packing items
+  const [{ data: expedition }, { data: profile }] = await Promise.all([
+    supabase.from("expeditions").select("leader_handle").eq("id", id).single(),
+    supabase.from("profiles").select("username, is_admin").eq("id", user.id).single(),
+  ]);
+  const leaderHandle = expedition?.leader_handle?.replace(/^@/, "");
+  if (profile?.username !== leaderHandle && !profile?.is_admin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const { itemId } = await req.json();
   await supabase.from("expedition_packing_items").delete().eq("id", itemId).eq("expedition_id", id);
   return NextResponse.json({ success: true });

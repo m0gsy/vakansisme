@@ -60,7 +60,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
     .eq("expedition_id", id)
     .eq("status", "approved");
 
-  const [{ data: members }, { data: gallery }, { data: membership }, { data: comments }, { data: waitlistRow }, { count: waitlistCount }, { data: updates }, { data: packingItems }, { data: reviews }, { data: bookmarkRow }] = await Promise.all([
+  const [{ data: members }, { data: gallery }, { data: membership }, { data: comments }, { data: waitlistRow }, { count: waitlistCount }, { data: updates }, { data: packingItems }, { data: userChecks }, { data: reviews }, { data: bookmarkRow }] = await Promise.all([
     supabase.from("expedition_members").select("user_id, status, profiles(username, avatar_url)").eq("expedition_id", id).neq("status", "rejected").limit(30),
     supabase.from("expedition_gallery").select("id, uploader_id, uploader_handle, image_url, caption, created_at").eq("expedition_id", id).order("created_at", { ascending: true }),
     user
@@ -73,6 +73,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
     supabase.from("expedition_waitlist").select("*", { count: "exact", head: true }).eq("expedition_id", id),
     supabase.from("expedition_updates").select("id, author_id, content, created_at, profiles(username)").eq("expedition_id", id).order("created_at", { ascending: false }),
     supabase.from("expedition_packing_items").select("id, label, category, quantity").eq("expedition_id", id).order("created_at", { ascending: true }),
+    user ? supabase.from("packing_checks").select("item_id").eq("user_id", user.id) : Promise.resolve({ data: null }),
     supabase.from("expedition_reviews").select("id, reviewer_id, rating, content, created_at, profiles(username, avatar_url)").eq("expedition_id", id).order("created_at", { ascending: false }),
     user
       ? supabase.from("bookmarks").select("user_id").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
@@ -419,7 +420,15 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
         />
         <PackingList
           expeditionId={id}
-          initialItems={(packingItems ?? []).map((i) => ({ ...i, category: (i as { category?: string }).category ?? "general", quantity: (i as { quantity?: number }).quantity ?? 1, checked: false }))}
+          initialItems={(() => {
+            const checkedSet = new Set((userChecks ?? []).map((c: { item_id: string }) => c.item_id));
+            return (packingItems ?? []).map((i) => ({
+              ...i,
+              category: (i as { category?: string }).category ?? "general",
+              quantity: (i as { quantity?: number }).quantity ?? 1,
+              checked: checkedSet.has(i.id),
+            }));
+          })()}
           isLeader={isLeader}
           isMember={userJoined}
         />

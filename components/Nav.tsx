@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -22,17 +22,19 @@ function getNavLinks(locale: Locale) {
   ];
 }
 
-export default function Nav() {
+const linkStyle = {
+  fontSize: "0.7rem",
+  letterSpacing: "0.1em",
+} as React.CSSProperties;
+
+export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }) {
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [locale, setLocale] = useState<Locale>("id");
-
-  useEffect(() => {
-    const m = document.cookie.match(/(?:^|;)\s*locale=(\w+)/);
-    setLocale(m?.[1] === "en" ? "en" : "id");
-  }, []);
+  const [locale, setLocale] = useState<Locale>(initialLocale);
+  const profileRef = useRef<HTMLLIElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -48,6 +50,23 @@ export default function Nav() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    if (!profileOpen) return;
+    function handle(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [profileOpen]);
+
+  // Sync locale when prop changes (after router.refresh())
+  useEffect(() => {
+    setLocale(initialLocale);
+  }, [initialLocale]);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -90,7 +109,7 @@ export default function Nav() {
               <Link
                 href={link.href}
                 className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
-                style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
+                style={linkStyle}
               >
                 {link.label}
               </Link>
@@ -99,61 +118,65 @@ export default function Nav() {
           {user ? (
             <>
               <li>
-                <Link
-                  href="/stories/mine"
-                  className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
-                  style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
-                >
-                  {d.nav_my_stories}
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/trips"
-                  className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
-                  style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
-                >
-                  {d.nav_my_trips}
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/feed"
-                  className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
-                  style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
-                >
-                  {d.nav_feed}
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/bookmarks"
-                  className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
-                  style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
-                >
-                  {d.nav_saved}
-                </Link>
-              </li>
-              <li>
                 <NotificationBell />
               </li>
-              <li>
-                <Link
-                  href={`/u/${username}`}
+              {/* Profile dropdown */}
+              <li ref={profileRef} style={{ position: "relative" }}>
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
                   className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-200"
-                  style={{ fontSize: "0.7rem", letterSpacing: "0.08em" }}
+                  style={{ ...linkStyle, background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: "4px" }}
                 >
                   @{username}
-                </Link>
-              </li>
-              <li>
-                <button
-                  onClick={handleSignOut}
-                  className="font-body font-semibold text-off-white/60 hover:text-chaos-orange transition-colors duration-150"
-                  style={{ fontSize: "0.7rem", letterSpacing: "0.1em", background: "none", border: "none", cursor: "pointer", padding: 0 }}
-                >
-                  {d.nav_sign_out}
+                  <span style={{ fontSize: "0.55rem", opacity: 0.6, marginTop: "1px" }}>▾</span>
                 </button>
+                <AnimatePresence>
+                  {profileOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.15 }}
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 12px)",
+                        right: 0,
+                        background: "rgba(17,17,17,0.98)",
+                        border: "1px solid rgba(74,59,42,0.4)",
+                        backdropFilter: "blur(14px)",
+                        minWidth: "160px",
+                        padding: "8px 0",
+                        zIndex: 100,
+                      }}
+                    >
+                      {[
+                        { href: `/u/${username}`, label: d.nav_profile },
+                        { href: "/stories/mine", label: d.nav_my_stories },
+                        { href: "/trips", label: d.nav_my_trips },
+                        { href: "/feed", label: d.nav_feed },
+                        { href: "/bookmarks", label: d.nav_saved },
+                      ].map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setProfileOpen(false)}
+                          className="font-body font-semibold text-off-white/60 hover:text-off-white hover:bg-white/5 transition-colors duration-150"
+                          style={{ display: "block", fontSize: "0.68rem", letterSpacing: "0.1em", padding: "9px 18px" }}
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                      <div style={{ borderTop: "1px solid rgba(74,59,42,0.3)", margin: "6px 0" }} />
+                      <button
+                        onClick={() => { setProfileOpen(false); handleSignOut(); }}
+                        className="font-body font-semibold text-off-white/60 hover:text-chaos-orange hover:bg-white/5 transition-colors duration-150"
+                        style={{ display: "block", width: "100%", textAlign: "left", fontSize: "0.68rem", letterSpacing: "0.1em", padding: "9px 18px", background: "none", border: "none", cursor: "pointer" }}
+                      >
+                        {d.nav_sign_out}
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </li>
             </>
           ) : (
@@ -162,7 +185,7 @@ export default function Nav() {
                 <Link
                   href="/login"
                   className="font-body font-semibold text-off-white/60 hover:text-off-white transition-colors duration-200"
-                  style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
+                  style={linkStyle}
                 >
                   {d.nav_sign_in}
                 </Link>
@@ -247,14 +270,20 @@ export default function Nav() {
               ))}
               {user ? (
                 <li style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <Link href={`/u/${username}`} onClick={() => setMenuOpen(false)} className="font-body font-semibold text-muted-ink" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
+                    @{username}
+                  </Link>
                   <Link href="/stories/mine" onClick={() => setMenuOpen(false)} className="font-body font-semibold text-off-white/60" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
                     {d.nav_my_stories}
                   </Link>
                   <Link href="/trips" onClick={() => setMenuOpen(false)} className="font-body font-semibold text-off-white/60" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
                     {d.nav_my_trips}
                   </Link>
-                  <Link href={`/u/${username}`} onClick={() => setMenuOpen(false)} className="font-body font-semibold text-muted-ink" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
-                    @{username}
+                  <Link href="/feed" onClick={() => setMenuOpen(false)} className="font-body font-semibold text-off-white/60" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
+                    {d.nav_feed}
+                  </Link>
+                  <Link href="/bookmarks" onClick={() => setMenuOpen(false)} className="font-body font-semibold text-off-white/60" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
+                    {d.nav_saved}
                   </Link>
                   <LanguageSwitcher current={locale} />
                   <button

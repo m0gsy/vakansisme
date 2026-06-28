@@ -8,6 +8,8 @@ import { motion, useInView } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import type { Trip } from "@/types/expedition";
 import { difficultyLabel } from "@/lib/difficulty";
+import type { Locale } from "@/lib/i18n";
+import { dict } from "@/lib/i18n";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
@@ -18,8 +20,9 @@ function formatDate(start: string, end: string) {
   return `${s.getDate()}–${e.getDate()} ${mo} ${s.getFullYear()}`;
 }
 
-export default function Expeditions({ trips, joinedIds = [] }: { trips: Trip[]; joinedIds?: string[] }) {
+export default function Expeditions({ trips, joinedIds = [], locale = "id" }: { trips: Trip[]; joinedIds?: string[]; locale?: Locale }) {
   const router = useRouter();
+  const d = dict[locale];
   const headerRef = useRef(null);
   const isInView = useInView(headerRef, { once: true, margin: "-80px" });
   const [counts, setCounts] = useState<Record<string, number>>(
@@ -62,13 +65,13 @@ export default function Expeditions({ trips, joinedIds = [] }: { trips: Trip[]; 
                 lineHeight: 0.88,
               }}
             >
-              EXPEDITIONS
+              {d.page_expeditions}
             </h2>
             <p
               className="font-body text-muted-ink mt-3"
               style={{ fontSize: "0.9rem", maxWidth: "44ch" }}
             >
-              Not your average trip. Organized escapes with a controlled dose of chaos.
+              {d.expedition_subtitle}
             </p>
           </div>
           <Link
@@ -76,7 +79,7 @@ export default function Expeditions({ trips, joinedIds = [] }: { trips: Trip[]; 
             className="font-body font-semibold text-muted-ink hover:text-neon-green transition-colors duration-200"
             style={{ fontSize: "0.7rem", letterSpacing: "0.12em" }}
           >
-            SEE ALL EXPEDITIONS →
+            {d.see_all_expeditions}
           </Link>
         </motion.div>
       </div>
@@ -188,7 +191,7 @@ export default function Expeditions({ trips, joinedIds = [] }: { trips: Trip[]; 
                     className="font-body text-muted-ink"
                     style={{ fontSize: "0.68rem", letterSpacing: "0.05em" }}
                   >
-                    QUOTA
+                    {d.quota}
                   </p>
                   <p
                     className="font-body font-semibold text-neon-green"
@@ -216,12 +219,12 @@ export default function Expeditions({ trips, joinedIds = [] }: { trips: Trip[]; 
                 }}
               >
                 {joining === trip.id
-                  ? "JOINING..."
+                  ? d.joining
                   : joined.has(trip.id)
-                  ? "JOINED ✓"
+                  ? d.joined
                   : counts[trip.id] >= trip.quota_max
-                  ? "FULL"
-                  : "JOIN TRIP"}
+                  ? d.full
+                  : d.join}
               </button>
             </div>
           </motion.article>

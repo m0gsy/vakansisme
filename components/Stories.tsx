@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import type { Story } from "@/types/story";
+import type { Locale } from "@/lib/i18n";
+import { dict } from "@/lib/i18n";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
@@ -13,7 +15,8 @@ const grain =
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80";
 
-export default function Stories({ stories }: { stories: Story[] }) {
+export default function Stories({ stories, locale = "id" }: { stories: Story[]; locale?: Locale }) {
+  const d = dict[locale];
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
@@ -51,14 +54,14 @@ export default function Stories({ stories }: { stories: Story[] }) {
               lineHeight: 0.88,
             }}
           >
-            JOURNAL
+            {d.page_stories}
           </h2>
           <Link
             href="/stories"
             className="font-body font-semibold text-muted-ink hover:text-neon-green transition-colors duration-200"
             style={{ fontSize: "0.7rem", letterSpacing: "0.12em" }}
           >
-            EXPLORE STORIES →
+            {d.explore_stories}
           </Link>
         </motion.div>
 

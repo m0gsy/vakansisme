@@ -128,6 +128,8 @@ type ExpeditionData = {
   image_url?: string | null;
   description?: string | null;
   status?: string | null;
+  requires_approval?: boolean | null;
+  application_prompt?: string | null;
 };
 
 export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }) {
@@ -136,6 +138,7 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState(expedition.image_url ?? "");
+  const [editRequiresApproval, setEditRequiresApproval] = useState(expedition.requires_approval ?? false);
   const [fields, setFields] = useState({
     name: expedition.name,
     location: expedition.location,
@@ -146,6 +149,7 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
     quota_max: String(expedition.quota_max),
     leader_handle: expedition.leader_handle,
     description: expedition.description ?? "",
+    application_prompt: expedition.application_prompt ?? "",
     status: expedition.status ?? "upcoming",
   });
 
@@ -167,7 +171,7 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
     const res = await fetch(`/api/admin/expeditions/${expedition.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...fields, image_url: imageUrl }),
+      body: JSON.stringify({ ...fields, image_url: imageUrl, requires_approval: editRequiresApproval }),
     });
     const json = await res.json();
     if (res.ok) {
@@ -247,6 +251,34 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
               onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")}
             />
           </div>
+          <div style={{ marginBottom: "12px" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={editRequiresApproval}
+                onChange={(e) => setEditRequiresApproval(e.target.checked)}
+                style={{ accentColor: "#9BFF3C", width: "14px", height: "14px" }}
+              />
+              <span className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.12em" }}>
+                Require leader approval before joining
+              </span>
+            </label>
+          </div>
+          {editRequiresApproval && (
+            <div style={{ marginBottom: "12px" }}>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Question for applicants</label>
+              <textarea
+                value={fields.application_prompt}
+                onChange={(e) => set("application_prompt", e.target.value)}
+                rows={2}
+                placeholder="e.g. Why do you want to join?"
+                className="font-body text-off-white placeholder:text-muted-ink focus:outline-none resize-none"
+                style={{ ...fieldStyle, lineHeight: 1.6 }}
+                onFocus={(e) => (e.currentTarget.style.borderBottomColor = "#9BFF3C")}
+                onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")}
+              />
+            </div>
+          )}
           {fields.location && (
             <div style={{ marginBottom: "12px" }}>
               <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "6px" }}>Map preview</label>
@@ -307,6 +339,7 @@ export function AdminExpeditionForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [requiresApproval, setRequiresApproval] = useState(false);
   const [fields, setFields] = useState({
     name: "",
     location: "",
@@ -317,6 +350,7 @@ export function AdminExpeditionForm() {
     quota_max: "",
     leader_handle: "",
     description: "",
+    application_prompt: "",
   });
 
   function set(key: string, val: string) {
@@ -331,12 +365,13 @@ export function AdminExpeditionForm() {
     const res = await fetch("/api/admin/expeditions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...fields, image_url: imageUrl }),
+      body: JSON.stringify({ ...fields, image_url: imageUrl, requires_approval: requiresApproval }),
     });
     const json = await res.json();
 
     if (res.ok) {
-      setFields({ name: "", location: "", difficulty: "Moderate", price: "", date_start: "", date_end: "", quota_max: "", leader_handle: "", description: "" });
+      setFields({ name: "", location: "", difficulty: "Moderate", price: "", date_start: "", date_end: "", quota_max: "", leader_handle: "", description: "", application_prompt: "" });
+      setRequiresApproval(false);
       setImageUrl("");
       setOpen(false);
       router.refresh();
@@ -447,6 +482,41 @@ export function AdminExpeditionForm() {
             onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")}
           />
         </div>
+
+        <div style={{ marginBottom: "16px" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={requiresApproval}
+              onChange={(e) => setRequiresApproval(e.target.checked)}
+              style={{ accentColor: "#9BFF3C", width: "14px", height: "14px" }}
+            />
+            <span className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.58rem", letterSpacing: "0.12em" }}>
+              Require leader approval before joining
+            </span>
+          </label>
+        </div>
+
+        {requiresApproval && (
+          <div style={{ marginBottom: "16px" }}>
+            <label
+              className="font-body font-semibold text-muted-ink uppercase block"
+              style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}
+            >
+              Question for applicants (optional)
+            </label>
+            <textarea
+              value={fields.application_prompt}
+              onChange={(e) => set("application_prompt", e.target.value)}
+              rows={2}
+              placeholder="e.g. Why do you want to join this expedition?"
+              className="font-body text-off-white placeholder:text-muted-ink focus:outline-none resize-none"
+              style={{ ...fieldStyle, lineHeight: 1.6 }}
+              onFocus={(e) => (e.currentTarget.style.borderBottomColor = "#9BFF3C")}
+              onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")}
+            />
+          </div>
+        )}
 
         <div style={{ marginBottom: "16px" }}>
           <label

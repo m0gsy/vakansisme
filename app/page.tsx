@@ -5,6 +5,7 @@ import Stories from "@/components/Stories";
 import ChaosWall from "@/components/ChaosWall";
 import FooterCTA from "@/components/FooterCTA";
 import { createClient } from "@/lib/supabase/server";
+import { getLocale } from "@/lib/locale";
 import type { Trip } from "@/types/expedition";
 import type { Story } from "@/types/story";
 import type { ChaosCard } from "@/types/chaos";
@@ -59,7 +60,10 @@ async function getStories(): Promise<Story[]> {
 
 export default async function Home() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const [{ data: { user } }, locale] = await Promise.all([
+    supabase.auth.getUser(),
+    getLocale(),
+  ]);
 
   const [trips, stories, chaosCards] = await Promise.all([getTrips(), getStories(), getChaosCards()]);
 
@@ -74,11 +78,11 @@ export default async function Home() {
 
   return (
     <>
-      <Nav />
+      <Nav initialLocale={locale} />
       <main>
         <Hero />
-        <Expeditions trips={trips} joinedIds={joinedIds} />
-        <Stories stories={stories} />
+        <Expeditions trips={trips} joinedIds={joinedIds} locale={locale} />
+        <Stories stories={stories} locale={locale} />
         <ChaosWall initialCards={chaosCards} />
       </main>
       <FooterCTA />

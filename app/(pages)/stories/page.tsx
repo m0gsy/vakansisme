@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import Image from "next/image";
 import Link from "next/link";
+import { getLocale } from "@/lib/locale";
+import { t as tr } from "@/lib/i18n";
 
 const PAGE_SIZE = 12;
 const FALLBACK = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80";
@@ -16,6 +18,7 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
   const to = from + PAGE_SIZE - 1;
 
   const supabase = await createClient();
+  const locale = await getLocale();
   const { data: { user } } = await supabase.auth.getUser();
 
   let query = supabase
@@ -81,10 +84,10 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: "16px", marginBottom: "48px" }}>
           <div>
             <h1 className="font-display font-black uppercase text-off-white" style={{ fontSize: "clamp(3rem, 8vw, 6rem)", letterSpacing: "-0.025em", lineHeight: 0.88 }}>
-              JOURNAL
+              {tr(locale, "page_stories")}
             </h1>
             <p className="font-body text-muted-ink mt-3" style={{ fontSize: "0.9rem" }}>
-              {count ?? 0} stories from the field.
+              {count ?? 0} {locale === "id" ? "cerita dari lapangan." : "stories from the field."}
             </p>
           </div>
           {user && (
@@ -93,7 +96,7 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
               className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150"
               style={{ fontSize: "0.7rem", letterSpacing: "0.12em", padding: "11px 24px" }}
             >
-              + WRITE STORY
+              + {tr(locale, "write_story")}
             </Link>
           )}
         </div>
@@ -102,7 +105,7 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
         {trendingStories.length > 0 && (
           <div style={{ marginBottom: "48px" }}>
             <p className="font-body font-semibold text-muted-ink uppercase mb-4" style={{ fontSize: "0.62rem", letterSpacing: "0.14em" }}>
-              TRENDING THIS WEEK
+              {tr(locale, "trending")}
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "8px" }}>
               {trendingStories.map((s) => (
@@ -140,7 +143,7 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
                   borderColor: active ? "#9BFF3C" : "rgba(74,59,42,0.5)",
                 }}
               >
-                {t ? t : "ALL"}
+                {t ? t : tr(locale, "all")}
               </Link>
             );
           })}
@@ -172,7 +175,9 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
         {/* Grid */}
         {!stories?.length ? (
           <p className="font-story text-muted-ink" style={{ fontSize: "1rem" }}>
-            No stories{type ? ` tagged "${type}"` : ""}{tag ? ` with #${tag}` : ""} yet.
+            {locale === "id"
+              ? `Belum ada cerita${type ? ` bertipe "${type}"` : ""}${tag ? ` dengan #${tag}` : ""} nih.`
+              : `No stories${type ? ` tagged "${type}"` : ""}${tag ? ` with #${tag}` : ""} yet.`}
           </p>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
