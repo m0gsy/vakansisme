@@ -34,6 +34,7 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
   const [profileOpen, setProfileOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [locale, setLocale] = useState<Locale>(initialLocale);
+  const [dmUnread, setDmUnread] = useState(0);
   const profileRef = useRef<HTMLLIElement>(null);
 
   useEffect(() => {
@@ -44,7 +45,25 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+      if (!data.user) return;
+      // Load DM unread count
+      fetch("/api/dm")
+        .then((r) => r.json())
+        .then((d: Array<{ unread: number }>) => setDmUnread(Array.isArray(d) ? d.reduce((s, c) => s + c.unread, 0) : 0))
+        .catch(() => {});
+      // Realtime DM unread badge
+      const channel = supabase
+        .channel("nav-dm")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "direct_messages", filter: `recipient_id=eq.${data.user.id}` },
+          () => setDmUnread((n) => n + 1)
+        )
+        .subscribe();
+      return () => { supabase.removeChannel(channel); };
+    });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -118,6 +137,23 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
           ))}
           {user ? (
             <>
+              <li>
+                <Link
+                  href="/messages"
+                  aria-label="Messages"
+                  onClick={() => setDmUnread(0)}
+                  style={{ position: "relative", display: "flex", alignItems: "center", color: "#8B7355", padding: "4px" }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  {dmUnread > 0 && (
+                    <span style={{ position: "absolute", top: 0, right: 0, background: "#FF6B1A", color: "#111", fontSize: "0.5rem", fontWeight: 800, lineHeight: 1, padding: "2px 4px", minWidth: "14px", textAlign: "center" }}>
+                      {dmUnread > 9 ? "9+" : dmUnread}
+                    </span>
+                  )}
+                </Link>
+              </li>
               <li>
                 <NotificationBell />
               </li>
@@ -285,6 +321,9 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
                   </Link>
                   <Link href="/bookmarks" onClick={() => setMenuOpen(false)} className="font-body font-semibold text-off-white/60" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
                     {d.nav_saved}
+                  </Link>
+                  <Link href="/messages" onClick={() => { setMenuOpen(false); setDmUnread(0); }} className="font-body font-semibold text-off-white/60" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
+                    {d.nav_messages}{dmUnread > 0 ? ` (${dmUnread})` : ""}
                   </Link>
                   <LanguageSwitcher current={locale} />
                   <button

@@ -42,6 +42,8 @@ export default function SettingsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [pushStatus, setPushStatus] = useState<"default" | "granted" | "denied" | "unsupported">("default");
+  const [pushLoading, setPushLoading] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -96,6 +98,39 @@ export default function SettingsPage() {
     setPrefsOk(true);
     setPrefsSaving(false);
     setTimeout(() => setPrefsOk(false), 2000);
+  }
+
+  useEffect(() => {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+      setPushStatus("unsupported");
+    } else {
+      setPushStatus(Notification.permission as "default" | "granted" | "denied");
+    }
+  }, []);
+
+  async function enablePush() {
+    if (!("serviceWorker" in navigator)) return;
+    setPushLoading(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") { setPushStatus("denied"); setPushLoading(false); return; }
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      const { key } = await fetch("/api/push/vapid-key").then((r) => r.json());
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: key,
+      });
+      const json = sub.toJSON();
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
+      });
+      setPushStatus("granted");
+    } catch {
+      setPushStatus("denied");
+    }
+    setPushLoading(false);
   }
 
   async function handleDelete() {
@@ -227,6 +262,37 @@ export default function SettingsPage() {
             {prefsSaving ? "SAVING..." : prefsOk ? "SAVED ✓" : "SAVE PREFERENCES"}
           </button>
         </div>
+
+        {/* Push notifications */}
+        {pushStatus !== "unsupported" && (
+          <div style={{ marginTop: "64px", paddingTop: "48px", borderTop: "1px solid rgba(74,59,42,0.3)" }}>
+            <h2 className="font-display font-black uppercase text-off-white" style={{ fontSize: "clamp(1.2rem, 3vw, 1.8rem)", letterSpacing: "-0.02em", marginBottom: "8px" }}>
+              BROWSER NOTIFICATIONS
+            </h2>
+            <p className="font-body text-muted-ink" style={{ fontSize: "0.8rem", marginBottom: "20px" }}>
+              Get notified instantly — even when you&apos;re not on the site.
+            </p>
+            {pushStatus === "denied" && (
+              <p className="font-body text-chaos-orange" style={{ fontSize: "0.78rem", marginBottom: "12px" }}>
+                Permission denied. Enable in your browser settings.
+              </p>
+            )}
+            {pushStatus !== "granted" ? (
+              <button
+                onClick={enablePush}
+                disabled={pushLoading || pushStatus === "denied"}
+                className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150 disabled:opacity-40"
+                style={{ fontSize: "0.68rem", letterSpacing: "0.12em", padding: "11px 24px", border: "none", cursor: "pointer" }}
+              >
+                {pushLoading ? "ENABLING..." : "ENABLE NOTIFICATIONS"}
+              </button>
+            ) : (
+              <p className="font-body font-semibold text-neon-green" style={{ fontSize: "0.78rem" }}>
+                NOTIFICATIONS ENABLED ✓
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Delete account */}
         <div style={{ marginTop: "64px", paddingTop: "48px", borderTop: "1px solid rgba(122,46,18,0.4)" }}>

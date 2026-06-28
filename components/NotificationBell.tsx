@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 type Notif = {
   id: string;
@@ -21,10 +22,30 @@ export default function NotificationBell() {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("/api/notifications")
-      .then((r) => r.json())
-      .then((d) => Array.isArray(d) && setNotifs(d))
-      .catch(() => {});
+    const supabase = createClient();
+    let userId: string | null = null;
+
+    supabase.auth.getUser().then(({ data }) => {
+      userId = data.user?.id ?? null;
+      fetch("/api/notifications")
+        .then((r) => r.json())
+        .then((d) => Array.isArray(d) && setNotifs(d))
+        .catch(() => {});
+
+      if (!userId) return;
+      const channel = supabase
+        .channel("notif-bell")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+          (payload) => {
+            setNotifs((prev) => [payload.new as Notif, ...prev]);
+          }
+        )
+        .subscribe();
+
+      return () => { supabase.removeChannel(channel); };
+    });
   }, []);
 
   useEffect(() => {

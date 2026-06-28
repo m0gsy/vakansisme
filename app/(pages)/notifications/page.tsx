@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 type Notif = {
   id: string;
@@ -30,10 +31,24 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const supabase = createClient();
     fetch("/api/notifications")
       .then((r) => r.json())
       .then((d) => { setNotifs(Array.isArray(d) ? d : []); setLoading(false); })
       .catch(() => setLoading(false));
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      const channel = supabase
+        .channel("notif-page")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${data.user.id}` },
+          (payload) => setNotifs((prev) => [payload.new as Notif, ...prev])
+        )
+        .subscribe();
+      return () => { supabase.removeChannel(channel); };
+    });
   }, []);
 
   async function markRead(id: string) {

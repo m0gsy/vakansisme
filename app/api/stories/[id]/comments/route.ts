@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { rateLimit } from "@/lib/ratelimit";
 
 type Params = Promise<{ id: string }>;
 
@@ -39,6 +40,11 @@ export async function POST(req: Request, { params }: { params: Params }) {
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
+
+  const ip = req.headers.get("x-forwarded-for") ?? "anon";
+  if (!await rateLimit(`comment:${user.id}:${ip}`, 15, 60_000)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
 
   const { content } = await req.json();
   if (!content?.trim() || content.trim().length > 500) {

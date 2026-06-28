@@ -9,7 +9,7 @@ type Params = Promise<{ id: string }>;
 export async function POST(req: Request, { params }: { params: Params }) {
   const { id } = await params;
   const ip = req.headers.get("x-forwarded-for") ?? "anon";
-  if (!rateLimit(`join:${ip}`, 10, 60_000)) {
+  if (!await rateLimit(`join:${ip}`, 10, 60_000)) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
   const cookieStore = await cookies();

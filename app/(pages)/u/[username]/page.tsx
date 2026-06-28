@@ -186,12 +186,23 @@ export default async function ProfilePage({ params }: { params: Params }) {
                 EDIT PROFILE
               </Link>
             ) : (
-              <FollowButton
-                targetId={profile.id}
-                initialFollowing={isFollowing}
-                initialCount={followerCount}
-                currentUserId={currentUser?.id ?? null}
-              />
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <FollowButton
+                  targetId={profile.id}
+                  initialFollowing={isFollowing}
+                  initialCount={followerCount}
+                  currentUserId={currentUser?.id ?? null}
+                />
+                {currentUser && (
+                  <Link
+                    href={`/messages/${profile.username}`}
+                    className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-150"
+                    style={{ fontSize: "0.68rem", letterSpacing: "0.1em", border: "1px solid rgba(74,59,42,0.5)", padding: "8px 16px" }}
+                  >
+                    MESSAGE
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         </div>

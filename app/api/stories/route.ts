@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { rateLimit } from "@/lib/ratelimit";
 
 const VALID_TYPES = ["photo dump", "short story", "video POV", "chaos moment"];
 const MAX_CONTENT_LENGTH = 50000;
@@ -12,6 +13,11 @@ export async function POST(req: Request) {
   if (!title?.trim()) return NextResponse.json({ error: "Title required" }, { status: 400 });
   if (content && content.length > MAX_CONTENT_LENGTH) {
     return NextResponse.json({ error: `Content too long (max ${MAX_CONTENT_LENGTH} chars)` }, { status: 400 });
+  }
+
+  const ip = req.headers.get("x-forwarded-for") ?? "anon";
+  if (!await rateLimit(`story:${ip}`, 20, 60_000)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
   const cookieStore = await cookies();

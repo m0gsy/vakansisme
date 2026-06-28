@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { sendPushToUser } from "@/lib/push";
 
-type NotifType = "join" | "story_approved" | "story_rejected" | "new_follower" | "leader_update" | "gallery_approved" | "gallery_rejected";
+type NotifType = "join" | "story_approved" | "story_rejected" | "new_follower" | "leader_update" | "gallery_approved" | "gallery_rejected" | "dm";
 
 export async function createNotification({
   userId,
@@ -17,4 +18,5 @@ export async function createNotification({
 }) {
   const supabase = await createClient();
   await supabase.from("notifications").insert({ user_id: userId, type, title, body, link });
+  sendPushToUser(userId, { title, body, url: link }).catch(() => {});
 }

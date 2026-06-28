@@ -85,6 +85,37 @@ export const dict = {
     application_prompt_label: "Pertanyaan untuk Pelamar",
     application_notes_label: "Catatan Lamaran",
     requires_approval: "Perlu Persetujuan Pemimpin",
+    // messages
+    nav_messages: "PESAN",
+    page_messages: "PESAN",
+    dm_no_conversations: "Belum ada pesan.",
+    dm_find_crew: "Cari anggota krew dan mulai ngobrol.",
+    dm_browse_crew: "CARI KREW →",
+    dm_send: "KIRIM",
+    // notifications
+    page_notifications: "NOTIFIKASI",
+    notif_all_clear: "BERSIH",
+    notif_empty: "Belum ada notifikasi.",
+    notif_unread: "belum dibaca",
+    notif_mark_all_read: "TANDAI SEMUA DIBACA",
+    // feed
+    page_feed: "FEED",
+    feed_empty_title: "FEED KOSONG",
+    feed_empty_body: "Follow anggota krew untuk lihat aktivitas mereka di sini.",
+    feed_find_crew: "CARI KREW →",
+    // bookmarks
+    page_bookmarks: "SIMPANAN",
+    bookmark_none_saved: "BELUM ADA SIMPANAN",
+    bookmark_browse: "JELAJAHI EKSPEDISI →",
+    // settings
+    settings_push_notif: "Notifikasi Browser",
+    settings_push_enable: "AKTIFKAN NOTIFIKASI",
+    settings_push_enabled: "NOTIFIKASI AKTIF ✓",
+    settings_push_deny: "Izin notifikasi ditolak. Aktifkan di pengaturan browser.",
+    // search
+    page_search: "CARI",
+    search_placeholder: "Cari ekspedisi, cerita, krew…",
+    search_no_results: "Tidak ada hasil.",
   },
   en: {
     nav_expeditions: "EXPEDITIONS",
@@ -157,6 +188,37 @@ export const dict = {
     application_prompt_label: "Question for Applicants",
     application_notes_label: "Application Notes",
     requires_approval: "Requires Leader Approval",
+    // messages
+    nav_messages: "MESSAGES",
+    page_messages: "MESSAGES",
+    dm_no_conversations: "No messages yet.",
+    dm_find_crew: "Find crew members and start a conversation.",
+    dm_browse_crew: "BROWSE CREW →",
+    dm_send: "SEND",
+    // notifications
+    page_notifications: "NOTIFICATIONS",
+    notif_all_clear: "ALL CLEAR",
+    notif_empty: "No notifications yet.",
+    notif_unread: "unread",
+    notif_mark_all_read: "MARK ALL READ",
+    // feed
+    page_feed: "FEED",
+    feed_empty_title: "YOUR FEED",
+    feed_empty_body: "Follow crew members to see their activity here.",
+    feed_find_crew: "FIND CREW →",
+    // bookmarks
+    page_bookmarks: "BOOKMARKS",
+    bookmark_none_saved: "NOTHING SAVED",
+    bookmark_browse: "BROWSE EXPEDITIONS →",
+    // settings
+    settings_push_notif: "Browser Notifications",
+    settings_push_enable: "ENABLE NOTIFICATIONS",
+    settings_push_enabled: "NOTIFICATIONS ENABLED ✓",
+    settings_push_deny: "Permission denied. Enable in browser settings.",
+    // search
+    page_search: "SEARCH",
+    search_placeholder: "Search expeditions, stories, crew…",
+    search_no_results: "No results found.",
   },
 } as const;
 
