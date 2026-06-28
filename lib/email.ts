@@ -179,6 +179,63 @@ export async function sendGalleryStatusEmail(
   });
 }
 
+export async function sendExpeditionStatusEmail(
+  to: string,
+  username: string,
+  tripName: string,
+  tripId: string,
+  newStatus: "cancelled" | "ongoing" | "completed"
+) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
+  const cfg = {
+    cancelled: {
+      label: "EXPEDITION CANCELLED",
+      color: "#FF6B1A",
+      body: `Hey @${username}, unfortunately <strong style="color:#F0EDEA;">${tripName}</strong> has been cancelled. Contact the leader for details.`,
+      btnBg: "rgba(255,107,26,0.15)",
+      btnColor: "#FF6B1A",
+      btnBorder: "border:1px solid rgba(255,107,26,0.4);",
+      subject: `Expedition cancelled — ${tripName}`,
+    },
+    ongoing: {
+      label: "TRIP IS LIVE",
+      color: "#FF6B1A",
+      body: `Hey @${username}, <strong style="color:#F0EDEA;">${tripName}</strong> is now officially underway. Stay safe and enjoy the chaos.`,
+      btnBg: "#FF6B1A",
+      btnColor: "#111111",
+      btnBorder: "",
+      subject: `Trip underway — ${tripName}`,
+    },
+    completed: {
+      label: "TRIP COMPLETED",
+      color: "#9BFF3C",
+      body: `Hey @${username}, <strong style="color:#F0EDEA;">${tripName}</strong> is complete. Head back to rate the trip and add your gallery photos.`,
+      btnBg: "#9BFF3C",
+      btnColor: "#111111",
+      btnBorder: "",
+      subject: `Trip complete — ${tripName}`,
+    },
+  }[newStatus];
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: cfg.subject,
+    html: base(`
+      <tr><td>
+        <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.14em;color:${cfg.color};text-transform:uppercase;">${cfg.label}</p>
+        <h1 style="margin:0 0 16px;font-size:38px;font-weight:900;letter-spacing:-0.025em;line-height:0.9;color:#F0EDEA;text-transform:uppercase;">
+          ${tripName}
+        </h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#8B7355;">${cfg.body}</p>
+        <a href="${SITE_URL}/expeditions/${tripId}" style="display:inline-block;background:${cfg.btnBg};color:${cfg.btnColor};font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:12px 28px;${cfg.btnBorder}">
+          VIEW EXPEDITION →
+        </a>
+      </td></tr>
+    `),
+  });
+}
+
 export async function sendNewsletterEmail(to: string[], subject: string, html: string) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return { sent: 0 };
   const batches = [];

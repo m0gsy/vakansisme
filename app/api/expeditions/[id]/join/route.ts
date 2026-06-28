@@ -124,6 +124,15 @@ export async function DELETE(_req: Request, { params }: { params: Params }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
+  // Block leave when trip is in progress or done
+  const { data: expedition } = await supabase.from("expeditions").select("status").eq("id", id).single();
+  if (expedition?.status === "ongoing") {
+    return NextResponse.json({ error: "Cannot leave a trip that is currently ongoing." }, { status: 403 });
+  }
+  if (expedition?.status === "completed") {
+    return NextResponse.json({ error: "Cannot leave a trip that has already completed." }, { status: 403 });
+  }
+
   const { error } = await supabase
     .from("expedition_members")
     .delete()

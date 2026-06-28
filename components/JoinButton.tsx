@@ -12,6 +12,7 @@ export default function JoinButton({
   initialJoined,
   initialOnWaitlist,
   initialWaitlistCount,
+  tripStatus,
 }: {
   tripId: string;
   initialCount: number;
@@ -20,6 +21,7 @@ export default function JoinButton({
   initialJoined: boolean;
   initialOnWaitlist?: boolean;
   initialWaitlistCount?: number;
+  tripStatus?: string | null;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -144,29 +146,35 @@ export default function JoinButton({
       )}
 
       {joined && !loading && (
-        <button
-          onClick={handleLeave}
-          className="font-body font-semibold transition-all duration-150"
-          style={{
-            fontSize: "0.68rem",
-            letterSpacing: "0.12em",
-            padding: "8px 20px",
-            background: "transparent",
-            border: "1px solid rgba(255,107,26,0.4)",
-            color: "#FF6B1A",
-            cursor: "pointer",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(255,107,26,0.1)";
-            e.currentTarget.style.borderColor = "rgba(255,107,26,0.7)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.borderColor = "rgba(255,107,26,0.4)";
-          }}
-        >
-          LEAVE TRIP
-        </button>
+        tripStatus === "ongoing" || tripStatus === "completed" ? (
+          <p className="font-body text-muted-ink" style={{ fontSize: "0.68rem", letterSpacing: "0.06em", marginTop: "4px" }}>
+            {tripStatus === "ongoing" ? "Trip is underway — you're locked in." : "Trip completed."}
+          </p>
+        ) : (
+          <button
+            onClick={handleLeave}
+            className="font-body font-semibold transition-all duration-150"
+            style={{
+              fontSize: "0.68rem",
+              letterSpacing: "0.12em",
+              padding: "8px 20px",
+              background: "transparent",
+              border: "1px solid rgba(255,107,26,0.4)",
+              color: "#FF6B1A",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255,107,26,0.1)";
+              e.currentTarget.style.borderColor = "rgba(255,107,26,0.7)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.borderColor = "rgba(255,107,26,0.4)";
+            }}
+          >
+            LEAVE TRIP
+          </button>
+        )
       )}
 
       {error && (

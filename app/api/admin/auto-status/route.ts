@@ -17,14 +17,41 @@ export async function POST() {
       .lt("date_start", now)
       .gt("date_end", now)
       .eq("status", "upcoming")
-      .select("id"),
+      .select("id, name"),
     supabase
       .from("expeditions")
       .update({ status: "completed" })
       .lt("date_end", now)
       .in("status", ["upcoming", "ongoing"])
-      .select("id"),
+      .select("id, name"),
   ]);
+
+  // Notify members of each updated expedition (fire-and-forget)
+  async function notifyBatch(rows: { id: string; name: string }[], newStatus: "ongoing" | "completed") {
+    for (const exp of rows) {
+      const { data: members } = await supabase
+        .from("expedition_members")
+        .select("user_id")
+        .eq("expedition_id", exp.id);
+      if (!members?.length) continue;
+
+      const title = newStatus === "ongoing"
+        ? `${exp.name} is now underway`
+        : `${exp.name} is complete — rate your trip`;
+
+      void supabase.from("notifications").insert(
+        members.map((m) => ({
+          user_id: m.user_id,
+          type: `expedition_${newStatus}`,
+          title,
+          link: `/expeditions/${exp.id}`,
+        }))
+      );
+    }
+  }
+
+  if (ongoingRows?.length) notifyBatch(ongoingRows, "ongoing").catch(() => {});
+  if (completedRows?.length) notifyBatch(completedRows, "completed").catch(() => {});
 
   return NextResponse.json({ updated: { ongoing: ongoingRows?.length ?? 0, completed: completedRows?.length ?? 0 } });
 }

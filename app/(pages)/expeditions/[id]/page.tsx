@@ -231,6 +231,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                 initialJoined={userJoined}
                 initialOnWaitlist={onWaitlist}
                 initialWaitlistCount={waitlistCount ?? 0}
+                tripStatus={trip.status}
               />
             </div>
 
