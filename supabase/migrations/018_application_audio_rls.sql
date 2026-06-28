@@ -56,7 +56,4 @@ DO $$ BEGIN CREATE POLICY "updates_read" ON expedition_updates FOR SELECT USING 
 DO $$ BEGIN CREATE POLICY "updates_insert" ON expedition_updates FOR INSERT WITH CHECK (auth.uid() = author_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE POLICY "updates_delete" ON expedition_updates FOR DELETE USING (auth.uid() = author_id); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- Packing items
-DO $$ BEGIN CREATE POLICY "packing_read" ON expedition_packing_items FOR SELECT USING (true); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE POLICY "packing_insert" ON expedition_packing_items FOR INSERT WITH CHECK (auth.uid() = added_by); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-DO $$ BEGIN CREATE POLICY "packing_delete" ON expedition_packing_items FOR DELETE USING (auth.uid() = added_by); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- expedition_packing_items: RLS + policies already set correctly in migration 014 (leader-based, no added_by column)
