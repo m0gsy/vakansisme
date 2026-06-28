@@ -19,7 +19,7 @@ async function notifyMembers(
 ) {
   const { data: members } = await supabase
     .from("expedition_members")
-    .select("user_id, profiles(username), auth_users:user_id(email)")
+    .select("user_id, profiles(username, email)")
     .eq("expedition_id", expeditionId);
 
   if (!members?.length) return;
@@ -43,9 +43,8 @@ async function notifyMembers(
 
   if (newStatus === "cancelled") {
     for (const m of members) {
-      const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles as { username: string } | null;
-      const emailRow = Array.isArray(m.auth_users) ? m.auth_users[0] : m.auth_users as { email: string } | null;
-      const email = emailRow?.email;
+      const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles as { username: string; email: string | null } | null;
+      const email = p?.email;
       const username = p?.username;
       if (email && username) {
         sendExpeditionStatusEmail(email, username, tripName, expeditionId, "cancelled").catch(() => {});

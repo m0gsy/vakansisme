@@ -45,7 +45,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
   const { data: trip } = await supabase
     .from("expeditions")
-    .select("*, expedition_members(count)")
+    .select("*, expedition_members(count), application_prompt")
     .eq("id", id)
     .single();
 
@@ -71,6 +71,13 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
       ? supabase.from("bookmarks").select("user_id").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
+
+  const { data: similar } = await supabase
+    .from("expeditions")
+    .select("id, name, location, date_start, status, difficulty")
+    .neq("id", id)
+    .ilike("location", `%${trip.location.split(",")[0].trim()}%`)
+    .limit(3);
 
   const userJoined = !!membership;
   const onWaitlist = !!waitlistRow;
@@ -232,6 +239,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                 initialOnWaitlist={onWaitlist}
                 initialWaitlistCount={waitlistCount ?? 0}
                 tripStatus={trip.status}
+              applicationPrompt={trip.application_prompt ?? null}
               />
             </div>
 
@@ -369,6 +377,41 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
           initialComments={comments ?? []}
           currentUserId={user?.id ?? null}
         />
+
+        {similar && similar.length > 0 && (
+          <section style={{ marginTop: "64px", paddingTop: "40px", borderTop: "1px solid rgba(74,59,42,0.3)" }}>
+            <h2 className="font-display font-black uppercase text-off-white" style={{ fontSize: "clamp(1rem, 2.5vw, 1.4rem)", letterSpacing: "-0.02em", marginBottom: "16px" }}>
+              NEARBY EXPEDITIONS
+            </h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {similar.map((s) => (
+                <Link
+                  key={s.id}
+                  href={`/expeditions/${s.id}`}
+                  className="group"
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.3)" }}
+                >
+                  <div>
+                    <p className="font-display font-bold uppercase text-off-white group-hover:text-neon-green transition-colors duration-150" style={{ fontSize: "0.9rem", letterSpacing: "-0.01em" }}>
+                      {s.name}
+                    </p>
+                    <p className="font-body text-muted-ink" style={{ fontSize: "0.72rem", marginTop: "2px" }}>{s.location}</p>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    {s.status && s.status !== "upcoming" && (
+                      <span className="font-body font-semibold" style={{ fontSize: "0.58rem", letterSpacing: "0.08em", padding: "2px 7px", background: s.status === "ongoing" ? "#FF6B1A" : "#4A3B2A", color: "#F0EDEA" }}>
+                        {(s.status as string).toUpperCase()}
+                      </span>
+                    )}
+                    <p className="font-body text-muted-ink" style={{ fontSize: "0.7rem", marginTop: "4px" }}>
+                      {new Date(s.date_start).toLocaleDateString("en", { month: "short", year: "numeric" })}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

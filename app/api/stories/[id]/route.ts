@@ -3,55 +3,41 @@ import { NextResponse } from "next/server";
 
 type Params = Promise<{ id: string }>;
 
+const VALID_TYPES = ["photo dump", "short story", "video POV", "chaos moment"];
+const MAX_CONTENT_LENGTH = 50000;
+
 export async function PATCH(req: Request, { params }: { params: Params }) {
   const { id } = await params;
   const supabase = await createClient();
-
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
-  const { data: story } = await supabase
-    .from("stories")
-    .select("author_id")
-    .eq("id", id)
-    .single();
-
+  const { data: story } = await supabase.from("stories").select("author_id, published").eq("id", id).single();
   if (!story) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (story.author_id !== user.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const body = await req.json();
-  const updates: Record<string, unknown> = {};
-  if (body.title !== undefined) updates.title = body.title?.trim() || null;
-  if (body.excerpt !== undefined) updates.excerpt = body.excerpt?.trim() || null;
-  if (body.content !== undefined) updates.content = body.content?.trim() || null;
-  if (body.image_url !== undefined) updates.image_url = body.image_url?.trim() || null;
-  if (body.type !== undefined) updates.type = body.type;
+  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
+  const isAdmin = profile?.is_admin ?? false;
+  const isOwner = story.author_id === user.id;
 
-  // Authors may move a story to draft or submit it for review — never self-publish.
-  if (body.status === "draft") {
-    updates.status = "draft";
-    updates.published = false;
-  } else if (body.status === "pending") {
-    updates.status = "pending";
-    updates.published = false;
-  }
+  if (!isOwner && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (story.published && !isAdmin) return NextResponse.json({ error: "Cannot edit a published story" }, { status: 403 });
 
-  const { error } = await supabase.from("stories").update(updates).eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ ok: true });
-}
+  const { type, title, excerpt, content, image_url, audio_url, expedition_id, tags } = await req.json();
 
-export async function DELETE(_req: Request, { params }: { params: Params }) {
-  const { id } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (type && !VALID_TYPES.includes(type)) return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+  if (content && content.length > MAX_CONTENT_LENGTH) return NextResponse.json({ error: "Content too long" }, { status: 400 });
 
-  const { data: story } = await supabase.from("stories").select("author_id").eq("id", id).single();
-  if (!story) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (story.author_id !== user.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const { error } = await supabase.from("stories").update({
+    ...(type ? { type } : {}),
+    ...(title ? { title: title.trim() } : {}),
+    excerpt: excerpt?.trim() || null,
+    content: content?.trim() || null,
+    image_url: image_url?.trim() || null,
+    audio_url: audio_url?.trim() || null,
+    expedition_id: expedition_id || null,
+    tags: Array.isArray(tags) ? tags.slice(0, 5).map((t: string) => t.trim().toLowerCase()).filter(Boolean) : [],
+  }).eq("id", id);
 
-  const { error } = await supabase.from("stories").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ ok: true });
 }

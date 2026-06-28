@@ -3,17 +3,15 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 const VALID_TYPES = ["photo dump", "short story", "video POV", "chaos moment"];
+const MAX_CONTENT_LENGTH = 50000;
 
 export async function POST(req: Request) {
-  // `submit` true => send for admin review (pending); false/absent => private draft.
-  // Users can never self-publish; only an admin flips a story to published.
-  const { type, title, excerpt, content, image_url, tags, submit } = await req.json();
+  const { type, title, excerpt, content, image_url, audio_url, expedition_id, tags, submit } = await req.json();
 
-  if (!VALID_TYPES.includes(type)) {
-    return NextResponse.json({ error: "Invalid type" }, { status: 400 });
-  }
-  if (!title?.trim()) {
-    return NextResponse.json({ error: "Title required" }, { status: 400 });
+  if (!VALID_TYPES.includes(type)) return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+  if (!title?.trim()) return NextResponse.json({ error: "Title required" }, { status: 400 });
+  if (content && content.length > MAX_CONTENT_LENGTH) {
+    return NextResponse.json({ error: `Content too long (max ${MAX_CONTENT_LENGTH} chars)` }, { status: 400 });
   }
 
   const cookieStore = await cookies();
@@ -23,28 +21,16 @@ export async function POST(req: Request) {
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: (list) =>
-          list.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          ),
+        setAll: (list) => list.forEach(({ name, value, options }) => cookieStore.set(name, value, options)),
       },
     }
   );
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Login required" }, { status: 401 });
-  }
+  if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username")
-    .eq("id", user.id)
-    .single();
-
-  const author_handle = profile?.username
-    ? `@${profile.username}`
-    : `@${user.email?.split("@")[0] ?? "anon"}`;
+  const { data: profile } = await supabase.from("profiles").select("username").eq("id", user.id).single();
+  const author_handle = profile?.username ? `@${profile.username}` : `@${user.email?.split("@")[0] ?? "anon"}`;
 
   const { data, error } = await supabase
     .from("stories")
@@ -56,6 +42,8 @@ export async function POST(req: Request) {
       excerpt: excerpt?.trim() || null,
       content: content?.trim() || null,
       image_url: image_url?.trim() || null,
+      audio_url: audio_url?.trim() || null,
+      expedition_id: expedition_id || null,
       tags: Array.isArray(tags) ? tags.slice(0, 5).map((t: string) => t.trim().toLowerCase()).filter(Boolean) : [],
       published: false,
       status: submit === true ? "pending" : "draft",
@@ -63,9 +51,6 @@ export async function POST(req: Request) {
     .select("id")
     .single();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ id: data.id });
 }

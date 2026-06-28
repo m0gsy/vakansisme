@@ -147,6 +147,15 @@ export default async function StoryPage({ params }: { params: Params }) {
             </span>
           )}
           <ReportButton contentType="story" contentId={id} currentUserId={user?.id ?? null} />
+          {user && story.author_id === user.id && !story.published && (
+            <Link
+              href={`/stories/${id}/edit`}
+              className="font-body font-semibold text-muted-ink hover:text-neon-green transition-colors duration-150"
+              style={{ fontSize: "0.72rem", letterSpacing: "0.1em" }}
+            >
+              EDIT
+            </Link>
+          )}
         </div>
 
         {/* Tags */}
@@ -161,6 +170,18 @@ export default async function StoryPage({ params }: { params: Params }) {
                 #{tag}
               </span>
             ))}
+          </div>
+        )}
+
+        {/* Audio player */}
+        {story.audio_url && (
+          <div style={{ marginBottom: "28px" }}>
+            <p className="font-body font-semibold text-muted-ink uppercase mb-2" style={{ fontSize: "0.62rem", letterSpacing: "0.14em" }}>LISTEN</p>
+            <audio
+              controls
+              src={story.audio_url}
+              style={{ width: "100%", height: "36px", accentColor: "#9BFF3C" }}
+            />
           </div>
         )}
 

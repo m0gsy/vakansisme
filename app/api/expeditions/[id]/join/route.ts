@@ -30,6 +30,9 @@ export async function POST(req: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "Login required" }, { status: 401 });
   }
 
+  const body = await req.json().catch(() => ({}));
+  const notes = typeof body.notes === "string" ? body.notes.slice(0, 500) : null;
+
   // Check quota before inserting
   const { data: expedition } = await supabase
     .from("expeditions")
@@ -48,7 +51,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
 
   const { error } = await supabase
     .from("expedition_members")
-    .insert({ expedition_id: id, user_id: user.id });
+    .insert({ expedition_id: id, user_id: user.id, ...(notes ? { notes } : {}) });
 
   if (error) {
     // unique violation = already joined
