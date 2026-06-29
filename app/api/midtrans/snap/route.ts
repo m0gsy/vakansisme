@@ -12,12 +12,16 @@ export async function POST(req: Request) {
 
   const { data: trip } = await supabase
     .from("expeditions")
-    .select("id, name, price_amount")
+    .select("id, name, price_amount, price")
     .eq("id", expeditionId)
     .single();
 
   if (!trip) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!trip.price_amount || trip.price_amount <= 0) {
+
+  const priceFromText = parseInt(((trip as { price?: string }).price ?? "").replace(/\D/g, ""), 10) || 0;
+  const grossAmount = (trip.price_amount && trip.price_amount > 0) ? trip.price_amount : priceFromText;
+
+  if (grossAmount <= 0) {
     return NextResponse.json({ error: "Free expedition" }, { status: 400 });
   }
 
@@ -33,11 +37,11 @@ export async function POST(req: Request) {
   const transaction = await snap.createTransaction({
     transaction_details: {
       order_id: orderId,
-      gross_amount: trip.price_amount,
+      gross_amount: grossAmount,
     },
     item_details: [{
       id: trip.id,
-      price: trip.price_amount,
+      price: grossAmount,
       quantity: 1,
       name: trip.name.slice(0, 50),
     }],
@@ -51,7 +55,7 @@ export async function POST(req: Request) {
     user_id: user.id,
     expedition_id: expeditionId,
     payment_order_id: orderId,
-    amount_idr: trip.price_amount,
+    amount_idr: grossAmount,
     status: "pending",
   }, { onConflict: "user_id,expedition_id" });
 

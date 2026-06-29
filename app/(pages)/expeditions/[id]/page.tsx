@@ -94,7 +94,9 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
     .ilike("location", `%${trip.location.split(",")[0].trim()}%`)
     .limit(3);
 
-  const priceAmount = (trip as { price_amount?: number }).price_amount ?? 0;
+  const rawPriceAmount = (trip as { price_amount?: number }).price_amount ?? 0;
+  const priceFromText = parseInt(((trip as { price?: string }).price ?? "").replace(/\D/g, ""), 10) || 0;
+  const priceAmount = rawPriceAmount > 0 ? rawPriceAmount : priceFromText;
   const isPaid = user && priceAmount > 0
     ? await supabase.from("expedition_payments").select("status").eq("user_id", user.id).eq("expedition_id", id).eq("status", "paid").maybeSingle().then((r) => !!r.data)
     : false;
