@@ -260,7 +260,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
             {/* Join / Pay */}
             <div style={{ marginBottom: "48px" }}>
-              {priceAmount > 0 && userPendingPayment ? (
+              {priceAmount > 0 && userPendingPayment && !isLeader ? (
                 <>
                   <PayButton
                     expeditionId={trip.id}
@@ -271,7 +271,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                   />
                   <CancelReservationButton tripId={trip.id} />
                 </>
-              ) : (
+              ) : !isLeader ? (
                 <JoinButton
                   tripId={trip.id}
                   initialCount={memberCount ?? 0}
@@ -284,8 +284,9 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                   applicationPrompt={trip.application_prompt ?? null}
                   initialPending={userPending}
                   locale={locale}
+                  isLeader={isLeader}
                 />
-              )}
+              ) : null}
             </div>
 
             {/* Members */}

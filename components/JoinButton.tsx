@@ -18,6 +18,7 @@ export default function JoinButton({
   applicationPrompt,
   initialPending = false,
   locale = "id",
+  isLeader = false,
 }: {
   tripId: string;
   initialCount: number;
@@ -30,6 +31,7 @@ export default function JoinButton({
   applicationPrompt?: string | null;
   initialPending?: boolean;
   locale?: Locale;
+  isLeader?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -197,7 +199,7 @@ export default function JoinButton({
         </p>
       )}
 
-      {joined && !loading && (
+      {joined && !loading && !isLeader && (
         tripStatus === "ongoing" || tripStatus === "completed" ? (
           <p className="font-body text-muted-ink" style={{ fontSize: "0.68rem", letterSpacing: "0.06em", marginTop: "4px" }}>
             {tripStatus === "ongoing"

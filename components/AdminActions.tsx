@@ -1039,7 +1039,7 @@ export function AdminProposalsSection() {
           <div style={{ padding: "16px 20px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", flexWrap: "wrap", marginBottom: "10px" }}>
               <div style={{ flex: 1 }}>
-                <p className="font-display font-bold uppercase text-off-white" style={{ fontSize: "0.9rem", letterSpacing: "-0.01em", marginBottom: "4px" }}>{p.name}</p>
+                <a href={`/admin/proposals/${p.id}`} className="font-display font-bold uppercase text-off-white hover:text-neon-green transition-colors duration-150" style={{ fontSize: "0.9rem", letterSpacing: "-0.01em", marginBottom: "4px", display: "block", textDecoration: "none" }}>{p.name} →</a>
                 <p className="font-body text-muted-ink" style={{ fontSize: "0.72rem", marginBottom: "4px" }}>
                   @{p.proposer_handle} · {p.location} · {p.difficulty} · {p.price} · {p.quota_max} slots
                 </p>
