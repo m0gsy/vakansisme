@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -9,7 +10,8 @@ export async function GET() {
   const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
   if (!profile?.is_admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { data: proposals } = await supabase
+  const service = createServiceClient();
+  const { data: proposals } = await service
     .from("expedition_proposals")
     .select("*")
     .eq("status", "pending")
