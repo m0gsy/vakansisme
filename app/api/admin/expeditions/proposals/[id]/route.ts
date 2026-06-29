@@ -22,15 +22,15 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
 
-  const { data: proposal } = await supabase
+  const service = createServiceClient();
+
+  const { data: proposal } = await service
     .from("expedition_proposals")
     .select("*")
     .eq("id", id)
     .single();
 
   if (!proposal) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  const service = createServiceClient();
 
   if (action === "approve") {
     // Create real expedition

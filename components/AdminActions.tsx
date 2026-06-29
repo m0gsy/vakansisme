@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import ImageUpload from "@/components/ImageUpload";
 import { DIFFICULTIES } from "@/lib/difficulty";
 import ExpeditionMapClient from "@/components/ExpeditionMapClient";
@@ -955,6 +956,8 @@ type Proposal = {
   date_end: string;
   quota_max: number;
   description: string | null;
+  image_url: string | null;
+  requires_approval: boolean;
   created_at: string;
 };
 
@@ -1027,18 +1030,31 @@ export function AdminProposalsSection() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       {proposals.map((p) => (
-        <div key={p.id} style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.3)", padding: "16px 20px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", flexWrap: "wrap", marginBottom: "10px" }}>
-            <div>
-              <p className="font-display font-bold uppercase text-off-white" style={{ fontSize: "0.9rem", letterSpacing: "-0.01em", marginBottom: "2px" }}>{p.name}</p>
-              <p className="font-body text-muted-ink" style={{ fontSize: "0.72rem" }}>
-                @{p.proposer_handle} · {p.location} · {p.difficulty} · {p.price} · {p.quota_max} slots · {p.date_start} → {p.date_end}
-              </p>
-              {p.description && <p className="font-body text-muted-ink" style={{ fontSize: "0.72rem", marginTop: "6px", maxWidth: "480px" }}>{p.description}</p>}
+        <div key={p.id} style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.3)", overflow: "hidden" }}>
+          {p.image_url && (
+            <div style={{ position: "relative", width: "100%", height: "160px" }}>
+              <Image src={p.image_url} alt={p.name} fill sizes="640px" className="object-cover" style={{ filter: "brightness(0.85)" }} />
             </div>
-            <span className="font-body text-muted-ink" style={{ fontSize: "0.65rem" }}>{new Date(p.created_at).toLocaleDateString("en", { day: "numeric", month: "short" })}</span>
+          )}
+          <div style={{ padding: "16px 20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", flexWrap: "wrap", marginBottom: "10px" }}>
+              <div style={{ flex: 1 }}>
+                <p className="font-display font-bold uppercase text-off-white" style={{ fontSize: "0.9rem", letterSpacing: "-0.01em", marginBottom: "4px" }}>{p.name}</p>
+                <p className="font-body text-muted-ink" style={{ fontSize: "0.72rem", marginBottom: "4px" }}>
+                  @{p.proposer_handle} · {p.location} · {p.difficulty} · {p.price} · {p.quota_max} slots
+                </p>
+                <p className="font-body text-muted-ink" style={{ fontSize: "0.72rem", marginBottom: "4px" }}>
+                  {p.date_start} → {p.date_end}
+                  {p.requires_approval && <span style={{ marginLeft: "8px", background: "rgba(155,255,60,0.1)", color: "#9BFF3C", padding: "1px 6px", fontSize: "0.6rem" }}>APPROVAL REQUIRED</span>}
+                </p>
+                {p.description && (
+                  <p className="font-body text-muted-ink" style={{ fontSize: "0.78rem", marginTop: "8px", lineHeight: 1.6 }}>{p.description}</p>
+                )}
+              </div>
+              <span className="font-body text-muted-ink" style={{ fontSize: "0.65rem", flexShrink: 0 }}>{new Date(p.created_at).toLocaleDateString("en", { day: "numeric", month: "short" })}</span>
+            </div>
+            <ProposalModerationActions proposal={p} onDone={load} />
           </div>
-          <ProposalModerationActions proposal={p} onDone={load} />
         </div>
       ))}
     </div>
