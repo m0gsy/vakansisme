@@ -141,14 +141,17 @@ export default function Expeditions({ trips, joinedIds = [], locale = "id" }: { 
                 >
                   {difficultyLabel(trip.difficulty)}
                 </span>
-                {trip.status && trip.status !== "upcoming" && (
+                {trip.status && (
                   <span
                     className="font-body font-semibold"
                     style={{
                       fontSize: "0.62rem",
                       letterSpacing: "0.08em",
                       padding: "3px 8px",
-                      background: trip.status === "ongoing" ? "#FF6B1A" : "#4A3B2A",
+                      background:
+                        trip.status === "ongoing" ? "#FF6B1A" :
+                        trip.status === "completed" ? "#4A3B2A" :
+                        "rgba(240,237,234,0.15)",
                       color: "#F0EDEA",
                     }}
                   >

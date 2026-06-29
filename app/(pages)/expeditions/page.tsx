@@ -174,8 +174,8 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
                         >
                           {difficultyLabel(e.difficulty)}
                         </span>
-                        {e.status && e.status !== "upcoming" && (
-                          <span className="font-body font-semibold" style={{ fontSize: "0.62rem", letterSpacing: "0.06em", padding: "3px 8px", background: e.status === "ongoing" ? "#FF6B1A" : e.status === "completed" ? "#4A3B2A" : "#7A2E12", color: "#F0EDEA" }}>
+                        {e.status && (
+                          <span className="font-body font-semibold" style={{ fontSize: "0.62rem", letterSpacing: "0.06em", padding: "3px 8px", background: e.status === "ongoing" ? "#FF6B1A" : e.status === "completed" ? "#4A3B2A" : "rgba(240,237,234,0.15)", color: "#F0EDEA" }}>
                             {(e.status as string).toUpperCase()}
                           </span>
                         )}
