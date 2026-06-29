@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ChaosActions, ExpeditionActions, AdminExpeditionForm, StoryModerationActions, GalleryModerationActions, AdminExportButtons, AdminAutoStatusButton, AdminRemindersButton, AdminUsersSection, AdminReportsSection } from "@/components/AdminActions";
+import { ChaosActions, ExpeditionActions, AdminExpeditionForm, StoryModerationActions, GalleryModerationActions, AdminExportButtons, AdminAutoStatusButton, AdminRemindersButton, AdminUsersSection, AdminReportsSection, AdminProposalsSection } from "@/components/AdminActions";
 import NewsletterForm from "@/components/NewsletterForm";
 
 export const metadata = { title: "Admin — VAKANSISME" };
@@ -348,6 +348,10 @@ export default async function AdminPage() {
         </Section>
 
         {/* Content Reports */}
+        <Section title="TRIP PROPOSALS">
+          <AdminProposalsSection />
+        </Section>
+
         <Section title="CONTENT REPORTS">
           <AdminReportsSection />
         </Section>

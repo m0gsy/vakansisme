@@ -236,6 +236,56 @@ export async function sendExpeditionStatusEmail(
   });
 }
 
+export async function sendAdminProposalEmail(to: string[], proposerHandle: string, tripName: string) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
+  if (!to.length) return;
+  await resend.batch.send(to.map((email) => ({
+    from: FROM,
+    to: email,
+    subject: `New trip proposal — ${tripName}`,
+    html: base(`
+      <tr><td>
+        <h1 style="margin:0 0 16px;font-size:32px;font-weight:900;letter-spacing:-0.025em;color:#F0EDEA;text-transform:uppercase;">NEW PROPOSAL</h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#8B7355;">@${proposerHandle} submitted a trip proposal: <strong style="color:#F0EDEA;">${tripName}</strong>. Review it in the admin panel.</p>
+        <a href="${SITE_URL}/admin" style="display:inline-block;background:#9BFF3C;color:#111111;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:12px 28px;">REVIEW PROPOSAL →</a>
+      </td></tr>
+    `),
+  })));
+}
+
+export async function sendProposalApprovedEmail(to: string, username: string, tripName: string, expeditionId: string) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Your trip is live — ${tripName}`,
+    html: base(`
+      <tr><td>
+        <h1 style="margin:0 0 16px;font-size:32px;font-weight:900;letter-spacing:-0.025em;color:#F0EDEA;text-transform:uppercase;">TRIP APPROVED</h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#8B7355;">Hey @${username}, your proposal <strong style="color:#F0EDEA;">${tripName}</strong> has been approved and is now live on VAKANSISME.</p>
+        <a href="${SITE_URL}/expeditions/${expeditionId}" style="display:inline-block;background:#9BFF3C;color:#111111;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:12px 28px;">VIEW YOUR TRIP →</a>
+      </td></tr>
+    `),
+  });
+}
+
+export async function sendProposalRejectedEmail(to: string, username: string, tripName: string, note?: string) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Trip proposal update — ${tripName}`,
+    html: base(`
+      <tr><td>
+        <h1 style="margin:0 0 16px;font-size:32px;font-weight:900;letter-spacing:-0.025em;color:#F0EDEA;text-transform:uppercase;">PROPOSAL UPDATE</h1>
+        <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#8B7355;">Hey @${username}, we reviewed your proposal for <strong style="color:#F0EDEA;">${tripName}</strong> and couldn't greenlight it at this time.</p>
+        ${note ? `<p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#8B7355;padding:14px;border-left:3px solid #4A3B2A;">${note}</p>` : ""}
+        <a href="${SITE_URL}/expeditions/propose" style="display:inline-block;background:transparent;color:#9BFF3C;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:12px 28px;border:1px solid #9BFF3C;">SUBMIT ANOTHER PROPOSAL →</a>
+      </td></tr>
+    `),
+  });
+}
+
 export async function sendNewsletterEmail(to: string[], subject: string, html: string) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return { sent: 0 };
   const batches = [];

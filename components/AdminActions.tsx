@@ -943,3 +943,104 @@ export function GalleryModerationActions({ id, initialStatus }: { id: string; in
     </div>
   );
 }
+
+type Proposal = {
+  id: string;
+  proposer_handle: string;
+  name: string;
+  location: string;
+  difficulty: string;
+  price: string;
+  date_start: string;
+  date_end: string;
+  quota_max: number;
+  description: string | null;
+  created_at: string;
+};
+
+export function ProposalModerationActions({ proposal, onDone }: { proposal: Proposal; onDone: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [note, setNote] = useState("");
+  const [done, setDone] = useState<string | null>(null);
+
+  async function act(action: "approve" | "reject") {
+    setLoading(true);
+    const res = await fetch(`/api/admin/expeditions/proposals/${proposal.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, admin_note: note }),
+    });
+    if (res.ok) {
+      setDone(action === "approve" ? "APPROVED" : "REJECTED");
+      onDone();
+    }
+    setLoading(false);
+  }
+
+  if (done) {
+    return (
+      <span style={{ fontSize: "0.6rem", letterSpacing: "0.1em", fontWeight: 700, padding: "3px 8px", background: done === "APPROVED" ? "#9BFF3C" : "#FF6B1A", color: "#111111" }}>
+        {done}
+      </span>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", gap: "6px", alignItems: "flex-start", flexWrap: "wrap" }}>
+      <button disabled={loading} onClick={() => act("approve")} style={{ ...BTN.base, background: "#9BFF3C", color: "#111111" }}>APPROVE</button>
+      {rejecting ? (
+        <>
+          <input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Rejection reason (optional)"
+            className="font-body text-off-white placeholder:text-muted-ink focus:outline-none"
+            style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", padding: "4px 10px", fontSize: "0.72rem", color: "#F0EDEA", width: "220px" }}
+          />
+          <button disabled={loading} onClick={() => act("reject")} style={{ ...BTN.base, background: "rgba(255,107,26,0.15)", color: "#FF6B1A", border: "1px solid rgba(255,107,26,0.4)" }}>CONFIRM REJECT</button>
+          <button onClick={() => setRejecting(false)} style={{ ...BTN.base, background: "transparent", color: "#8B7355", border: "1px solid rgba(74,59,42,0.4)" }}>CANCEL</button>
+        </>
+      ) : (
+        <button disabled={loading} onClick={() => setRejecting(true)} style={{ ...BTN.base, background: "rgba(255,107,26,0.15)", color: "#FF6B1A", border: "1px solid rgba(255,107,26,0.4)" }}>REJECT</button>
+      )}
+    </div>
+  );
+}
+
+export function AdminProposalsSection() {
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  function load() {
+    fetch("/api/admin/expeditions/proposals").then((r) => r.json()).then(({ proposals: p }) => {
+      setProposals(p ?? []);
+      setLoading(false);
+    });
+  }
+
+  useEffect(() => { load(); }, []);
+
+  if (loading) return <p className="font-body text-muted-ink" style={{ fontSize: "0.82rem" }}>Loading...</p>;
+  if (!proposals.length) return <p className="font-body text-muted-ink" style={{ fontSize: "0.82rem" }}>No pending proposals.</p>;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      {proposals.map((p) => (
+        <div key={p.id} style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.3)", padding: "16px 20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", flexWrap: "wrap", marginBottom: "10px" }}>
+            <div>
+              <p className="font-display font-bold uppercase text-off-white" style={{ fontSize: "0.9rem", letterSpacing: "-0.01em", marginBottom: "2px" }}>{p.name}</p>
+              <p className="font-body text-muted-ink" style={{ fontSize: "0.72rem" }}>
+                @{p.proposer_handle} · {p.location} · {p.difficulty} · {p.price} · {p.quota_max} slots · {p.date_start} → {p.date_end}
+              </p>
+              {p.description && <p className="font-body text-muted-ink" style={{ fontSize: "0.72rem", marginTop: "6px", maxWidth: "480px" }}>{p.description}</p>}
+            </div>
+            <span className="font-body text-muted-ink" style={{ fontSize: "0.65rem" }}>{new Date(p.created_at).toLocaleDateString("en", { day: "numeric", month: "short" })}</span>
+          </div>
+          <ProposalModerationActions proposal={p} onDone={load} />
+        </div>
+      ))}
+    </div>
+  );
+}

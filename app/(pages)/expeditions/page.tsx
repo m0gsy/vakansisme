@@ -89,13 +89,22 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
               {t(locale, "expedition_subtitle")}
             </p>
           </div>
-          <Link
-            href="/expeditions/calendar"
-            className="font-body font-semibold text-muted-ink hover:text-neon-green transition-colors duration-200"
-            style={{ fontSize: "0.68rem", letterSpacing: "0.1em", marginTop: "8px", whiteSpace: "nowrap" }}
-          >
-            ◫ {t(locale, "view_calendar")}
-          </Link>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", marginTop: "8px" }}>
+            <Link
+              href="/expeditions/propose"
+              className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150"
+              style={{ fontSize: "0.65rem", letterSpacing: "0.12em", padding: "10px 20px", whiteSpace: "nowrap", textDecoration: "none" }}
+            >
+              + PROPOSE TRIP
+            </Link>
+            <Link
+              href="/expeditions/calendar"
+              className="font-body font-semibold text-muted-ink hover:text-neon-green transition-colors duration-200"
+              style={{ fontSize: "0.68rem", letterSpacing: "0.1em", whiteSpace: "nowrap" }}
+            >
+              ◫ {t(locale, "view_calendar")}
+            </Link>
+          </div>
         </div>
 
         {/* Status filter */}
