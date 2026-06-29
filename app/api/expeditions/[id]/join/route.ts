@@ -39,7 +39,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
   // Check quota (approved members only) before inserting
   const { data: expedition } = await supabase
     .from("expeditions")
-    .select("quota_max, requires_approval")
+    .select("quota_max, requires_approval, price_amount")
     .eq("id", id)
     .single();
 
@@ -47,22 +47,35 @@ export async function POST(req: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "Expedition not found" }, { status: 404 });
   }
 
-  const { count: approvedCount } = await supabase
+  const isPaid = (expedition.price_amount ?? 0) > 0;
+
+  // Count approved + pending_payment (both hold a slot)
+  const { count: takenCount } = await supabase
     .from("expedition_members")
     .select("*", { count: "exact", head: true })
     .eq("expedition_id", id)
-    .eq("status", "approved");
+    .in("status", ["approved", "pending_payment"]);
 
-  const count = approvedCount ?? 0;
+  const count = takenCount ?? 0;
   if (count >= expedition.quota_max) {
     return NextResponse.json({ error: "Trip is full" }, { status: 409 });
   }
 
-  const memberStatus = expedition.requires_approval ? "pending" : "approved";
+  // Paid expeditions: reserve slot with 3-day payment deadline
+  const memberStatus = isPaid ? "pending_payment" : (expedition.requires_approval ? "pending" : "approved");
+  const paymentDueAt = isPaid
+    ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+    : null;
 
   const { error } = await supabase
     .from("expedition_members")
-    .insert({ expedition_id: id, user_id: user.id, status: memberStatus, ...(notes ? { notes } : {}) });
+    .insert({
+      expedition_id: id,
+      user_id: user.id,
+      status: memberStatus,
+      ...(notes ? { notes } : {}),
+      ...(paymentDueAt ? { payment_due_at: paymentDueAt } : {}),
+    });
 
   if (error) {
     // unique violation = already joined
@@ -117,6 +130,9 @@ export async function POST(req: Request, { params }: { params: Params }) {
     }
   }
 
+  if (memberStatus === "pending_payment") {
+    return NextResponse.json({ success: true, pending_payment: true, payment_due_at: paymentDueAt, member_count: count });
+  }
   if (memberStatus === "pending") {
     return NextResponse.json({ success: true, pending: true, member_count: count });
   }

@@ -36,11 +36,12 @@ export async function POST(req: Request) {
       .update({ status: "paid" })
       .eq("payment_order_id", orderId);
 
-    await supabase.from("expedition_members").upsert({
-      user_id: payment.user_id,
-      expedition_id: payment.expedition_id,
-      status: "approved",
-    }, { onConflict: "user_id,expedition_id" });
+    // User already has a pending_payment slot — just promote to approved
+    await supabase
+      .from("expedition_members")
+      .update({ status: "approved", payment_due_at: null })
+      .eq("user_id", payment.user_id)
+      .eq("expedition_id", payment.expedition_id);
 
     const { data: trip } = await supabase
       .from("expeditions")

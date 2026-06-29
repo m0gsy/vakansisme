@@ -71,7 +71,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
     supabase.from("expedition_members").select("user_id, status, profiles(username, avatar_url)").eq("expedition_id", id).neq("status", "rejected").limit(30),
     supabase.from("expedition_gallery").select("id, uploader_id, uploader_handle, image_url, caption, created_at").eq("expedition_id", id).order("created_at", { ascending: true }),
     user
-      ? supabase.from("expedition_members").select("user_id, status").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
+      ? supabase.from("expedition_members").select("user_id, status, payment_due_at").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.from("expedition_comments").select("id, author_id, author_handle, content, created_at").eq("expedition_id", id).order("created_at", { ascending: true }),
     user
@@ -99,9 +99,12 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
     ? await supabase.from("expedition_payments").select("status").eq("user_id", user.id).eq("expedition_id", id).eq("status", "paid").maybeSingle().then((r) => !!r.data)
     : false;
 
-  const membershipStatus = (membership as { status?: string } | null)?.status;
+  const membershipRow = membership as { status?: string; payment_due_at?: string | null } | null;
+  const membershipStatus = membershipRow?.status;
   const userJoined = membershipStatus === "approved";
   const userPending = membershipStatus === "pending";
+  const userPendingPayment = membershipStatus === "pending_payment";
+  const paymentDueAt = membershipRow?.payment_due_at ?? null;
   const onWaitlist = !!waitlistRow;
 
   // Leader sees pending members for approval
@@ -254,14 +257,15 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
               />
             </div>
 
-            {/* Join */}
+            {/* Join / Pay */}
             <div style={{ marginBottom: "48px" }}>
-              {priceAmount > 0 && !userJoined ? (
+              {priceAmount > 0 && userPendingPayment ? (
                 <PayButton
                   expeditionId={trip.id}
                   priceAmount={priceAmount}
                   currentUserId={user?.id ?? null}
                   alreadyPaid={isPaid}
+                  paymentDueAt={paymentDueAt}
                 />
               ) : (
                 <JoinButton
