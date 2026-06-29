@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getStripe } from "@/lib/stripe";
+import { getSnap } from "@/lib/midtrans";
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -21,32 +21,39 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Free expedition" }, { status: 400 });
   }
 
-  const stripe = getStripe();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.com";
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", user.id)
+    .single();
 
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ["card"],
-    line_items: [{
-      price_data: {
-        currency: "idr",
-        product_data: { name: trip.name },
-        unit_amount: trip.price_amount,
-      },
+  const orderId = `exp-${expeditionId.slice(0, 8)}-${user.id.slice(0, 8)}-${Date.now()}`;
+
+  const snap = getSnap();
+  const transaction = await snap.createTransaction({
+    transaction_details: {
+      order_id: orderId,
+      gross_amount: trip.price_amount,
+    },
+    item_details: [{
+      id: trip.id,
+      price: trip.price_amount,
       quantity: 1,
+      name: trip.name.slice(0, 50),
     }],
-    mode: "payment",
-    success_url: `${siteUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${siteUrl}/expeditions/${expeditionId}`,
-    metadata: { user_id: user.id, expedition_id: expeditionId },
+    customer_details: {
+      email: user.email,
+      first_name: profile?.username ?? user.email?.split("@")[0] ?? "User",
+    },
   });
 
   await supabase.from("expedition_payments").upsert({
     user_id: user.id,
     expedition_id: expeditionId,
-    stripe_session_id: session.id,
+    payment_order_id: orderId,
     amount_idr: trip.price_amount,
     status: "pending",
   }, { onConflict: "user_id,expedition_id" });
 
-  return NextResponse.json({ url: session.url });
+  return NextResponse.json({ token: transaction.token, orderId });
 }
