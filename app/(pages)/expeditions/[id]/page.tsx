@@ -15,6 +15,7 @@ import PackingList from "@/components/PackingList";
 import ExpeditionReviews from "@/components/ExpeditionReviews";
 import ExpeditionMapClient from "@/components/ExpeditionMapClient";
 import PayButton from "@/components/PayButton";
+import CancelReservationButton from "@/components/CancelReservationButton";
 import { getLocale } from "@/lib/locale";
 import { t } from "@/lib/i18n";
 
@@ -94,9 +95,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
     .ilike("location", `%${trip.location.split(",")[0].trim()}%`)
     .limit(3);
 
-  const rawPriceAmount = (trip as { price_amount?: number }).price_amount ?? 0;
-  const priceFromText = parseInt(((trip as { price?: string }).price ?? "").replace(/\D/g, ""), 10) || 0;
-  const priceAmount = rawPriceAmount > 0 ? rawPriceAmount : priceFromText;
+  const priceAmount = parseInt(((trip as { price?: string }).price ?? "").replace(/\D/g, ""), 10) || 0;
   const isPaid = user && priceAmount > 0
     ? await supabase.from("expedition_payments").select("status").eq("user_id", user.id).eq("expedition_id", id).eq("status", "paid").maybeSingle().then((r) => !!r.data)
     : false;
@@ -270,21 +269,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                     alreadyPaid={isPaid}
                     paymentDueAt={paymentDueAt}
                   />
-                  <div style={{ marginTop: "12px" }}>
-                    <JoinButton
-                      tripId={trip.id}
-                      initialCount={memberCount ?? 0}
-                      quotaMax={trip.quota_max}
-                      currentUserId={user?.id ?? null}
-                      initialJoined={true}
-                      initialOnWaitlist={false}
-                      initialWaitlistCount={0}
-                      tripStatus={trip.status}
-                      applicationPrompt={null}
-                      initialPending={false}
-                      locale={locale}
-                    />
-                  </div>
+                  <CancelReservationButton tripId={trip.id} />
                 </>
               ) : (
                 <JoinButton
