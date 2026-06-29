@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function sendPushToUser(userId: string, payload: { title: string; body?: string; url?: string }) {
   if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return;
   webpush.setVapidDetails(
-    "mailto:admin@vakansisme.com",
+    "mailto:admin@vakansisme.club",
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
     process.env.VAPID_PRIVATE_KEY
   );

@@ -108,7 +108,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
   const approvedMembers = (members ?? []).filter((m) => (m as { status?: string }).status !== "pending");
   const pendingMembers = (members ?? []).filter((m) => (m as { status?: string }).status === "pending");
   const isBookmarked = !!bookmarkRow;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.com";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
   const leaderHandle = trip.leader_handle?.replace(/^@/, "");
   const { data: callerProfile } = user
     ? await supabase.from("profiles").select("username, is_admin").eq("id", user.id).single()

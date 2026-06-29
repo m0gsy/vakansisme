@@ -43,7 +43,7 @@ export default function TermsPage() {
             },
             {
               title: "Contact",
-              body: "Questions? hello@vakansisme.com",
+              body: "Questions? hello@vakansisme.club",
             },
           ].map(({ title, body }) => (
             <div key={title}>

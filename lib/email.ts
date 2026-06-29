@@ -1,8 +1,8 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = process.env.RESEND_FROM ?? "VAKANSISME <noreply@vakansisme.com>";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.com";
+const FROM = process.env.RESEND_FROM ?? "VAKANSISME <noreply@vakansisme.club>";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
 
 export async function sendWelcomeEmail(to: string, username: string) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;

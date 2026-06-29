@@ -65,7 +65,7 @@ export default async function StoryPage({ params }: { params: Params }) {
     .neq("id", id)
     .limit(3);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.com";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
 
   return (
     <div className="min-h-screen bg-charcoal">
