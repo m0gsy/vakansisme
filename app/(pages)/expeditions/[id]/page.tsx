@@ -260,13 +260,30 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
             {/* Join / Pay */}
             <div style={{ marginBottom: "48px" }}>
               {priceAmount > 0 && userPendingPayment ? (
-                <PayButton
-                  expeditionId={trip.id}
-                  priceAmount={priceAmount}
-                  currentUserId={user?.id ?? null}
-                  alreadyPaid={isPaid}
-                  paymentDueAt={paymentDueAt}
-                />
+                <>
+                  <PayButton
+                    expeditionId={trip.id}
+                    priceAmount={priceAmount}
+                    currentUserId={user?.id ?? null}
+                    alreadyPaid={isPaid}
+                    paymentDueAt={paymentDueAt}
+                  />
+                  <div style={{ marginTop: "12px" }}>
+                    <JoinButton
+                      tripId={trip.id}
+                      initialCount={memberCount ?? 0}
+                      quotaMax={trip.quota_max}
+                      currentUserId={user?.id ?? null}
+                      initialJoined={true}
+                      initialOnWaitlist={false}
+                      initialWaitlistCount={0}
+                      tripStatus={trip.status}
+                      applicationPrompt={null}
+                      initialPending={false}
+                      locale={locale}
+                    />
+                  </div>
+                </>
               ) : (
                 <JoinButton
                   tripId={trip.id}
