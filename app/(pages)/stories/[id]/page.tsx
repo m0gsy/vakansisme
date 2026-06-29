@@ -23,14 +23,20 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const supabase = await createClient();
   const { data } = await supabase
     .from("stories")
-    .select("title, excerpt, type, author_handle")
+    .select("title, excerpt, type, author_handle, image_url")
     .eq("id", id)
     .eq("published", true)
     .single();
   if (!data) return { title: "Story — VAKANSISME" };
+  const desc = data.excerpt ?? `A ${data.type} story by ${data.author_handle}.`;
   return {
     title: `${data.title} — VAKANSISME`,
-    description: data.excerpt ?? `A ${data.type} story by ${data.author_handle}.`,
+    description: desc,
+    openGraph: {
+      title: data.title,
+      description: desc,
+      ...(data.image_url ? { images: [{ url: data.image_url, width: 1200, height: 630 }] } : {}),
+    },
   };
 }
 

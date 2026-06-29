@@ -25,13 +25,19 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const supabase = await createClient();
   const { data } = await supabase
     .from("expeditions")
-    .select("name, location, difficulty")
+    .select("name, location, difficulty, image_url")
     .eq("id", id)
     .single();
   if (!data) return { title: "Expedition — VAKANSISME" };
+  const desc = `${data.difficulty} expedition to ${data.location}. Join the crew.`;
   return {
     title: `${data.name} — VAKANSISME`,
-    description: `${data.difficulty} expedition to ${data.location}. Join the crew.`,
+    description: desc,
+    openGraph: {
+      title: data.name,
+      description: desc,
+      ...(data.image_url ? { images: [{ url: data.image_url, width: 1200, height: 630 }] } : {}),
+    },
   };
 }
 

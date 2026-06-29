@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Barlow_Condensed, Manrope, Special_Elite } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/Toast";
+import OnboardingBanner from "@/components/OnboardingBanner";
 
 const barlowCondensed = Barlow_Condensed({
   weight: ["700", "800"],
@@ -46,7 +47,7 @@ export default function RootLayout({
       lang="en"
       className={`${barlowCondensed.variable} ${manrope.variable} ${specialElite.variable}`}
     >
-      <body><ToastProvider>{children}</ToastProvider></body>
+      <body><ToastProvider>{children}<OnboardingBanner /></ToastProvider></body>
     </html>
   );
 }

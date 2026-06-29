@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type Member = {
   id: string;
@@ -138,7 +139,7 @@ export default function CrewGrid({
           </p>
 
           {!member.is_self && (
-            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
               {!blockState.has(member.id) && (
                 <button
                   onClick={() => toggleFollow(member.id)}
@@ -157,6 +158,23 @@ export default function CrewGrid({
                 >
                   {loading === member.id ? "..." : followState[member.id] ? "FOLLOWING" : "FOLLOW"}
                 </button>
+              )}
+              {currentUserId && !blockState.has(member.id) && (
+                <Link
+                  href={`/messages/${member.username}`}
+                  className="font-body font-semibold transition-all duration-150"
+                  style={{
+                    fontSize: "0.6rem",
+                    letterSpacing: "0.1em",
+                    padding: "8px 12px",
+                    border: "1px solid rgba(155,255,60,0.25)",
+                    background: "transparent",
+                    color: "#9BFF3C",
+                    textDecoration: "none",
+                  }}
+                >
+                  MSG
+                </Link>
               )}
               <button
                 onClick={() => toggleBlock(member.id)}
