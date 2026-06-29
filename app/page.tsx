@@ -20,21 +20,30 @@ async function getTrips(): Promise<Trip[]> {
 
   if (!data) return [];
 
-  return data.map((row) => ({
-    id: row.id,
-    name: row.name,
-    location: row.location,
-    difficulty: row.difficulty,
-    description: row.description ?? null,
-    price: row.price,
-    date_start: row.date_start,
-    date_end: row.date_end,
-    leader_handle: row.leader_handle,
-    quota_max: row.quota_max,
-    image_url: row.image_url ?? "",
-    member_count: (row.expedition_members as { count: number }[])[0]?.count ?? 0,
-    featured: row.featured ?? false,
-  }));
+  const statusOrder: Record<string, number> = { ongoing: 0, upcoming: 1, completed: 2 };
+
+  return data
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      location: row.location,
+      difficulty: row.difficulty,
+      description: row.description ?? null,
+      price: row.price,
+      date_start: row.date_start,
+      date_end: row.date_end,
+      leader_handle: row.leader_handle,
+      quota_max: row.quota_max,
+      image_url: row.image_url ?? "",
+      member_count: (row.expedition_members as { count: number }[])[0]?.count ?? 0,
+      featured: row.featured ?? false,
+      status: row.status ?? "upcoming",
+    }))
+    .sort((a, b) => {
+      const sa = statusOrder[a.status ?? "upcoming"] ?? 1;
+      const sb = statusOrder[b.status ?? "upcoming"] ?? 1;
+      return sa - sb;
+    });
 }
 
 async function getChaosCards(): Promise<ChaosCard[]> {

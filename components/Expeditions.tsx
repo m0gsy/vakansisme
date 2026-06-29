@@ -134,13 +134,27 @@ export default function Expeditions({ trips, joinedIds = [], locale = "id" }: { 
                 }}
               />
               {/* Difficulty tag */}
-              <div className="absolute bottom-3 left-3">
+              <div className="absolute bottom-3 left-3" style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                 <span
                   className="font-body font-semibold text-charcoal bg-neon-green"
                   style={{ fontSize: "0.65rem", letterSpacing: "0.08em", padding: "3px 8px" }}
                 >
                   {difficultyLabel(trip.difficulty)}
                 </span>
+                {trip.status && trip.status !== "upcoming" && (
+                  <span
+                    className="font-body font-semibold"
+                    style={{
+                      fontSize: "0.62rem",
+                      letterSpacing: "0.08em",
+                      padding: "3px 8px",
+                      background: trip.status === "ongoing" ? "#FF6B1A" : "#4A3B2A",
+                      color: "#F0EDEA",
+                    }}
+                  >
+                    {trip.status.toUpperCase()}
+                  </span>
+                )}
               </div>
             </div>
 

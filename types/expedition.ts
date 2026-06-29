@@ -12,4 +12,5 @@ export type Trip = {
   image_url: string;
   member_count: number;
   featured?: boolean;
+  status?: string | null;
 };
