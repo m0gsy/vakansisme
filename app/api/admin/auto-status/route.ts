@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
-export async function POST(req: Request) {
+async function runAutoStatus(req: Request) {
   const cronSecret = process.env.CRON_SECRET;
   const isCron = cronSecret && req.headers.get("authorization") === `Bearer ${cronSecret}`;
 
@@ -60,3 +60,7 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ updated: { ongoing: ongoingRows?.length ?? 0, completed: completedRows?.length ?? 0 } });
 }
+
+// Vercel cron sends GET; admin UI POSTs — both supported
+export const GET = runAutoStatus;
+export const POST = runAutoStatus;
