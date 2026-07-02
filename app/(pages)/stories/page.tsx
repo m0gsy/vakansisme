@@ -4,16 +4,27 @@ import Link from "next/link";
 import { getLocale } from "@/lib/locale";
 import { t as tr } from "@/lib/i18n";
 
-export const metadata = {
-  title: "Stories — Jurnal Petualangan",
-  description: "Baca cerita perjalanan, photo dump, dan momen chaos dari komunitas Vakansisme. Tulis dan bagikan petualanganmu.",
-  openGraph: {
-    title: "Stories — Vakansisme",
-    description: "Jurnal petualangan komunitas outdoor Indonesia.",
-    type: "website" as const,
-  },
-  twitter: { card: "summary_large_image" as const, title: "Stories — Vakansisme" },
-};
+import type { Metadata } from "next";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ page?: string; type?: string }> }): Promise<Metadata> {
+  const { page } = await searchParams;
+  const pageNum = Math.max(1, parseInt(page ?? "1", 10) || 1);
+  const canonical = pageNum > 1 ? `${SITE_URL}/stories?page=${pageNum}` : `${SITE_URL}/stories`;
+  return {
+    title: "Stories — Jurnal Petualangan | Vakansisme",
+    description: "Baca cerita perjalanan, photo dump, dan momen chaos dari komunitas Vakansisme. Tulis dan bagikan petualanganmu.",
+    alternates: { canonical },
+    openGraph: {
+      title: "Stories — Vakansisme",
+      description: "Jurnal petualangan komunitas outdoor Indonesia.",
+      type: "website",
+      url: canonical,
+    },
+    twitter: { card: "summary_large_image", title: "Stories — Vakansisme" },
+  };
+}
 
 const PAGE_SIZE = 12;
 const FALLBACK = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80";
@@ -85,8 +96,18 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
     return `/stories?${params.toString()}`;
   }
 
+  const collectionLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Stories — Jurnal Petualangan | Vakansisme",
+    description: "Baca cerita perjalanan, photo dump, dan momen chaos dari komunitas Vakansisme.",
+    url: `${SITE_URL}/stories`,
+    isPartOf: { "@id": `${SITE_URL}/#website` },
+  };
+
   return (
     <div className="min-h-screen bg-charcoal" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }} />
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: "16px", marginBottom: "48px" }}>

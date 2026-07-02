@@ -8,11 +8,32 @@ import type { Metadata } from "next";
 
 type Params = Promise<{ id: string }>;
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
+
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createClient();
-  const { data } = await supabase.from("story_series").select("title").eq("id", id).single();
-  return { title: data ? `${data.title} — VAKANSISME` : "Series — VAKANSISME" };
+  const { data } = await supabase
+    .from("story_series")
+    .select("title, description, cover_image")
+    .eq("id", id)
+    .single();
+  if (!data) return { title: "Series — Vakansisme" };
+  const title = `${data.title} — Vakansisme`;
+  const description = data.description ?? `Baca series cerita "${data.title}" di Vakansisme.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: `${SITE_URL}/series/${id}` },
+    openGraph: {
+      title,
+      description,
+      url: `${SITE_URL}/series/${id}`,
+      type: "article",
+      ...(data.cover_image ? { images: [{ url: data.cover_image, width: 1200, height: 630 }] } : {}),
+    },
+    twitter: { card: "summary_large_image", title },
+  };
 }
 
 export default async function SeriesDetailPage({ params }: { params: Params }) {
@@ -90,6 +111,12 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
         )}
 
         {/* Story list */}
+        <h2
+          className="font-display font-black uppercase text-off-white"
+          style={{ fontSize: "clamp(0.9rem, 2vw, 1.2rem)", letterSpacing: "-0.01em", marginBottom: "16px" }}
+        >
+          {locale === "id" ? "CERITA DALAM SERI" : "STORIES IN THIS SERIES"}
+        </h2>
         <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
           {!stories?.length ? (
             <p className="font-body text-muted-ink" style={{ fontSize: "0.82rem" }}>Belum ada cerita dalam seri ini.</p>

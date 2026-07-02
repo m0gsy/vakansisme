@@ -5,7 +5,20 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Story Series — VAKANSISME" };
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
+
+export const metadata: Metadata = {
+  title: "Story Series — Vakansisme",
+  description: "Koleksi series cerita petualangan dari komunitas Vakansisme. Rangkaian perjalanan, ekspedisi, dan momen terbaik.",
+  alternates: { canonical: `${SITE_URL}/series` },
+  openGraph: {
+    title: "Story Series — Vakansisme",
+    description: "Koleksi series cerita petualangan dari komunitas Vakansisme.",
+    url: `${SITE_URL}/series`,
+    type: "website",
+  },
+  twitter: { card: "summary_large_image", title: "Story Series — Vakansisme" },
+};
 
 export default async function SeriesPage() {
   const supabase = await createClient();

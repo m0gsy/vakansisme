@@ -5,12 +5,22 @@ import ChaosSubmitButton from "@/components/ChaosSubmitButton";
 import ChaosReact from "@/components/ChaosReact";
 import { CHAOS_TYPES } from "@/types/chaos";
 
-export const metadata = {
-  title: "Chaos Wall — Momen Liar Komunitas",
-  description: "Dinding konten mentah dari komunitas outdoor Vakansisme. Photo dumps, quotes gila, momen chaos yang tidak ada di tempat lain.",
-  openGraph: { title: "Chaos Wall — Vakansisme", description: "Momen liar komunitas outdoor Indonesia." },
-  twitter: { card: "summary_large_image" as const },
-};
+import type { Metadata } from "next";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ page?: string; type?: string }> }): Promise<Metadata> {
+  const { page } = await searchParams;
+  const pageNum = Math.max(1, parseInt(page ?? "1", 10) || 1);
+  const canonical = pageNum > 1 ? `${SITE_URL}/chaos?page=${pageNum}` : `${SITE_URL}/chaos`;
+  return {
+    title: "Chaos Wall — Momen Liar Komunitas | Vakansisme",
+    description: "Dinding konten mentah dari komunitas outdoor Vakansisme. Photo dumps, quotes gila, momen chaos yang tidak ada di tempat lain.",
+    alternates: { canonical },
+    openGraph: { title: "Chaos Wall — Vakansisme", description: "Momen liar komunitas outdoor Indonesia.", url: canonical, type: "website" },
+    twitter: { card: "summary_large_image", title: "Chaos Wall — Vakansisme" },
+  };
+}
 
 const PAGE_SIZE = 12;
 
@@ -52,8 +62,18 @@ export default async function ChaosPage({ searchParams }: { searchParams: Search
   const pillHref = (t?: string) => (t ? `/chaos?type=${encodeURIComponent(t)}` : "/chaos");
   const pageHref = (p: number) => `/chaos?${type ? `type=${encodeURIComponent(type)}&` : ""}page=${p}`;
 
+  const collectionLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Chaos Wall — Momen Liar Komunitas | Vakansisme",
+    description: "Dinding konten mentah dari komunitas outdoor Vakansisme. Photo dumps, quotes gila, momen chaos.",
+    url: `${SITE_URL}/chaos`,
+    isPartOf: { "@id": `${SITE_URL}/#website` },
+  };
+
   return (
     <div className="min-h-screen bg-charcoal" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }} />
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
         <div style={{ marginBottom: "40px" }}>

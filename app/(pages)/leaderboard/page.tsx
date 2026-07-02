@@ -2,11 +2,14 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import Image from "next/image";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
+
 export const metadata = {
-  title: "Leaderboard — Top Pendaki & Penulis",
+  title: "Leaderboard — Top Pendaki & Penulis | Vakansisme",
   description: "Ranking pendaki dan penulis paling aktif di komunitas Vakansisme. Siapa yang paling banyak ekspedisi dan stories?",
-  openGraph: { title: "Leaderboard — Vakansisme", description: "Top pendaki dan penulis aktif komunitas outdoor Indonesia." },
-  twitter: { card: "summary" as const },
+  alternates: { canonical: `${SITE_URL}/leaderboard` },
+  openGraph: { title: "Leaderboard — Vakansisme", description: "Top pendaki dan penulis aktif komunitas outdoor Indonesia.", url: `${SITE_URL}/leaderboard`, type: "website" as const },
+  twitter: { card: "summary" as const, title: "Leaderboard — Vakansisme" },
 };
 
 function Board({ title, rows, unit }: { title: string; rows: { username: string; avatar_url: string | null; count: number }[]; unit: string }) {
@@ -87,8 +90,17 @@ export default async function LeaderboardPage() {
     count: r.story_count as number,
   }));
 
+  const webPageLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "Leaderboard — Top Pendaki & Penulis | Vakansisme",
+    url: `${SITE_URL}/leaderboard`,
+    isPartOf: { "@id": `${SITE_URL}/#website` },
+  };
+
   return (
     <div className="min-h-screen bg-charcoal" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageLd) }} />
       <div className="max-w-5xl mx-auto px-6">
         <h1
           className="font-display font-black uppercase text-off-white"

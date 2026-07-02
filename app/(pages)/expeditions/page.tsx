@@ -5,7 +5,27 @@ import { DIFFICULTIES, difficultyLabel, getDifficulty } from "@/lib/difficulty";
 import { getLocale } from "@/lib/locale";
 import { t } from "@/lib/i18n";
 
-export const metadata = { title: "Expeditions — VAKANSISME" };
+import type { Metadata } from "next";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ page?: string }> }): Promise<Metadata> {
+  const { page } = await searchParams;
+  const pageNum = Math.max(1, parseInt(page ?? "1", 10) || 1);
+  const canonical = pageNum > 1 ? `${SITE_URL}/expeditions?page=${pageNum}` : `${SITE_URL}/expeditions`;
+  return {
+    title: "Expeditions — Vakansisme",
+    description: "Jelajahi daftar ekspedisi mendaki dan petualangan alam terbuka bersama komunitas Vakansisme Indonesia.",
+    alternates: { canonical },
+    openGraph: {
+      title: "Expeditions — Vakansisme",
+      description: "Ekspedisi outdoor komunitas Indonesia.",
+      url: canonical,
+      type: "website",
+    },
+    twitter: { card: "summary_large_image", title: "Expeditions — Vakansisme" },
+  };
+}
 
 const PAGE_SIZE = 9;
 const FALLBACK = "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?auto=format&fit=crop&w=800&q=80";
@@ -76,8 +96,18 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
     { value: "completed", label: t(locale, "filter_completed") },
   ];
 
+  const collectionLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Expeditions — Vakansisme",
+    description: "Jelajahi daftar ekspedisi mendaki dan petualangan alam terbuka bersama komunitas Vakansisme Indonesia.",
+    url: `${SITE_URL}/expeditions`,
+    isPartOf: { "@id": `${SITE_URL}/#website` },
+  };
+
   return (
     <div className="min-h-screen bg-charcoal" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }} />
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
         <div style={{ marginBottom: "40px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>

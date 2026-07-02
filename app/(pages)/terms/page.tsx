@@ -1,7 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Terms of Use — VAKANSISME" };
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
+
+export const metadata: Metadata = {
+  title: "Terms of Use — Vakansisme",
+  description: "Syarat dan ketentuan penggunaan platform Vakansisme — komunitas outdoor dan ekspedisi Indonesia.",
+  alternates: { canonical: `${SITE_URL}/terms` },
+  openGraph: {
+    title: "Terms of Use — Vakansisme",
+    description: "Syarat dan ketentuan penggunaan platform Vakansisme.",
+    url: `${SITE_URL}/terms`,
+    type: "website",
+  },
+};
 
 export default function TermsPage() {
   return (

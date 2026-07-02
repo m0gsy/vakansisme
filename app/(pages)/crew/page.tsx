@@ -4,15 +4,27 @@ import CrewGrid from "@/components/CrewGrid";
 import { getLocale } from "@/lib/locale";
 import { t } from "@/lib/i18n";
 
-export const metadata = {
-  title: "Crew — Komunitas Pendaki & Petualang",
-  description: "Temukan pendaki, fotografer, dan petualang lain di komunitas Vakansisme. Ikuti, kirim pesan, dan bergabung ekspedisi bersama.",
-  openGraph: {
-    title: "Crew — Vakansisme",
-    description: "Komunitas outdoor Indonesia. Temukan pendaki dan petualang.",
-  },
-  twitter: { card: "summary" as const, title: "Crew — Vakansisme" },
-};
+import type { Metadata } from "next";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ page?: string }> }): Promise<Metadata> {
+  const { page } = await searchParams;
+  const pageNum = Math.max(1, parseInt(page ?? "1", 10) || 1);
+  const canonical = pageNum > 1 ? `${SITE_URL}/crew?page=${pageNum}` : `${SITE_URL}/crew`;
+  return {
+    title: "Crew — Komunitas Pendaki & Petualang | Vakansisme",
+    description: "Temukan pendaki, fotografer, dan petualang lain di komunitas Vakansisme. Ikuti, kirim pesan, dan bergabung ekspedisi bersama.",
+    alternates: { canonical },
+    openGraph: {
+      title: "Crew — Vakansisme",
+      description: "Komunitas outdoor Indonesia. Temukan pendaki dan petualang.",
+      url: canonical,
+      type: "website",
+    },
+    twitter: { card: "summary", title: "Crew — Vakansisme" },
+  };
+}
 
 const PAGE_SIZE = 24;
 
@@ -63,8 +75,18 @@ export default async function CrewPage({ searchParams }: { searchParams: SearchP
 
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE);
 
+  const collectionLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Crew — Komunitas Pendaki & Petualang | Vakansisme",
+    description: "Temukan pendaki, fotografer, dan petualang lain di komunitas Vakansisme.",
+    url: `${SITE_URL}/crew`,
+    isPartOf: { "@id": `${SITE_URL}/#website` },
+  };
+
   return (
     <div className="min-h-screen bg-charcoal" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }} />
       <div className="max-w-7xl mx-auto px-6">
         <h1
           className="font-display font-black uppercase text-off-white"

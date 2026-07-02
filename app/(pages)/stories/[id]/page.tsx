@@ -86,9 +86,20 @@ export default async function StoryPage({ params }: { params: Params }) {
     publisher: { "@type": "Organization", name: "Vakansisme", url: siteUrl },
   };
 
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Vakansisme", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Journal", item: `${siteUrl}/stories` },
+      { "@type": "ListItem", position: 3, name: story.title, item: `${siteUrl}/stories/${id}` },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-charcoal">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       {/* Cover image */}
       {story.image_url && (
         <div className="relative w-full" style={{ height: "clamp(260px, 45vw, 520px)" }}>

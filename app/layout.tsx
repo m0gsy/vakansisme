@@ -61,13 +61,28 @@ export const metadata: Metadata = {
   },
 };
 
-const jsonLd = {
+const jsonLdOrganization = {
   "@context": "https://schema.org",
   "@type": "Organization",
+  "@id": `${SITE_URL}/#organization`,
   name: "Vakansisme",
   url: SITE_URL,
   description: "Outdoor community and media platform for Indonesian youth. Expeditions, stories, chaos.",
   sameAs: ["https://instagram.com/vakansisme"],
+};
+
+const jsonLdWebSite = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": `${SITE_URL}/#website`,
+  name: "Vakansisme",
+  url: SITE_URL,
+  publisher: { "@id": `${SITE_URL}/#organization` },
+  potentialAction: {
+    "@type": "SearchAction",
+    target: { "@type": "EntryPoint", urlTemplate: `${SITE_URL}/search?q={search_term_string}` },
+    "query-input": "required name=search_term_string",
+  },
 };
 
 export default function RootLayout({
@@ -81,10 +96,8 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://supabase.co"} />
         <link rel="preconnect" href="https://images.unsplash.com" />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrganization) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebSite) }} />
       </head>
       <body>
         <a href="#main-content" className="skip-link">Skip to main content</a>

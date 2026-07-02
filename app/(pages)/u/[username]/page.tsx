@@ -3,8 +3,37 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import FollowButton from "@/components/FollowButton";
+import type { Metadata } from "next";
 
 type Params = Promise<{ username: string }>;
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
+
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+  const { username } = await params;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("username, bio, avatar_url")
+    .eq("username", username)
+    .single();
+  if (!data) return { title: "Profile — Vakansisme" };
+  const title = `@${data.username} — Vakansisme`;
+  const description = data.bio ?? `Profil petualang @${data.username} di komunitas Vakansisme.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: `${SITE_URL}/u/${data.username}` },
+    openGraph: {
+      title,
+      description,
+      type: "profile",
+      url: `${SITE_URL}/u/${data.username}`,
+      ...(data.avatar_url ? { images: [{ url: data.avatar_url, width: 400, height: 400, alt: `@${data.username}` }] } : {}),
+    },
+    twitter: { card: "summary", title, description },
+  };
+}
 
 const FALLBACK = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80";
 
@@ -85,8 +114,22 @@ export default async function ProfilePage({ params }: { params: Params }) {
     drafts = draftData ?? [];
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    url: `${SITE_URL}/u/${profile.username}`,
+    mainEntity: {
+      "@type": "Person",
+      name: `@${profile.username}`,
+      identifier: profile.username,
+      ...(profile.bio ? { description: profile.bio } : {}),
+      ...(profile.avatar_url ? { image: profile.avatar_url } : {}),
+    },
+  };
+
   return (
     <div className="min-h-screen bg-charcoal" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="max-w-5xl mx-auto px-6">
 
         {/* Profile header */}

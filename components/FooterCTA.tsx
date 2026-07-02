@@ -9,6 +9,12 @@ const navLinks = [
   { label: "JOURNAL", href: "/stories" },
   { label: "CREW", href: "/crew" },
   { label: "CHAOS WALL", href: "/chaos" },
+  { label: "LEADERBOARD", href: "/leaderboard" },
+];
+
+const legalLinks = [
+  { label: "Privacy", href: "/privacy" },
+  { label: "Terms", href: "/terms" },
 ];
 
 const ease = [0.16, 1, 0.3, 1] as const;
@@ -192,12 +198,23 @@ export default function FooterCTA() {
           </ul>
         </nav>
 
-        <p
-          className="font-body text-muted-ink"
-          style={{ fontSize: "0.72rem" }}
-        >
-          © 2025 Vakansisme. Lost in nature, found in chaos.
-        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+          <p className="font-body text-muted-ink" style={{ fontSize: "0.72rem" }}>
+            © 2025 Vakansisme. Lost in nature, found in chaos.
+          </p>
+          <nav aria-label="Legal navigation" style={{ display: "flex", gap: "12px" }}>
+            {legalLinks.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="font-body text-muted-ink hover:text-off-white transition-colors duration-200"
+                style={{ fontSize: "0.65rem", letterSpacing: "0.06em" }}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
       </div>
     </footer>
   );

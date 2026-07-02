@@ -1,7 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Privacy Policy — VAKANSISME" };
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy — Vakansisme",
+  description: "Kebijakan privasi Vakansisme — cara kami mengumpulkan, menggunakan, dan melindungi data pribadi kamu.",
+  alternates: { canonical: `${SITE_URL}/privacy` },
+  openGraph: {
+    title: "Privacy Policy — Vakansisme",
+    description: "Kebijakan privasi Vakansisme.",
+    url: `${SITE_URL}/privacy`,
+    type: "website",
+  },
+};
 
 export default function PrivacyPage() {
   return (

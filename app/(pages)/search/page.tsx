@@ -3,6 +3,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { getLocale } from "@/lib/locale";
 import { t } from "@/lib/i18n";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Cari — Vakansisme",
+  robots: { index: false, follow: false },
+};
 
 const FALLBACK = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80";
 
