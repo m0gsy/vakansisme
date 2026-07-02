@@ -35,7 +35,14 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     openGraph: {
       title: data.title,
       description: desc,
+      type: "article",
       ...(data.image_url ? { images: [{ url: data.image_url, width: 1200, height: 630 }] } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: data.title,
+      description: desc,
+      ...(data.image_url ? { images: [data.image_url] } : {}),
     },
   };
 }
@@ -67,8 +74,21 @@ export default async function StoryPage({ params }: { params: Params }) {
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: story.title,
+    description: story.excerpt ?? undefined,
+    author: { "@type": "Person", name: `@${story.author_handle}` },
+    ...(story.image_url ? { image: story.image_url } : {}),
+    datePublished: story.created_at,
+    url: `${siteUrl}/stories/${id}`,
+    publisher: { "@type": "Organization", name: "Vakansisme", url: siteUrl },
+  };
+
   return (
     <div className="min-h-screen bg-charcoal">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* Cover image */}
       {story.image_url && (
         <div className="relative w-full" style={{ height: "clamp(260px, 45vw, 520px)" }}>

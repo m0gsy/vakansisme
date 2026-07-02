@@ -37,7 +37,14 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     openGraph: {
       title: data.name,
       description: desc,
+      type: "website",
       ...(data.image_url ? { images: [{ url: data.image_url, width: 1200, height: 630 }] } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: data.name,
+      description: desc,
+      ...(data.image_url ? { images: [data.image_url] } : {}),
     },
   };
 }
@@ -120,8 +127,27 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
   const dateStr = new Date(trip.date_start).toLocaleDateString("en", { day: "numeric", month: "long", year: "numeric" });
   const dateEndStr = new Date(trip.date_end).toLocaleDateString("en", { day: "numeric", month: "long" });
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: trip.name,
+    description: trip.description ?? undefined,
+    startDate: trip.date_start,
+    endDate: trip.date_end,
+    location: { "@type": "Place", name: trip.location },
+    ...(trip.image_url ? { image: trip.image_url } : {}),
+    url: `${siteUrl}/expeditions/${id}`,
+    organizer: { "@type": "Organization", name: "Vakansisme", url: siteUrl },
+    eventStatus: trip.status === "cancelled"
+      ? "https://schema.org/EventCancelled"
+      : trip.status === "ongoing" || trip.status === "completed"
+      ? "https://schema.org/EventScheduled"
+      : "https://schema.org/EventScheduled",
+  };
+
   return (
     <div className="min-h-screen bg-charcoal">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* Hero */}
       <div
         className="relative w-full"
