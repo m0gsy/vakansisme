@@ -44,10 +44,9 @@ export async function POST(req: Request) {
     .insert({ follower_id: user.id, following_id });
 
   if (error) {
-    if (error.code === "23505") {
-      return NextResponse.json({ error: "Already following" }, { status: 409 });
-    }
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error.code === "23505") return NextResponse.json({ error: "Already following" }, { status: 409 });
+    if (error.code === "23503") return NextResponse.json({ error: "User not found" }, { status: 404 });
+    return NextResponse.json({ error: "Failed to follow" }, { status: 400 });
   }
 
   // In-app notification (fire-and-forget)
