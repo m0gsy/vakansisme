@@ -88,7 +88,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
 }
 
 export async function DELETE(req: Request, { params }: { params: Params }) {
-  const { id } = await params;
+  await params;
   const cookieStore = await cookies();
   const supabase = makeSupabase(cookieStore);
 

@@ -39,7 +39,6 @@ export default async function Image({ params }: { params: Params }) {
       >
         {/* Background image */}
         {trip?.image_url && (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={trip.image_url}
             alt=""

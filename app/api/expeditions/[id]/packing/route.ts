@@ -77,7 +77,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
 
 // PATCH — toggle personal check-off
 export async function PATCH(req: Request, { params }: { params: Params }) {
-  const { id: _expeditionId } = await params;
+  await params;
   const cookieStore = await cookies();
   const supabase = makeSupabase(cookieStore);
   const { data: { user } } = await supabase.auth.getUser();

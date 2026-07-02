@@ -42,7 +42,11 @@ export default function SettingsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
-  const [pushStatus, setPushStatus] = useState<"default" | "granted" | "denied" | "unsupported">("default");
+  const [pushStatus, setPushStatus] = useState<"default" | "granted" | "denied" | "unsupported">(() => {
+    if (typeof window === "undefined") return "default";
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) return "unsupported";
+    return Notification.permission as "default" | "granted" | "denied";
+  });
   const [pushLoading, setPushLoading] = useState(false);
 
   useEffect(() => {
@@ -100,13 +104,6 @@ export default function SettingsPage() {
     setTimeout(() => setPrefsOk(false), 2000);
   }
 
-  useEffect(() => {
-    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
-      setPushStatus("unsupported");
-    } else {
-      setPushStatus(Notification.permission as "default" | "granted" | "denied");
-    }
-  }, []);
 
   async function enablePush() {
     if (!("serviceWorker" in navigator)) return;
