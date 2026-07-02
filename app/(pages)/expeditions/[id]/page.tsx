@@ -63,7 +63,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
   const { data: trip } = await supabase
     .from("expeditions")
-    .select("*, application_prompt, requires_approval")
+    .select("*, application_prompt, requires_approval, profiles!leader_id(username, avatar_url)")
     .eq("id", id)
     .single();
 
@@ -439,7 +439,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
             {[
               { label: t(locale, "date"), value: `${dateStr} – ${dateEndStr}` },
               { label: t(locale, "price"), value: trip.price },
-              { label: t(locale, "leader"), value: trip.leader_handle },
+              { label: t(locale, "leader"), value: (() => { const lp = Array.isArray(trip.profiles) ? trip.profiles[0] : (trip.profiles as { username: string } | null); return lp?.username ? `@${lp.username}` : "—"; })() },
             ].map(({ label, value }) => (
               <div key={label}>
                 <p
