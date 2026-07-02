@@ -18,15 +18,18 @@ export default function ExpeditionGallery({
   expeditionId,
   initialPhotos,
   isMember,
+  isLeader,
   currentUserId,
   tripStatus,
 }: {
   expeditionId: string;
   initialPhotos: Photo[];
   isMember: boolean;
+  isLeader?: boolean;
   currentUserId: string | null;
   tripStatus?: string | null;
 }) {
+  const canUpload = isMember || isLeader;
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
   const [uploading, setUploading] = useState(false);
   const [newUrl, setNewUrl] = useState("");
@@ -79,7 +82,7 @@ export default function ExpeditionGallery({
         >
           TRIP GALLERY ({photos.length})
         </h2>
-        {isMember && !open && tripStatus === "completed" && (
+        {canUpload && !open && tripStatus === "completed" && (
           <button
             onClick={() => setOpen(true)}
             className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150"
@@ -88,7 +91,7 @@ export default function ExpeditionGallery({
             + ADD PHOTO
           </button>
         )}
-        {isMember && !open && tripStatus !== "completed" && (
+        {canUpload && !open && tripStatus !== "completed" && (
           <span className="font-body text-muted-ink" style={{ fontSize: "0.65rem", letterSpacing: "0.08em" }}>
             Upload opens after trip completes
           </span>

@@ -473,6 +473,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
           expeditionId={id}
           initialPhotos={gallery ?? []}
           isMember={userJoined}
+          isLeader={isLeader}
           currentUserId={user?.id ?? null}
           tripStatus={trip.status}
         />
