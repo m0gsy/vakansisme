@@ -12,14 +12,6 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleOAuth(provider: "google" | "github") {
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -66,31 +58,6 @@ export default function LoginPage() {
         <p className="font-body text-muted-ink mb-10" style={{ fontSize: "0.88rem" }}>
           Back to the chaos.
         </p>
-
-        {/* OAuth */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "28px" }}>
-          <button
-            type="button"
-            onClick={() => handleOAuth("google")}
-            className="font-body font-semibold text-off-white hover:text-neon-green transition-colors duration-150"
-            style={{ fontSize: "0.72rem", letterSpacing: "0.12em", padding: "13px", border: "1px solid rgba(74,59,42,0.5)", background: "transparent", cursor: "pointer" }}
-          >
-            CONTINUE WITH GOOGLE
-          </button>
-          <button
-            type="button"
-            onClick={() => handleOAuth("github")}
-            className="font-body font-semibold text-off-white hover:text-neon-green transition-colors duration-150"
-            style={{ fontSize: "0.72rem", letterSpacing: "0.12em", padding: "13px", border: "1px solid rgba(74,59,42,0.5)", background: "transparent", cursor: "pointer" }}
-          >
-            CONTINUE WITH GITHUB
-          </button>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "4px 0" }}>
-            <div style={{ flex: 1, height: "1px", background: "rgba(74,59,42,0.4)" }} />
-            <span className="font-body text-muted-ink" style={{ fontSize: "0.65rem", letterSpacing: "0.1em" }}>OR</span>
-            <div style={{ flex: 1, height: "1px", background: "rgba(74,59,42,0.4)" }} />
-          </div>
-        </div>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           <div>
