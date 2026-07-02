@@ -23,22 +23,23 @@ END $$;
 -- Step 4: Make NOT NULL now that all rows are populated
 ALTER TABLE expeditions ALTER COLUMN leader_id SET NOT NULL;
 
--- Step 5: Drop old text column
+-- Step 5: Drop old RLS policies BEFORE dropping column (they reference leader_handle)
+DROP POLICY IF EXISTS "packing leader insert" ON expedition_packing_items;
+DROP POLICY IF EXISTS "packing leader delete" ON expedition_packing_items;
+
+-- Step 6: Now safe to drop old text column
 ALTER TABLE expeditions DROP COLUMN IF EXISTS leader_handle;
 
--- Step 6: Index for fast leader lookups
+-- Step 7: Index for fast leader lookups
 CREATE INDEX IF NOT EXISTS idx_expeditions_leader_id ON expeditions(leader_id);
 
--- Step 7: Update RLS policies on expedition_packing_items (from migration 014)
--- Old policies joined via leader_handle username match — replace with direct UUID compare
-DROP POLICY IF EXISTS "packing leader insert" ON expedition_packing_items;
+-- Step 8: New RLS policies using direct UUID compare
 CREATE POLICY "packing leader insert" ON expedition_packing_items
   FOR INSERT WITH CHECK (
     (SELECT leader_id FROM expeditions WHERE id = expedition_packing_items.expedition_id) = auth.uid()
     OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
   );
 
-DROP POLICY IF EXISTS "packing leader delete" ON expedition_packing_items;
 CREATE POLICY "packing leader delete" ON expedition_packing_items
   FOR DELETE USING (
     (SELECT leader_id FROM expeditions WHERE id = expedition_packing_items.expedition_id) = auth.uid()
