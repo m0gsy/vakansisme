@@ -7,11 +7,20 @@ export default function CancelReservationButton({ tripId }: { tripId: string }) 
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleCancel() {
     if (!confirmed) { setConfirmed(true); return; }
     setLoading(true);
-    await fetch(`/api/expeditions/${tripId}/join`, { method: "DELETE" });
+    setError("");
+    const res = await fetch(`/api/expeditions/${tripId}/join`, { method: "DELETE" });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      setError(json.error ?? "Gagal batalkan. Coba lagi.");
+      setConfirmed(false);
+      setLoading(false);
+      return;
+    }
     router.refresh();
   }
 
@@ -25,6 +34,7 @@ export default function CancelReservationButton({ tripId }: { tripId: string }) 
       >
         {loading ? "..." : confirmed ? "KONFIRMASI BATALKAN?" : "BATALKAN RESERVASI"}
       </button>
+      {error && <p className="font-body" style={{ fontSize: "0.65rem", color: "#FF6B1A", marginTop: "4px" }}>{error}</p>}
     </div>
   );
 }

@@ -23,18 +23,18 @@ export default function NotificationBell() {
 
   useEffect(() => {
     const supabase = createClient();
-    let userId: string | null = null;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
     supabase.auth.getUser().then(({ data }) => {
-      userId = data.user?.id ?? null;
+      const userId = data.user?.id ?? null;
       fetch("/api/notifications")
         .then((r) => r.json())
         .then((d) => Array.isArray(d) && setNotifs(d))
         .catch(() => {});
 
       if (!userId) return;
-      const channel = supabase
-        .channel("notif-bell")
+      channel = supabase
+        .channel(`notif-bell-${userId}`)
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
@@ -43,9 +43,9 @@ export default function NotificationBell() {
           }
         )
         .subscribe();
-
-      return () => { supabase.removeChannel(channel); };
     });
+
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, []);
 
   useEffect(() => {

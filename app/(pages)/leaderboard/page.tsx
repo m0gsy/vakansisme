@@ -65,28 +65,22 @@ function Board({ title, rows, unit }: { title: string; rows: { username: string;
 export default async function LeaderboardPage() {
   const supabase = await createClient();
 
-  const [{ data: tripMembers }, { data: storyData }] = await Promise.all([
-    supabase.from("expedition_members").select("user_id, profiles(username, avatar_url)"),
-    supabase.from("stories").select("author_id, profiles(username, avatar_url)").eq("published", true),
+  const [{ data: tripLeaders }, { data: storyLeaders }] = await Promise.all([
+    supabase.from("leaderboard_trips").select("user_id, trip_count, username, avatar_url"),
+    supabase.from("leaderboard_stories").select("user_id, story_count, username, avatar_url"),
   ]);
 
-  const tripCounts: Record<string, { username: string; avatar_url: string | null; count: number }> = {};
-  for (const m of tripMembers ?? []) {
-    const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles as { username: string; avatar_url: string | null } | null;
-    if (!p) continue;
-    if (!tripCounts[m.user_id]) tripCounts[m.user_id] = { ...p, count: 0 };
-    tripCounts[m.user_id].count++;
-  }
-  const topByTrips = Object.values(tripCounts).sort((a, b) => b.count - a.count).slice(0, 10);
+  const topByTrips = (tripLeaders ?? []).map((r) => ({
+    username: r.username as string,
+    avatar_url: r.avatar_url as string | null,
+    count: r.trip_count as number,
+  }));
 
-  const storyCounts: Record<string, { username: string; avatar_url: string | null; count: number }> = {};
-  for (const s of storyData ?? []) {
-    const p = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles as { username: string; avatar_url: string | null } | null;
-    if (!p) continue;
-    if (!storyCounts[s.author_id]) storyCounts[s.author_id] = { ...p, count: 0 };
-    storyCounts[s.author_id].count++;
-  }
-  const topByStories = Object.values(storyCounts).sort((a, b) => b.count - a.count).slice(0, 10);
+  const topByStories = (storyLeaders ?? []).map((r) => ({
+    username: r.username as string,
+    avatar_url: r.avatar_url as string | null,
+    count: r.story_count as number,
+  }));
 
   return (
     <div className="min-h-screen bg-charcoal" style={{ paddingTop: "100px", paddingBottom: "80px" }}>

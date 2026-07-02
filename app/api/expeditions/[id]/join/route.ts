@@ -78,9 +78,11 @@ export async function POST(req: Request, { params }: { params: Params }) {
     });
 
   if (error) {
-    // unique violation = already joined
     if (error.code === "23505") {
       return NextResponse.json({ error: "Already joined" }, { status: 409 });
+    }
+    if (error.message?.includes("expedition_full")) {
+      return NextResponse.json({ error: "Trip is full" }, { status: 409 });
     }
     return NextResponse.json({ error: error.message }, { status: 400 });
   }

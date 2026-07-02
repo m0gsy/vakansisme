@@ -23,27 +23,42 @@ export function ChaosActions({ id, initialStatus }: { id: string; initialStatus:
   const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function setModStatus(next: string) {
     setLoading(true);
-    await fetch(`/api/admin/chaos/${id}`, {
+    setError("");
+    const res = await fetch(`/api/admin/chaos/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: next }),
     });
-    setStatus(next);
+    if (res.ok) {
+      setStatus(next);
+      router.refresh();
+    } else {
+      const json = await res.json().catch(() => ({}));
+      setError(json.error ?? "Action failed");
+    }
     setLoading(false);
-    router.refresh();
   }
 
   async function del() {
     if (!confirm("Delete this chaos card?")) return;
     setLoading(true);
-    await fetch(`/api/admin/chaos/${id}`, { method: "DELETE" });
-    router.refresh();
+    setError("");
+    const res = await fetch(`/api/admin/chaos/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      router.refresh();
+    } else {
+      const json = await res.json().catch(() => ({}));
+      setError(json.error ?? "Delete failed");
+      setLoading(false);
+    }
   }
 
   return (
+    <div>
     <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
       <span
         style={{
@@ -88,29 +103,41 @@ export function ChaosActions({ id, initialStatus }: { id: string; initialStatus:
         DELETE
       </button>
     </div>
+    {error && <p className="font-body" style={{ fontSize: "0.65rem", color: "#FF6B1A", marginTop: "4px" }}>{error}</p>}
+    </div>
   );
 }
 
 export function ExpeditionDeleteButton({ id }: { id: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function del() {
     if (!confirm("Delete this expedition and all its members?")) return;
     setLoading(true);
-    await fetch(`/api/admin/expeditions/${id}`, { method: "DELETE" });
-    setLoading(false);
-    router.refresh();
+    setError("");
+    const res = await fetch(`/api/admin/expeditions/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      router.refresh();
+    } else {
+      const json = await res.json().catch(() => ({}));
+      setError(json.error ?? "Delete failed");
+      setLoading(false);
+    }
   }
 
   return (
-    <button
-      disabled={loading}
-      onClick={del}
-      style={{ ...BTN.base, background: "transparent", color: "#FF6B1A", border: "1px solid rgba(255,107,26,0.4)" }}
-    >
-      {loading ? "…" : "DELETE"}
-    </button>
+    <div>
+      <button
+        disabled={loading}
+        onClick={del}
+        style={{ ...BTN.base, background: "transparent", color: "#FF6B1A", border: "1px solid rgba(255,107,26,0.4)" }}
+      >
+        {loading ? "…" : "DELETE"}
+      </button>
+      {error && <p className="font-body" style={{ fontSize: "0.65rem", color: "#FF6B1A", marginTop: "4px" }}>{error}</p>}
+    </div>
   );
 }
 
@@ -573,9 +600,11 @@ export function StoryModerationActions({ id, initialFeatured = false }: { id: st
   const [featLoading, setFeatLoading] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [featured, setFeatured] = useState(initialFeatured);
+  const [error, setError] = useState("");
 
   async function moderate(action: "approve" | "reject") {
     setLoading(true);
+    setError("");
     const res = await fetch(`/api/admin/stories/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -585,6 +614,8 @@ export function StoryModerationActions({ id, initialFeatured = false }: { id: st
       setDone(action === "approve" ? "APPROVED" : "REJECTED");
       router.refresh();
     } else {
+      const json = await res.json().catch(() => ({}));
+      setError(json.error ?? "Action failed");
       setLoading(false);
     }
   }
@@ -603,8 +634,15 @@ export function StoryModerationActions({ id, initialFeatured = false }: { id: st
   async function del() {
     if (!confirm("Delete this story permanently?")) return;
     setLoading(true);
-    await fetch(`/api/admin/stories/${id}`, { method: "DELETE" });
-    router.refresh();
+    setError("");
+    const res = await fetch(`/api/admin/stories/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      router.refresh();
+    } else {
+      const json = await res.json().catch(() => ({}));
+      setError(json.error ?? "Delete failed");
+      setLoading(false);
+    }
   }
 
   if (done) {
@@ -618,35 +656,38 @@ export function StoryModerationActions({ id, initialFeatured = false }: { id: st
   }
 
   return (
-    <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
-      <button
-        disabled={loading}
-        onClick={() => moderate("approve")}
-        style={{ ...BTN.base, background: "#9BFF3C", color: "#111111" }}
-      >
-        APPROVE
-      </button>
-      <button
-        disabled={loading}
-        onClick={() => moderate("reject")}
-        style={{ ...BTN.base, background: "rgba(255,107,26,0.15)", color: "#FF6B1A", border: "1px solid rgba(255,107,26,0.4)" }}
-      >
-        REJECT
-      </button>
-      <button
-        disabled={featLoading}
-        onClick={toggleFeatured}
-        style={{ ...BTN.base, background: featured ? "#9BFF3C" : "transparent", color: featured ? "#111111" : "#8B7355", border: "1px solid rgba(155,255,60,0.3)" }}
-      >
-        {featLoading ? "…" : featured ? "★" : "☆"}
-      </button>
-      <button
-        disabled={loading}
-        onClick={del}
-        style={{ ...BTN.base, background: "transparent", color: "#8B7355", border: "1px solid rgba(74,59,42,0.4)" }}
-      >
-        DELETE
-      </button>
+    <div>
+      <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+        <button
+          disabled={loading}
+          onClick={() => moderate("approve")}
+          style={{ ...BTN.base, background: "#9BFF3C", color: "#111111" }}
+        >
+          APPROVE
+        </button>
+        <button
+          disabled={loading}
+          onClick={() => moderate("reject")}
+          style={{ ...BTN.base, background: "rgba(255,107,26,0.15)", color: "#FF6B1A", border: "1px solid rgba(255,107,26,0.4)" }}
+        >
+          REJECT
+        </button>
+        <button
+          disabled={featLoading}
+          onClick={toggleFeatured}
+          style={{ ...BTN.base, background: featured ? "#9BFF3C" : "transparent", color: featured ? "#111111" : "#8B7355", border: "1px solid rgba(155,255,60,0.3)" }}
+        >
+          {featLoading ? "…" : featured ? "★" : "☆"}
+        </button>
+        <button
+          disabled={loading}
+          onClick={del}
+          style={{ ...BTN.base, background: "transparent", color: "#8B7355", border: "1px solid rgba(74,59,42,0.4)" }}
+        >
+          DELETE
+        </button>
+      </div>
+      {error && <p className="font-body" style={{ fontSize: "0.65rem", color: "#FF6B1A", marginTop: "4px" }}>{error}</p>}
     </div>
   );
 }
@@ -679,20 +720,25 @@ export function AdminAutoStatusButton() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   async function run() {
     setLoading(true);
+    setError("");
     const res = await fetch("/api/admin/auto-status", { method: "POST" });
     if (res.ok) {
       const { updated } = await res.json();
       setResult(`Updated: ${updated.ongoing} → ongoing, ${updated.completed} → completed`);
       router.refresh();
+    } else {
+      const json = await res.json().catch(() => ({}));
+      setError(json.error ?? "Auto-update failed");
     }
     setLoading(false);
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
       <button
         onClick={run}
         disabled={loading}
@@ -700,9 +746,8 @@ export function AdminAutoStatusButton() {
       >
         {loading ? "UPDATING..." : "AUTO-UPDATE STATUS"}
       </button>
-      {result && (
-        <span className="font-body text-muted-ink" style={{ fontSize: "0.72rem" }}>{result}</span>
-      )}
+      {result && <span className="font-body text-muted-ink" style={{ fontSize: "0.72rem" }}>{result}</span>}
+      {error && <span className="font-body" style={{ fontSize: "0.72rem", color: "#FF6B1A" }}>{error}</span>}
     </div>
   );
 }
@@ -711,9 +756,11 @@ export function AdminRemindersButton() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [days, setDays] = useState(7);
+  const [error, setError] = useState("");
 
   async function run() {
     setLoading(true);
+    setError("");
     const res = await fetch("/api/admin/reminders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -722,6 +769,9 @@ export function AdminRemindersButton() {
     if (res.ok) {
       const { sent, expeditions } = await res.json();
       setResult(`Sent ${sent} reminders across ${expeditions} expedition(s) departing in ${days}d`);
+    } else {
+      const json = await res.json().catch(() => ({}));
+      setError(json.error ?? "Failed to send reminders");
     }
     setLoading(false);
   }
@@ -744,6 +794,7 @@ export function AdminRemindersButton() {
         {loading ? "SENDING..." : "SEND REMINDERS"}
       </button>
       {result && <span className="font-body text-muted-ink" style={{ fontSize: "0.72rem" }}>{result}</span>}
+      {error && <span className="font-body" style={{ fontSize: "0.72rem", color: "#FF6B1A" }}>{error}</span>}
     </div>
   );
 }
@@ -782,6 +833,9 @@ export function AdminUsersSection() {
           is_admin: action === "promote" ? true : action === "demote" ? false : u.is_admin,
         };
       }));
+    } else {
+      const json = await res.json().catch(() => ({}));
+      alert(json.error ?? "Action failed");
     }
     setActionLoading(null);
   }
@@ -861,8 +915,13 @@ export function AdminReportsSection() {
   }, []);
 
   async function resolve(id: string) {
-    await fetch("/api/admin/reports", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
-    setReports((prev) => prev.map((r) => r.id === id ? { ...r, resolved: true } : r));
+    const res = await fetch("/api/admin/reports", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    if (res.ok) {
+      setReports((prev) => prev.map((r) => r.id === id ? { ...r, resolved: true } : r));
+    } else {
+      const json = await res.json().catch(() => ({}));
+      alert(json.error ?? "Failed to resolve report");
+    }
   }
 
   const open = reports.filter((r) => !r.resolved);
@@ -909,38 +968,55 @@ export function GalleryModerationActions({ id, initialStatus }: { id: string; in
   const router = useRouter();
   const [status, setStatus] = useState(initialStatus);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function setPhotoStatus(next: "approved" | "rejected") {
     setLoading(true);
-    await fetch(`/api/admin/gallery/${id}`, {
+    setError("");
+    const res = await fetch(`/api/admin/gallery/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: next }),
     });
-    setStatus(next);
+    if (res.ok) {
+      setStatus(next);
+      router.refresh();
+    } else {
+      const json = await res.json().catch(() => ({}));
+      setError(json.error ?? "Action failed");
+    }
     setLoading(false);
-    router.refresh();
   }
 
   async function del() {
     if (!confirm("Delete this photo permanently?")) return;
     setLoading(true);
-    await fetch(`/api/admin/gallery/${id}`, { method: "DELETE" });
-    router.refresh();
+    setError("");
+    const res = await fetch(`/api/admin/gallery/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      router.refresh();
+    } else {
+      const json = await res.json().catch(() => ({}));
+      setError(json.error ?? "Delete failed");
+      setLoading(false);
+    }
   }
 
   return (
-    <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-      <span style={{ fontSize: "0.6rem", letterSpacing: "0.1em", fontWeight: 700, padding: "3px 8px", background: status === "approved" ? "#9BFF3C" : status === "rejected" ? "#FF6B1A" : "rgba(74,59,42,0.4)", color: status === "pending" ? "#8B7355" : "#111111" }}>
-        {status.toUpperCase()}
-      </span>
-      {status !== "approved" && (
-        <button disabled={loading} onClick={() => setPhotoStatus("approved")} style={{ ...BTN.base, background: "#9BFF3C", color: "#111111" }}>APPROVE</button>
-      )}
-      {status !== "rejected" && (
-        <button disabled={loading} onClick={() => setPhotoStatus("rejected")} style={{ ...BTN.base, background: "rgba(255,107,26,0.15)", color: "#FF6B1A", border: "1px solid rgba(255,107,26,0.4)" }}>REJECT</button>
-      )}
-      <button disabled={loading} onClick={del} style={{ ...BTN.base, background: "transparent", color: "#8B7355", border: "1px solid rgba(74,59,42,0.4)" }}>DELETE</button>
+    <div>
+      <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+        <span style={{ fontSize: "0.6rem", letterSpacing: "0.1em", fontWeight: 700, padding: "3px 8px", background: status === "approved" ? "#9BFF3C" : status === "rejected" ? "#FF6B1A" : "rgba(74,59,42,0.4)", color: status === "pending" ? "#8B7355" : "#111111" }}>
+          {status.toUpperCase()}
+        </span>
+        {status !== "approved" && (
+          <button disabled={loading} onClick={() => setPhotoStatus("approved")} style={{ ...BTN.base, background: "#9BFF3C", color: "#111111" }}>APPROVE</button>
+        )}
+        {status !== "rejected" && (
+          <button disabled={loading} onClick={() => setPhotoStatus("rejected")} style={{ ...BTN.base, background: "rgba(255,107,26,0.15)", color: "#FF6B1A", border: "1px solid rgba(255,107,26,0.4)" }}>REJECT</button>
+        )}
+        <button disabled={loading} onClick={del} style={{ ...BTN.base, background: "transparent", color: "#8B7355", border: "1px solid rgba(74,59,42,0.4)" }}>DELETE</button>
+      </div>
+      {error && <p className="font-body" style={{ fontSize: "0.65rem", color: "#FF6B1A", marginTop: "4px" }}>{error}</p>}
     </div>
   );
 }

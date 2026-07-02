@@ -13,4 +13,7 @@ export type Trip = {
   member_count: number;
   featured?: boolean;
   status?: string | null;
+  price_amount?: number | null;
+  requires_approval?: boolean;
+  application_prompt?: string | null;
 };

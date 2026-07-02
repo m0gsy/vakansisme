@@ -40,25 +40,13 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
 
   const { data: stories, count } = await query.range(from, to);
 
-  // Trending: most liked stories in last 7 days
-  // eslint-disable-next-line react-hooks/purity
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { data: recentLikes } = await supabase
-    .from("story_likes")
-    .select("story_id")
-    .gte("created_at", sevenDaysAgo);
-
+  // Trending: top 4 most liked stories in last 7 days (via DB view)
   let trendingStories: { id: string; title: string; author_handle: string; image_url: string | null; type: string }[] = [];
-  if (!type && !tag && page === 1 && recentLikes?.length) {
-    const likeCounts = new Map<string, number>();
-    for (const l of recentLikes) {
-      likeCounts.set(l.story_id, (likeCounts.get(l.story_id) ?? 0) + 1);
-    }
-    const topIds = [...likeCounts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 4)
-      .map(([id]) => id);
-
+  if (!type && !tag && page === 1) {
+    const { data: trendingIds } = await supabase
+      .from("trending_stories")
+      .select("story_id");
+    const topIds = (trendingIds ?? []).map((r) => r.story_id as string);
     if (topIds.length) {
       const { data: trending } = await supabase
         .from("stories")
