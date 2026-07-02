@@ -19,6 +19,7 @@ function getNavLinks(locale: Locale) {
     { href: "/stories", label: d.nav_journal },
     { href: "/crew", label: d.nav_crew },
     { href: "/chaos", label: d.nav_chaos },
+    { href: "/leaderboard", label: d.nav_leaderboard },
   ];
 }
 
