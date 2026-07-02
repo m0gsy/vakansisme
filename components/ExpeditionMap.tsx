@@ -1,5 +1,6 @@
 "use client";
 
+import "leaflet/dist/leaflet.css";
 import { useEffect, useRef } from "react";
 
 export default function ExpeditionMap({ location }: { location: string }) {
@@ -57,10 +58,6 @@ export default function ExpeditionMap({ location }: { location: string }) {
 
   return (
     <>
-      <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
-      />
       <div
         ref={mapRef}
         style={{
