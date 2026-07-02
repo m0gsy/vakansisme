@@ -81,12 +81,23 @@ export async function DELETE(req: Request, { params }: { params: Params }) {
   const { commentId } = await req.json();
   if (!commentId) return NextResponse.json({ error: "commentId required" }, { status: 400 });
 
+  // Verify ownership before delete (explicit check, RLS also enforces)
+  const [{ data: comment }, { data: profile }] = await Promise.all([
+    supabase.from("story_comments").select("author_id").eq("id", commentId).eq("story_id", storyId).single(),
+    supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
+  ]);
+
+  if (!comment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (comment.author_id !== user.id && !profile?.is_admin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const { error } = await supabase
     .from("story_comments")
     .delete()
     .eq("id", commentId)
     .eq("story_id", storyId);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

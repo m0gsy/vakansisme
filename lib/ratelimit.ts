@@ -1,8 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export async function rateLimit(key: string, max: number, windowMs: number): Promise<boolean> {
   try {
-    const supabase = await createClient();
+    // Service client bypasses RLS — rate_limits is server-internal, not user data
+    const supabase = createServiceClient();
     const windowStart = new Date(Date.now() - windowMs).toISOString();
 
     const { data } = await supabase
@@ -23,6 +24,6 @@ export async function rateLimit(key: string, max: number, windowMs: number): Pro
     await supabase.from("rate_limits").update({ count: data.count + 1 }).eq("key", key);
     return true;
   } catch {
-    return true; // fail open
+    return false; // fail closed — no DB = deny request
   }
 }

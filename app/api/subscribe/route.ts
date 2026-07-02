@@ -1,8 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { rateLimit } from "@/lib/ratelimit";
 
 export async function POST(req: Request) {
+  const ip = req.headers.get("x-forwarded-for") ?? "anon";
+  if (!await rateLimit(`subscribe:${ip}`, 5, 60_000)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const { email } = await req.json();
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

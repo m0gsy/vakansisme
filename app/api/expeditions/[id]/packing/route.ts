@@ -49,6 +49,16 @@ export async function POST(req: Request, { params }: { params: Params }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
+  // Only leader or admin can add packing items
+  const [{ data: expedition }, { data: profile }] = await Promise.all([
+    supabase.from("expeditions").select("leader_handle").eq("id", id).single(),
+    supabase.from("profiles").select("username, is_admin").eq("id", user.id).single(),
+  ]);
+  const leaderHandle = expedition?.leader_handle?.replace(/^@/, "");
+  if (profile?.username !== leaderHandle && !profile?.is_admin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const body = await req.json();
   const label = body.label?.trim();
   const category = body.category?.trim() || "general";

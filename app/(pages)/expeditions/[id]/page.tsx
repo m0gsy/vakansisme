@@ -62,13 +62,17 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
   if (!trip) notFound();
 
-  const { count: memberCount } = await supabase
-    .from("expedition_members")
-    .select("*", { count: "exact", head: true })
-    .eq("expedition_id", id)
-    .eq("status", "approved");
+  const priceAmount = parseInt(((trip as { price?: string }).price ?? "").replace(/\D/g, ""), 10) || 0;
+  const leaderHandle = trip.leader_handle?.replace(/^@/, "");
 
-  const [{ data: members }, { data: gallery }, { data: membership }, { data: comments }, { data: waitlistRow }, { count: waitlistCount }, { data: updates }, { data: packingItems }, { data: userChecks }, { data: reviews }, { data: bookmarkRow }] = await Promise.all([
+  const [
+    { count: memberCount },
+    { data: members }, { data: gallery }, { data: membership }, { data: comments },
+    { data: waitlistRow }, { count: waitlistCount }, { data: updates }, { data: packingItems },
+    { data: userChecks }, { data: reviews }, { data: bookmarkRow },
+    { data: similar }, { data: paidRow }, { data: callerProfile },
+  ] = await Promise.all([
+    supabase.from("expedition_members").select("*", { count: "exact", head: true }).eq("expedition_id", id).eq("status", "approved"),
     supabase.from("expedition_members").select("user_id, status, profiles(username, avatar_url)").eq("expedition_id", id).neq("status", "rejected").limit(30),
     supabase.from("expedition_gallery").select("id, uploader_id, uploader_handle, image_url, caption, created_at").eq("expedition_id", id).order("created_at", { ascending: true }).limit(50),
     user
@@ -79,26 +83,23 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
       ? supabase.from("expedition_waitlist").select("user_id").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.from("expedition_waitlist").select("*", { count: "exact", head: true }).eq("expedition_id", id),
-    supabase.from("expedition_updates").select("id, author_id, content, created_at, profiles(username)").eq("expedition_id", id).order("created_at", { ascending: false }),
-    supabase.from("expedition_packing_items").select("id, label, category, quantity").eq("expedition_id", id).order("created_at", { ascending: true }),
+    supabase.from("expedition_updates").select("id, author_id, content, created_at, profiles(username)").eq("expedition_id", id).order("created_at", { ascending: false }).limit(100),
+    supabase.from("expedition_packing_items").select("id, label, category, quantity").eq("expedition_id", id).order("created_at", { ascending: true }).limit(200),
     user ? supabase.from("packing_checks").select("item_id").eq("user_id", user.id) : Promise.resolve({ data: null }),
     supabase.from("expedition_reviews").select("id, reviewer_id, rating, content, created_at, profiles(username, avatar_url)").eq("expedition_id", id).order("created_at", { ascending: false }).limit(50),
     user
       ? supabase.from("bookmarks").select("user_id").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase.from("expeditions").select("id, name, location, date_start, status, difficulty").neq("id", id).ilike("location", `%${trip.location.split(",")[0].trim()}%`).limit(3),
+    user && priceAmount > 0
+      ? supabase.from("expedition_payments").select("status").eq("user_id", user.id).eq("expedition_id", id).eq("status", "paid").maybeSingle()
+      : Promise.resolve({ data: null }),
+    user
+      ? supabase.from("profiles").select("username, is_admin").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
   ]);
 
-  const { data: similar } = await supabase
-    .from("expeditions")
-    .select("id, name, location, date_start, status, difficulty")
-    .neq("id", id)
-    .ilike("location", `%${trip.location.split(",")[0].trim()}%`)
-    .limit(3);
-
-  const priceAmount = parseInt(((trip as { price?: string }).price ?? "").replace(/\D/g, ""), 10) || 0;
-  const isPaid = user && priceAmount > 0
-    ? await supabase.from("expedition_payments").select("status").eq("user_id", user.id).eq("expedition_id", id).eq("status", "paid").maybeSingle().then((r) => !!r.data)
-    : false;
+  const isPaid = !!paidRow;
 
   const membershipRow = membership as { status?: string; payment_due_at?: string | null } | null;
   const membershipStatus = membershipRow?.status;
@@ -113,10 +114,6 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
   const pendingMembers = (members ?? []).filter((m) => (m as { status?: string }).status === "pending");
   const isBookmarked = !!bookmarkRow;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
-  const leaderHandle = trip.leader_handle?.replace(/^@/, "");
-  const { data: callerProfile } = user
-    ? await supabase.from("profiles").select("username, is_admin").eq("id", user.id).single()
-    : { data: null };
   const isLeader = !!(callerProfile && (callerProfile.username === leaderHandle || callerProfile.is_admin));
 
   const days = daysUntil(trip.date_start);

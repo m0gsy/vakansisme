@@ -29,9 +29,10 @@ export async function PATCH(req: Request) {
     if (typeof body[key] === "boolean") update[key] = body[key];
   }
 
-  await supabase
+  const { error } = await supabase
     .from("notification_prefs")
     .upsert({ user_id: user.id, ...update }, { onConflict: "user_id" });
 
+  if (error) return NextResponse.json({ error: "Failed to save preferences" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

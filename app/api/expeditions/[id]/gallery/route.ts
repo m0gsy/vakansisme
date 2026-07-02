@@ -63,12 +63,29 @@ export async function DELETE(req: Request, { params }: { params: Params }) {
   const { photoId } = await req.json();
   if (!photoId) return NextResponse.json({ error: "photoId required" }, { status: 400 });
 
+  // Verify uploader or expedition leader or admin
+  const [{ data: photo }, { data: expedition }, { data: profile }] = await Promise.all([
+    supabase.from("expedition_gallery").select("uploader_id").eq("id", photoId).eq("expedition_id", expeditionId).single(),
+    supabase.from("expeditions").select("leader_handle").eq("id", expeditionId).single(),
+    supabase.from("profiles").select("username, is_admin").eq("id", user.id).single(),
+  ]);
+
+  if (!photo) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const leaderHandle = expedition?.leader_handle?.replace(/^@/, "");
+  const isLeader = profile?.username === leaderHandle;
+  const isUploader = photo.uploader_id === user.id;
+
+  if (!isUploader && !isLeader && !profile?.is_admin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const { error } = await supabase
     .from("expedition_gallery")
     .delete()
     .eq("id", photoId)
     .eq("expedition_id", expeditionId);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

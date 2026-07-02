@@ -2,11 +2,15 @@
 
 import { useMemo } from "react";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 
 marked.setOptions({ breaks: true });
 
 export default function MarkdownContent({ content }: { content: string }) {
-  const html = useMemo(() => marked.parse(content) as string, [content]);
+  const html = useMemo(
+    () => DOMPurify.sanitize(marked.parse(content) as string, { USE_PROFILES: { html: true } }),
+    [content]
+  );
 
   return (
     <div

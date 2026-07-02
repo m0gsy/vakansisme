@@ -46,6 +46,23 @@ export async function DELETE(req: Request, { params }: { params: Params }) {
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
   const { commentId } = await req.json();
+  if (!commentId) return NextResponse.json({ error: "commentId required" }, { status: 400 });
+
+  // Only allow deleting own comment (explicit check, RLS also enforces)
+  const { data: comment } = await supabase
+    .from("expedition_comments")
+    .select("author_id")
+    .eq("id", commentId)
+    .eq("expedition_id", id)
+    .single();
+
+  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
+
+  if (!comment) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (comment.author_id !== user.id && !profile?.is_admin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   await supabase.from("expedition_comments").delete().eq("id", commentId).eq("expedition_id", id);
   return NextResponse.json({ ok: true });
 }

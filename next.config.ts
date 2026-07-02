@@ -9,7 +9,7 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://app.midtrans.com https://api.midtrans.com",
+      "script-src 'self' 'unsafe-inline' https://app.midtrans.com https://api.midtrans.com",
       "style-src 'self' 'unsafe-inline'",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.midtrans.com https://app.midtrans.com",
       "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com",
