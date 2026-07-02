@@ -64,7 +64,7 @@ export default async function AdminPage() {
       .limit(100),
     supabase
       .from("expeditions")
-      .select("id, name, location, difficulty, price, date_start, date_end, quota_max, leader_handle, image_url, description, requires_approval, application_prompt, featured, expedition_members(count)")
+      .select("id, name, location, difficulty, price, date_start, date_end, quota_max, leader_id, profiles!leader_id(username), image_url, description, requires_approval, application_prompt, featured, expedition_members(count)")
       .order("date_start", { ascending: true })
       .limit(50),
     supabase

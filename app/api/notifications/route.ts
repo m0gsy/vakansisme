@@ -19,7 +19,7 @@ export async function GET() {
   const cookieStore = await cookies();
   const supabase = makeSupabase(cookieStore);
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json([], { status: 200 });
+  if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
   const { data } = await supabase
     .from("notifications")

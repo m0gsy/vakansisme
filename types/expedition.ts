@@ -7,7 +7,7 @@ export type Trip = {
   price: string;
   date_start: string;
   date_end: string;
-  leader_handle: string;
+  leader_id: string;
   quota_max: number;
   image_url: string;
   member_count: number;

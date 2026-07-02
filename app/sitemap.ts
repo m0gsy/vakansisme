@@ -16,6 +16,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/stories`, lastModified: new Date(), priority: 0.9 },
     { url: `${SITE_URL}/crew`, lastModified: new Date(), priority: 0.8 },
     { url: `${SITE_URL}/search`, lastModified: new Date(), priority: 0.7 },
+    { url: `${SITE_URL}/leaderboard`, lastModified: new Date(), priority: 0.7 },
+    { url: `${SITE_URL}/chaos`, lastModified: new Date(), priority: 0.7 },
+    { url: `${SITE_URL}/series`, lastModified: new Date(), priority: 0.6 },
+    { url: `${SITE_URL}/terms`, lastModified: new Date(), priority: 0.3 },
+    { url: `${SITE_URL}/privacy`, lastModified: new Date(), priority: 0.3 },
   ];
 
   const expeditionRoutes: MetadataRoute.Sitemap = (expeditions ?? []).map((e) => ({

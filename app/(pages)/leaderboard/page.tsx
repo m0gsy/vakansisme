@@ -2,7 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import Image from "next/image";
 
-export const metadata = { title: "Leaderboard — VAKANSISME" };
+export const metadata = {
+  title: "Leaderboard — Top Pendaki & Penulis",
+  description: "Ranking pendaki dan penulis paling aktif di komunitas Vakansisme. Siapa yang paling banyak ekspedisi dan stories?",
+  openGraph: { title: "Leaderboard — Vakansisme", description: "Top pendaki dan penulis aktif komunitas outdoor Indonesia." },
+  twitter: { card: "summary" as const },
+};
 
 function Board({ title, rows, unit }: { title: string; rows: { username: string; avatar_url: string | null; count: number }[]; unit: string }) {
   return (

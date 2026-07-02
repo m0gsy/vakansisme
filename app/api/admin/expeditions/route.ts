@@ -21,6 +21,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "All fields required except image and description" }, { status: 400 });
   }
 
+  // Resolve username → UUID
+  const handle = leader_handle.trim().replace(/^@/, "");
+  const { data: leaderProfile } = await supabase.from("profiles").select("id").eq("username", handle).maybeSingle();
+  if (!leaderProfile?.id) return NextResponse.json({ error: "Leader username not found" }, { status: 400 });
+
   const { data, error } = await supabase
     .from("expeditions")
     .insert({
@@ -31,7 +36,7 @@ export async function POST(req: Request) {
       date_start,
       date_end,
       quota_max: Number(quota_max),
-      leader_handle: leader_handle.trim(),
+      leader_id: leaderProfile.id,
       image_url: image_url?.trim() || null,
       description: description?.trim() || null,
       requires_approval: requires_approval ?? false,
@@ -43,18 +48,10 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   // Auto-join the leader as an approved member
-  const handle = leader_handle.trim().replace(/^@/, "");
-  const { data: leaderProfile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("username", handle)
-    .maybeSingle();
-  if (leaderProfile?.id) {
-    await supabase.from("expedition_members").upsert(
-      { expedition_id: data.id, user_id: leaderProfile.id, status: "approved" },
-      { onConflict: "expedition_id,user_id" }
-    );
-  }
+  await supabase.from("expedition_members").upsert(
+    { expedition_id: data.id, user_id: leaderProfile.id, status: "approved" },
+    { onConflict: "expedition_id,user_id" }
+  );
 
   return NextResponse.json({ id: data.id });
 }

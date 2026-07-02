@@ -6,12 +6,11 @@ type Params = Promise<{ id: string; memberId: string }>;
 async function getLeaderOrAdmin(supabase: Awaited<ReturnType<typeof createClient>>, expeditionId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data: profile } = await supabase.from("profiles").select("username, is_admin").eq("id", user.id).single();
+  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
   if (!profile) return null;
   if (profile.is_admin) return user;
-  const { data: trip } = await supabase.from("expeditions").select("leader_handle").eq("id", expeditionId).single();
-  const leaderHandle = trip?.leader_handle?.replace(/^@/, "");
-  return leaderHandle === profile.username ? user : null;
+  const { data: trip } = await supabase.from("expeditions").select("leader_id").eq("id", expeditionId).single();
+  return trip?.leader_id === user.id ? user : null;
 }
 
 // PATCH — approve or reject a pending member
@@ -38,7 +37,12 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     return NextResponse.json({ success: true });
   }
 
-  // approve
+  // approve — reject if user is banned
+  const { data: memberProfile } = await supabase.from("profiles").select("is_banned").eq("id", memberId).single();
+  if (memberProfile?.is_banned) {
+    return NextResponse.json({ error: "User is banned" }, { status: 403 });
+  }
+
   const { error } = await supabase
     .from("expedition_members")
     .update({ status: "approved" })

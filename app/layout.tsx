@@ -24,19 +24,50 @@ const specialElite = Special_Elite({
   display: "swap",
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Vakansisme — Summit to Story.",
-    template: "%s",
+    template: "%s | Vakansisme",
   },
   description:
-    "Outdoor community and media platform for youth. Expeditions, Journal, Chaos Wall. Not a hiking website — this is culture.",
+    "Outdoor community and media platform for Indonesian youth. Expeditions, stories, chaos. Not a hiking website — this is culture.",
+  keywords: ["ekspedisi", "outdoor", "hiking", "pendakian", "komunitas alam", "petualangan", "Indonesia"],
+  authors: [{ name: "Vakansisme" }],
+  creator: "Vakansisme",
+  publisher: "Vakansisme",
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
   openGraph: {
-    title: "Vakansisme",
-    description: "Lost in nature, found in chaos.",
+    siteName: "Vakansisme",
+    title: "Vakansisme — Summit to Story.",
+    description: "Outdoor community and media platform for Indonesian youth. Expeditions, stories, chaos.",
     type: "website",
+    url: SITE_URL,
+    locale: "id_ID",
+    images: [{ url: `${SITE_URL}/og-default.jpg`, width: 1200, height: 630, alt: "Vakansisme" }],
   },
+  twitter: {
+    card: "summary_large_image",
+    site: "@vakansisme",
+    creator: "@vakansisme",
+    title: "Vakansisme — Summit to Story.",
+    description: "Outdoor community and media platform for Indonesian youth. Expeditions, stories, chaos.",
+    images: [`${SITE_URL}/og-default.jpg`],
+  },
+  alternates: {
+    canonical: SITE_URL,
+  },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Vakansisme",
+  url: SITE_URL,
+  description: "Outdoor community and media platform for Indonesian youth. Expeditions, stories, chaos.",
+  sameAs: ["https://instagram.com/vakansisme"],
 };
 
 export default function RootLayout({
@@ -44,10 +75,21 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
-      lang="en"
+      lang="id"
       className={`${barlowCondensed.variable} ${manrope.variable} ${specialElite.variable}`}
     >
-      <body><ToastProvider>{children}<OnboardingBanner /></ToastProvider></body>
+      <head>
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://supabase.co"} />
+        <link rel="preconnect" href="https://images.unsplash.com" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
+      <body>
+        <a href="#main-content" className="skip-link">Skip to main content</a>
+        <ToastProvider>{children}<OnboardingBanner /></ToastProvider>
+      </body>
     </html>
   );
 }

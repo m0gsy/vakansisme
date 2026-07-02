@@ -63,7 +63,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
   if (!trip) notFound();
 
   const priceAmount = parseInt(((trip as { price?: string }).price ?? "").replace(/\D/g, ""), 10) || 0;
-  const leaderHandle = trip.leader_handle?.replace(/^@/, "");
+  const tripLeaderId = (trip as { leader_id?: string }).leader_id;
 
   const [
     { count: memberCount },
@@ -114,7 +114,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
   const pendingMembers = (members ?? []).filter((m) => (m as { status?: string }).status === "pending");
   const isBookmarked = !!bookmarkRow;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
-  const isLeader = !!(callerProfile && (callerProfile.username === leaderHandle || callerProfile.is_admin));
+  const isLeader = !!(callerProfile && (user?.id === tripLeaderId || callerProfile.is_admin));
 
   const days = daysUntil(trip.date_start);
   const dateStr = new Date(trip.date_start).toLocaleDateString("en", { day: "numeric", month: "long", year: "numeric" });

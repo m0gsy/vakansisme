@@ -68,7 +68,7 @@ export default async function ProfilePage({ params }: { params: Params }) {
     supabase
       .from("expeditions")
       .select("id, name, location, date_start, status")
-      .ilike("leader_handle", `%${username}%`)
+      .eq("leader_id", profile.id)
       .order("date_start", { ascending: false })
       .limit(6),
   ]);

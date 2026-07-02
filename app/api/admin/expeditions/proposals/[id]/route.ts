@@ -42,7 +42,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
       date_start: proposal.date_start,
       date_end: proposal.date_end,
       quota_max: proposal.quota_max,
-      leader_handle: `@${proposal.proposer_handle}`,
+      leader_id: proposal.proposer_id,
       image_url: proposal.image_url,
       description: proposal.description,
       requires_approval: proposal.requires_approval,

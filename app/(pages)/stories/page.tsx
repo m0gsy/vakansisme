@@ -4,6 +4,17 @@ import Link from "next/link";
 import { getLocale } from "@/lib/locale";
 import { t as tr } from "@/lib/i18n";
 
+export const metadata = {
+  title: "Stories — Jurnal Petualangan",
+  description: "Baca cerita perjalanan, photo dump, dan momen chaos dari komunitas Vakansisme. Tulis dan bagikan petualanganmu.",
+  openGraph: {
+    title: "Stories — Vakansisme",
+    description: "Jurnal petualangan komunitas outdoor Indonesia.",
+    type: "website" as const,
+  },
+  twitter: { card: "summary_large_image" as const, title: "Stories — Vakansisme" },
+};
+
 const PAGE_SIZE = 12;
 const FALLBACK = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80";
 const STORY_TYPES = ["photo dump", "short story", "video POV", "chaos moment"] as const;

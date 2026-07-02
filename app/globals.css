@@ -8,7 +8,7 @@
   --color-neon-green: #9BFF3C;
   --color-chaos-orange: #FF6B1A;
   --color-off-white: #F0EDEA;
-  --color-muted-ink: #7A7570;
+  --color-muted-ink: #8A8480; /* lightened from #7A7570 for WCAG AA 4.5:1 on charcoal */
 
   /* Fonts - variables injected by next/font via layout.tsx */
   --font-display: var(--font-barlow), Impact, 'Arial Narrow', sans-serif;
@@ -100,6 +100,31 @@ body {
   border: none;
   border-top: 1px solid rgba(74,59,42,0.4);
   margin: 2rem 0;
+}
+
+/* ───────────── Accessibility: focus indicators ───────────── */
+/* Visible focus for keyboard navigation — WCAG 2.1 §2.4.7 */
+:focus-visible {
+  outline: 2px solid #9BFF3C;
+  outline-offset: 2px;
+}
+
+/* Skip link for keyboard users */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  background: #9BFF3C;
+  color: #111111;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 8px 16px;
+  text-decoration: none;
+  z-index: 9999;
+}
+.skip-link:focus {
+  top: 0;
 }
 
 /* ───────────── Reduced motion ───────────── */

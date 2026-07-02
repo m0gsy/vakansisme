@@ -5,7 +5,12 @@ import ChaosSubmitButton from "@/components/ChaosSubmitButton";
 import ChaosReact from "@/components/ChaosReact";
 import { CHAOS_TYPES } from "@/types/chaos";
 
-export const metadata = { title: "Chaos Wall — VAKANSISME" };
+export const metadata = {
+  title: "Chaos Wall — Momen Liar Komunitas",
+  description: "Dinding konten mentah dari komunitas outdoor Vakansisme. Photo dumps, quotes gila, momen chaos yang tidak ada di tempat lain.",
+  openGraph: { title: "Chaos Wall — Vakansisme", description: "Momen liar komunitas outdoor Indonesia." },
+  twitter: { card: "summary_large_image" as const },
+};
 
 const PAGE_SIZE = 12;
 

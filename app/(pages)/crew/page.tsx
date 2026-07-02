@@ -4,6 +4,16 @@ import CrewGrid from "@/components/CrewGrid";
 import { getLocale } from "@/lib/locale";
 import { t } from "@/lib/i18n";
 
+export const metadata = {
+  title: "Crew — Komunitas Pendaki & Petualang",
+  description: "Temukan pendaki, fotografer, dan petualang lain di komunitas Vakansisme. Ikuti, kirim pesan, dan bergabung ekspedisi bersama.",
+  openGraph: {
+    title: "Crew — Vakansisme",
+    description: "Komunitas outdoor Indonesia. Temukan pendaki dan petualang.",
+  },
+  twitter: { card: "summary" as const, title: "Crew — Vakansisme" },
+};
+
 const PAGE_SIZE = 24;
 
 type SearchParams = Promise<{ page?: string }>;

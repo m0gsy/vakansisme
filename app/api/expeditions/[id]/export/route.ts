@@ -10,13 +10,13 @@ export async function GET(_req: Request, { params }: { params: Params }) {
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
   // Allow leader or admin
-  const { data: profile } = await supabase.from("profiles").select("username, is_admin").eq("id", user.id).single();
-  const { data: expedition } = await supabase.from("expeditions").select("name, leader_handle").eq("id", id).single();
+  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
+  const { data: expedition } = await supabase.from("expeditions").select("name, leader_id").eq("id", id).single();
   if (!expedition) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const leaderHandle = expedition.leader_handle?.replace(/^@/, "");
-  const isLeader = profile?.username === leaderHandle || profile?.is_admin;
-  if (!isLeader) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (expedition.leader_id !== user.id && !profile?.is_admin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { data: members } = await supabase
     .from("expedition_members")

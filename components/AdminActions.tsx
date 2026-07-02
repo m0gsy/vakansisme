@@ -152,7 +152,8 @@ type ExpeditionData = {
   date_start: string;
   date_end: string;
   quota_max: number;
-  leader_handle: string;
+  leader_id: string;
+  profiles?: { username: string } | { username: string }[] | null;
   image_url?: string | null;
   description?: string | null;
   status?: string | null;
@@ -178,7 +179,7 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
     date_start: expedition.date_start?.slice(0, 10) ?? "",
     date_end: expedition.date_end?.slice(0, 10) ?? "",
     quota_max: String(expedition.quota_max),
-    leader_handle: expedition.leader_handle,
+    leader_handle: (Array.isArray(expedition.profiles) ? expedition.profiles[0]?.username : (expedition.profiles as { username: string } | null)?.username) ?? "",
     description: expedition.description ?? "",
     application_prompt: expedition.application_prompt ?? "",
     status: expedition.status ?? "upcoming",

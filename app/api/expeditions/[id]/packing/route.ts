@@ -51,11 +51,10 @@ export async function POST(req: Request, { params }: { params: Params }) {
 
   // Only leader or admin can add packing items
   const [{ data: expedition }, { data: profile }] = await Promise.all([
-    supabase.from("expeditions").select("leader_handle").eq("id", id).single(),
-    supabase.from("profiles").select("username, is_admin").eq("id", user.id).single(),
+    supabase.from("expeditions").select("leader_id").eq("id", id).single(),
+    supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
   ]);
-  const leaderHandle = expedition?.leader_handle?.replace(/^@/, "");
-  if (profile?.username !== leaderHandle && !profile?.is_admin) {
+  if (expedition?.leader_id !== user.id && !profile?.is_admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -105,11 +104,10 @@ export async function DELETE(req: Request, { params }: { params: Params }) {
 
   // Only leader or admin can delete packing items
   const [{ data: expedition }, { data: profile }] = await Promise.all([
-    supabase.from("expeditions").select("leader_handle").eq("id", id).single(),
-    supabase.from("profiles").select("username, is_admin").eq("id", user.id).single(),
+    supabase.from("expeditions").select("leader_id").eq("id", id).single(),
+    supabase.from("profiles").select("is_admin").eq("id", user.id).single(),
   ]);
-  const leaderHandle = expedition?.leader_handle?.replace(/^@/, "");
-  if (profile?.username !== leaderHandle && !profile?.is_admin) {
+  if (expedition?.leader_id !== user.id && !profile?.is_admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

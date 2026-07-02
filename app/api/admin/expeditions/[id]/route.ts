@@ -64,6 +64,11 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "All fields required except image and description" }, { status: 400 });
   }
 
+  // Resolve leader username → UUID
+  const handle = leader_handle.trim().replace(/^@/, "");
+  const { data: leaderProfile } = await supabase.from("profiles").select("id").eq("username", handle).maybeSingle();
+  if (!leaderProfile?.id) return NextResponse.json({ error: "Leader username not found" }, { status: 400 });
+
   // Fetch current status before update to detect changes
   const { data: current } = await supabase.from("expeditions").select("status, name").eq("id", id).single();
   const prevStatus = current?.status ?? "upcoming";
@@ -77,7 +82,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     date_start,
     date_end,
     quota_max: Number(quota_max),
-    leader_handle: leader_handle.trim(),
+    leader_id: leaderProfile.id,
     image_url: image_url?.trim() || null,
     description: description?.trim() || null,
     requires_approval: requires_approval ?? false,

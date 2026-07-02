@@ -43,15 +43,14 @@ export async function POST(req: Request, { params }: { params: Params }) {
   // Only leader or admin
   const { data: expedition } = await supabase
     .from("expeditions")
-    .select("name, leader_handle")
+    .select("name, leader_id")
     .eq("id", id)
     .single();
   if (!expedition) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const leaderHandle = expedition.leader_handle?.replace(/^@/, "");
-  const { data: profile } = await supabase.from("profiles").select("username, is_admin").eq("id", user.id).single();
+  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
 
-  if (!profile || (profile.username !== leaderHandle && !profile.is_admin)) {
+  if (expedition.leader_id !== user.id && !profile?.is_admin) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 

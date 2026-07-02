@@ -32,7 +32,7 @@ async function getTrips(): Promise<Trip[]> {
       price: row.price,
       date_start: row.date_start,
       date_end: row.date_end,
-      leader_handle: row.leader_handle,
+      leader_id: row.leader_id,
       quota_max: row.quota_max,
       image_url: row.image_url ?? "",
       member_count: (row.expedition_members as { count: number }[])[0]?.count ?? 0,
@@ -91,7 +91,7 @@ export default async function Home() {
   return (
     <>
       <Nav initialLocale={locale} />
-      <main>
+      <main id="main-content">
         <Hero />
         <Expeditions trips={trips} joinedIds={joinedIds} locale={locale} />
         <Stories stories={stories} locale={locale} />
