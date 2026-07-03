@@ -20,13 +20,16 @@ export async function GET(_req: Request, { params }: { params: Params }) {
     .order("created_at", { ascending: true })
     .limit(100);
 
-  // Mark incoming as read
-  await supabase
-    .from("direct_messages")
-    .update({ read: true })
-    .eq("sender_id", partnerId)
-    .eq("recipient_id", user.id)
-    .eq("read", false);
+  // Mark incoming as read — only if there are unread messages to update
+  const hasUnread = messages?.some((m) => m.sender_id === partnerId && !m.read);
+  if (hasUnread) {
+    await supabase
+      .from("direct_messages")
+      .update({ read: true })
+      .eq("sender_id", partnerId)
+      .eq("recipient_id", user.id)
+      .eq("read", false);
+  }
 
   return NextResponse.json(messages ?? []);
 }
