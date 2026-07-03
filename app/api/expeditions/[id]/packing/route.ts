@@ -77,7 +77,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
 
 // PATCH — toggle personal check-off
 export async function PATCH(req: Request, { params }: { params: Params }) {
-  await params;
+  const { id } = await params;
   const cookieStore = await cookies();
   const supabase = makeSupabase(cookieStore);
   const { data: { user } } = await supabase.auth.getUser();
@@ -85,6 +85,10 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
 
   const { itemId, checked } = await req.json();
   if (!itemId) return NextResponse.json({ error: "itemId required" }, { status: 400 });
+
+  // Validate itemId belongs to this expedition
+  const { data: item } = await supabase.from("expedition_packing_items").select("id").eq("id", itemId).eq("expedition_id", id).maybeSingle();
+  if (!item) return NextResponse.json({ error: "Item not found" }, { status: 404 });
 
   if (checked) {
     await supabase.from("packing_checks").upsert({ item_id: itemId, user_id: user.id }, { onConflict: "item_id,user_id" });

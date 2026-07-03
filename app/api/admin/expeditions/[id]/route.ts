@@ -64,6 +64,15 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "All fields required except image and description" }, { status: 400 });
   }
 
+  if (isNaN(Number(quota_max)) || Number(quota_max) < 1) {
+    return NextResponse.json({ error: "quota_max must be a positive number" }, { status: 400 });
+  }
+
+  const VALID_STATUSES = ["upcoming", "ongoing", "completed", "cancelled"];
+  if (status && !VALID_STATUSES.includes(status)) {
+    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  }
+
   // Resolve leader username → UUID
   const handle = leader_handle.trim().replace(/^@/, "");
   const { data: leaderProfile } = await supabase.from("profiles").select("id").eq("username", handle).maybeSingle();

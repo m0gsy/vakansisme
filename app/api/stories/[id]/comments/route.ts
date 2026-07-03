@@ -23,6 +23,9 @@ export async function GET(_req: Request, { params }: { params: Params }) {
   const cookieStore = await cookies();
   const supabase = makeClient(cookieStore);
 
+  const { data: story } = await supabase.from("stories").select("id").eq("id", id).eq("published", true).maybeSingle();
+  if (!story) return NextResponse.json([]);
+
   const { data, error } = await supabase
     .from("story_comments")
     .select("id, author_id, author_handle, content, created_at")
@@ -59,6 +62,9 @@ export async function POST(req: Request, { params }: { params: Params }) {
 
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 400 });
   if (profile.is_banned) return NextResponse.json({ error: "Account suspended" }, { status: 403 });
+
+  const { data: story } = await supabase.from("stories").select("id").eq("id", id).eq("published", true).maybeSingle();
+  if (!story) return NextResponse.json({ error: "Story not found" }, { status: 404 });
 
   const { data, error } = await supabase
     .from("story_comments")

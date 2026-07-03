@@ -9,6 +9,9 @@ export async function POST(_req: Request, { params }: { params: Params }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
+  const { data: story } = await supabase.from("stories").select("id").eq("id", id).eq("published", true).maybeSingle();
+  if (!story) return NextResponse.json({ error: "Story not found" }, { status: 404 });
+
   const { error } = await supabase.from("story_likes").insert({ story_id: id, user_id: user.id });
   if (error) {
     if (error.code === "23505") return NextResponse.json({ ok: true }); // already liked

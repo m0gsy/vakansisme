@@ -9,6 +9,11 @@ export async function POST(_req: Request, { params }: { params: Params }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
+  const { data: submission } = await supabase.from("chaos_submissions").select("user_id").eq("id", id).maybeSingle();
+  if (submission?.user_id === user.id) {
+    return NextResponse.json({ error: "Cannot react to your own submission" }, { status: 400 });
+  }
+
   const { data: existing } = await supabase
     .from("chaos_reactions")
     .select("id")

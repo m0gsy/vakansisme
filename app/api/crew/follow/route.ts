@@ -28,6 +28,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Login required" }, { status: 401 });
   }
 
+  if (following_id === user.id) {
+    return NextResponse.json({ error: "Cannot follow yourself" }, { status: 400 });
+  }
+
   // Rate limit: max 60 new follows per hour (blocks mass-follow scripts)
   const oneHourAgo = new Date(Date.now() - 3_600_000).toISOString();
   const { count } = await supabase
@@ -64,6 +68,9 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   const { following_id } = await req.json();
+  if (!following_id) {
+    return NextResponse.json({ error: "following_id required" }, { status: 400 });
+  }
 
   const cookieStore = await cookies();
   const supabase = createServerClient(
