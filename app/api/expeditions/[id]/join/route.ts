@@ -39,12 +39,16 @@ export async function POST(req: Request, { params }: { params: Params }) {
   // Check quota (approved members only) before inserting
   const { data: expedition } = await supabase
     .from("expeditions")
-    .select("quota_max, requires_approval, price_amount")
+    .select("quota_max, requires_approval, price_amount, status")
     .eq("id", id)
     .single();
 
   if (!expedition) {
     return NextResponse.json({ error: "Expedition not found" }, { status: 404 });
+  }
+
+  if (expedition.status === "completed" || expedition.status === "cancelled") {
+    return NextResponse.json({ error: "This expedition is no longer open for registration" }, { status: 409 });
   }
 
   const isPaid = (expedition.price_amount ?? 0) > 0;
