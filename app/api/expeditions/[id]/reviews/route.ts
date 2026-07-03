@@ -31,7 +31,12 @@ export async function POST(req: Request, { params }: { params: Params }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
-  // Must be a past member
+  // Must be completed, and reviewer must be a past member
+  const { data: expedition } = await supabase.from("expeditions").select("status").eq("id", id).single();
+  if (expedition?.status !== "completed") {
+    return NextResponse.json({ error: "Reviews are only allowed after the expedition is completed" }, { status: 409 });
+  }
+
   const { data: membership } = await supabase
     .from("expedition_members")
     .select("user_id")

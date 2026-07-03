@@ -9,6 +9,11 @@ export async function POST(_req: Request, { params }: { params: Params }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
+  const { data: expedition } = await supabase.from("expeditions").select("status").eq("id", id).single();
+  if (expedition?.status === "completed" || expedition?.status === "cancelled") {
+    return NextResponse.json({ error: "This expedition is no longer open for registration" }, { status: 409 });
+  }
+
   const { error } = await supabase.from("expedition_waitlist").insert({ expedition_id: id, user_id: user.id });
   if (error) {
     if (error.code === "23505") return NextResponse.json({ ok: true }); // already on waitlist
