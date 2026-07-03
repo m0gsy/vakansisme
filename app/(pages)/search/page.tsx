@@ -17,6 +17,8 @@ type SearchParams = Promise<{ q?: string }>;
 export default async function SearchPage({ searchParams }: { searchParams: SearchParams }) {
   const { q } = await searchParams;
   const query = q?.trim() ?? "";
+  // Strip PostgREST DSL metacharacters to prevent filter injection in .or() fallback
+  const safeQuery = query.replace(/[(),"]/g, "");
 
   const supabase = await createClient();
   const [{ data: { user } }, locale] = await Promise.all([
@@ -40,7 +42,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
           .textSearch("fts", ftsQuery, { type: "websearch", config: "english" })
           .limit(6)
           .then(async (r) => r.error
-            ? supabase.from("expeditions").select("id, name, location, difficulty, image_url, date_start").or(`name.ilike.%${query}%,location.ilike.%${query}%`).limit(6)
+            ? supabase.from("expeditions").select("id, name, location, difficulty, image_url, date_start").or(`name.ilike.%${safeQuery}%,location.ilike.%${safeQuery}%`).limit(6)
             : r
           ),
         supabase
@@ -51,7 +53,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
           .limit(6)
           .then(async (r) => {
             const base = r.error
-              ? await supabase.from("stories").select("id, type, title, excerpt, image_url, author_handle, author_id").eq("published", true).or(`title.ilike.%${query}%,excerpt.ilike.%${query}%`).limit(6)
+              ? await supabase.from("stories").select("id, type, title, excerpt, image_url, author_handle, author_id").eq("published", true).or(`title.ilike.%${safeQuery}%,excerpt.ilike.%${safeQuery}%`).limit(6)
               : r;
             if (blockedIds.length && base.data) {
               return { ...base, data: base.data.filter((s) => !blockedIds.includes(s.author_id)) };

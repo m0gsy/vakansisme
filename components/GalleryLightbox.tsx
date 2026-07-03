@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
 type Photo = {
@@ -20,7 +20,11 @@ export default function GalleryLightbox({
   onClose: () => void;
 }) {
   const [idx, setIdx] = useState(initialIndex);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const photo = photos[idx];
+
+  // Focus close button on open
+  useEffect(() => { closeRef.current?.focus(); }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -32,11 +36,31 @@ export default function GalleryLightbox({
     return () => window.removeEventListener("keydown", onKey);
   }, [photos.length, onClose]);
 
+  // Basic focus trap — keep Tab inside the dialog
+  function onTabKey(e: React.KeyboardEvent) {
+    if (e.key !== "Tab") return;
+    const focusable = Array.from<HTMLElement>(
+      (e.currentTarget as HTMLElement).querySelectorAll("button")
+    );
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+
   if (!photo) return null;
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Photo viewer"
       onClick={onClose}
+      onKeyDown={onTabKey}
       style={{
         position: "fixed",
         inset: 0,
@@ -51,7 +75,9 @@ export default function GalleryLightbox({
     >
       {/* Close */}
       <button
+        ref={closeRef}
         onClick={onClose}
+        aria-label="Close photo viewer"
         className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-150"
         style={{ position: "absolute", top: "20px", right: "24px", background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer" }}
       >
@@ -62,6 +88,7 @@ export default function GalleryLightbox({
       {idx > 0 && (
         <button
           onClick={(e) => { e.stopPropagation(); setIdx(idx - 1); }}
+          aria-label="Previous photo"
           className="font-body font-semibold text-off-white hover:text-neon-green transition-colors duration-150"
           style={{ position: "absolute", left: "16px", background: "none", border: "none", fontSize: "2rem", cursor: "pointer", padding: "16px" }}
         >
@@ -109,6 +136,7 @@ export default function GalleryLightbox({
       {idx < photos.length - 1 && (
         <button
           onClick={(e) => { e.stopPropagation(); setIdx(idx + 1); }}
+          aria-label="Next photo"
           className="font-body font-semibold text-off-white hover:text-neon-green transition-colors duration-150"
           style={{ position: "absolute", right: "16px", background: "none", border: "none", fontSize: "2rem", cursor: "pointer", padding: "16px" }}
         >

@@ -7,7 +7,7 @@ export default async function PagesLayout({ children }: { children: React.ReactN
   return (
     <>
       <Nav initialLocale={locale} />
-      <main>{children}</main>
+      <main id="main-content">{children}</main>
       <FooterCTA />
     </>
   );

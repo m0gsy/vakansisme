@@ -71,7 +71,7 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
     return () => subscription.unsubscribe();
   }, []);
 
-  // Close profile dropdown on outside click
+  // Close profile dropdown on outside click or Escape
   useEffect(() => {
     if (!profileOpen) return;
     function handle(e: MouseEvent) {
@@ -82,6 +82,16 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
   }, [profileOpen]);
+
+  // Close mobile menu on Escape
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handle(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("keydown", handle);
+    return () => document.removeEventListener("keydown", handle);
+  }, [menuOpen]);
 
   // Sync locale when prop changes (after router.refresh())
   useEffect(() => {
@@ -159,9 +169,15 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
                 <NotificationBell />
               </li>
               {/* Profile dropdown */}
-              <li ref={profileRef} style={{ position: "relative" }}>
+              <li
+                ref={profileRef}
+                style={{ position: "relative" }}
+                onKeyDown={(e) => { if (e.key === "Escape") setProfileOpen(false); }}
+              >
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
+                  aria-expanded={profileOpen}
+                  aria-haspopup="menu"
                   className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-200"
                   style={{ ...linkStyle, background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: "4px" }}
                 >
@@ -171,6 +187,7 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
                 <AnimatePresence>
                   {profileOpen && (
                     <motion.div
+                      role="menu"
                       initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -6 }}
@@ -197,6 +214,7 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
                         <Link
                           key={item.href}
                           href={item.href}
+                          role="menuitem"
                           onClick={() => setProfileOpen(false)}
                           className="font-body font-semibold text-off-white/60 hover:text-off-white hover:bg-white/5 transition-colors duration-150"
                           style={{ display: "block", fontSize: "0.68rem", letterSpacing: "0.1em", padding: "9px 18px" }}
@@ -206,6 +224,7 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
                       ))}
                       <div style={{ borderTop: "1px solid rgba(74,59,42,0.3)", margin: "6px 0" }} />
                       <button
+                        role="menuitem"
                         onClick={() => { setProfileOpen(false); handleSignOut(); }}
                         className="font-body font-semibold text-off-white/60 hover:text-chaos-orange hover:bg-white/5 transition-colors duration-150"
                         style={{ display: "block", width: "100%", textAlign: "left", fontSize: "0.68rem", letterSpacing: "0.1em", padding: "9px 18px", background: "none", border: "none", cursor: "pointer" }}

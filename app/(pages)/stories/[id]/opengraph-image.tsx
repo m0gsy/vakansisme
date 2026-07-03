@@ -38,6 +38,7 @@ export default async function Image({ params }: { params: Params }) {
       >
         {/* Cover image — right half */}
         {story?.image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={story.image_url}
             alt=""

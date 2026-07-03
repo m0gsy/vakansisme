@@ -6,9 +6,10 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient();
 
-  const [{ data: expeditions }, { data: stories }] = await Promise.all([
+  const [{ data: expeditions }, { data: stories }, { data: profiles }] = await Promise.all([
     supabase.from("expeditions").select("id"),
     supabase.from("stories").select("id, created_at").eq("published", true),
+    supabase.from("profiles").select("username").not("bio", "is", null),
   ]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -35,5 +36,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...expeditionRoutes, ...storyRoutes];
+  const profileRoutes: MetadataRoute.Sitemap = (profiles ?? []).map((p) => ({
+    url: `${SITE_URL}/u/${p.username}`,
+    lastModified: new Date(),
+    priority: 0.6,
+  }));
+
+  return [...staticRoutes, ...expeditionRoutes, ...storyRoutes, ...profileRoutes];
 }

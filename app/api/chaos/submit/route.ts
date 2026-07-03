@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { CHAOS_TYPES } from "@/types/chaos";
 
 const ROTATIONS = [-3.2, -2.4, -1.0, -0.7, 1.8, 2.5, 3.2];
 const COLORS = ["#9BFF3C", "#FF6B1A"];
@@ -8,7 +9,10 @@ const COLORS = ["#9BFF3C", "#FF6B1A"];
 export async function POST(req: Request) {
   const { type, caption } = await req.json();
 
-  if (!type || !caption?.trim()) {
+  if (!(CHAOS_TYPES as readonly string[]).includes(type)) {
+    return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+  }
+  if (!caption?.trim()) {
     return NextResponse.json({ error: "type and caption required" }, { status: 400 });
   }
   if (caption.length > 280) {

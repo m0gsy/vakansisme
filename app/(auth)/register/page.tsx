@@ -174,7 +174,7 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <p className="font-body text-chaos-orange" style={{ fontSize: "0.82rem" }}>
+            <p role="alert" className="font-body text-chaos-orange" style={{ fontSize: "0.82rem" }}>
               {error}
             </p>
           )}

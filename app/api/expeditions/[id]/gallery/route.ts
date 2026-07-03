@@ -17,6 +17,12 @@ function makeClient(cookieStore: Awaited<ReturnType<typeof cookies>>) {
   );
 }
 
+function isSafeUrl(url: string | null | undefined): boolean {
+  if (!url) return true;
+  try { return ["https:", "http:"].includes(new URL(url).protocol); }
+  catch { return false; }
+}
+
 export async function POST(req: Request, { params }: { params: Params }) {
   const { id } = await params;
   const cookieStore = await cookies();
@@ -27,14 +33,18 @@ export async function POST(req: Request, { params }: { params: Params }) {
 
   const { image_url, caption } = await req.json();
   if (!image_url) return NextResponse.json({ error: "image_url required" }, { status: 400 });
+  if (!isSafeUrl(image_url)) return NextResponse.json({ error: "Invalid image URL" }, { status: 400 });
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username")
-    .eq("id", user.id)
-    .single();
+  const [{ data: profile }, { data: expedition }, { data: member }] = await Promise.all([
+    supabase.from("profiles").select("username, is_admin").eq("id", user.id).single(),
+    supabase.from("expeditions").select("leader_id").eq("id", id).single(),
+    supabase.from("expedition_members").select("id").eq("expedition_id", id).eq("user_id", user.id).eq("status", "approved").maybeSingle(),
+  ]);
 
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 400 });
+
+  const canUpload = !!member || expedition?.leader_id === user.id || !!profile.is_admin;
+  if (!canUpload) return NextResponse.json({ error: "Not a member of this expedition" }, { status: 403 });
 
   const { data, error } = await supabase
     .from("expedition_gallery")

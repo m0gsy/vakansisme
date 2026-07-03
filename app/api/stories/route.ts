@@ -6,11 +6,19 @@ import { rateLimit } from "@/lib/ratelimit";
 const VALID_TYPES = ["photo dump", "short story", "video POV", "chaos moment"];
 const MAX_CONTENT_LENGTH = 50000;
 
+function isSafeUrl(url: string | null | undefined): boolean {
+  if (!url) return true;
+  try { return ["https:", "http:"].includes(new URL(url).protocol); }
+  catch { return false; }
+}
+
 export async function POST(req: Request) {
   const { type, title, excerpt, content, image_url, audio_url, expedition_id, series_id, series_order, tags, submit } = await req.json();
 
   if (!VALID_TYPES.includes(type)) return NextResponse.json({ error: "Invalid type" }, { status: 400 });
   if (!title?.trim()) return NextResponse.json({ error: "Title required" }, { status: 400 });
+  if (!isSafeUrl(image_url)) return NextResponse.json({ error: "Invalid image URL" }, { status: 400 });
+  if (!isSafeUrl(audio_url)) return NextResponse.json({ error: "Invalid audio URL" }, { status: 400 });
   if (content && content.length > MAX_CONTENT_LENGTH) {
     return NextResponse.json({ error: `Content too long (max ${MAX_CONTENT_LENGTH} chars)` }, { status: 400 });
   }

@@ -88,7 +88,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
 }
 
 export async function DELETE(req: Request, { params }: { params: Params }) {
-  await params;
+  const { id } = await params;
   const cookieStore = await cookies();
   const supabase = makeSupabase(cookieStore);
 
@@ -100,6 +100,7 @@ export async function DELETE(req: Request, { params }: { params: Params }) {
     .from("expedition_updates")
     .delete()
     .eq("id", updateId)
+    .eq("expedition_id", id)
     .eq("author_id", user.id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

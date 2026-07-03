@@ -77,10 +77,17 @@ export default function NotificationBell() {
   }
 
   return (
-    <div ref={ref} style={{ position: "relative" }}>
+    <div
+      ref={ref}
+      style={{ position: "relative" }}
+      onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+    >
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Notifications"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-controls="notif-panel"
         style={{
           background: "none",
           border: "none",
@@ -119,6 +126,9 @@ export default function NotificationBell() {
 
       {open && (
         <div
+          id="notif-panel"
+          role="dialog"
+          aria-label="Notifications"
           style={{
             position: "absolute",
             right: 0,
@@ -163,10 +173,20 @@ export default function NotificationBell() {
           {notifs.map((n) => (
             <div
               key={n.id}
+              role="button"
+              tabIndex={0}
               onClick={async () => {
                 await markRead(n.id);
                 setOpen(false);
                 if (n.link) router.push(n.link);
+              }}
+              onKeyDown={async (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  await markRead(n.id);
+                  setOpen(false);
+                  if (n.link) router.push(n.link);
+                }
               }}
               style={{
                 padding: "14px 18px",

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Barlow_Condensed, Manrope, Special_Elite } from "next/font/google";
+import { cookies } from "next/headers";
 import "./globals.css";
 import { ToastProvider } from "@/components/Toast";
 import OnboardingBanner from "@/components/OnboardingBanner";
@@ -85,12 +86,14 @@ const jsonLdWebSite = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const cookieStore = await cookies();
+  const locale = cookieStore.get("locale")?.value === "en" ? "en" : "id";
   return (
     <html
-      lang="id"
+      lang={locale}
       className={`${barlowCondensed.variable} ${manrope.variable} ${specialElite.variable}`}
     >
       <head>
