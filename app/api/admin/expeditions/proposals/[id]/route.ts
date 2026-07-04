@@ -46,7 +46,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
       image_url: proposal.image_url,
       description: proposal.description,
       requires_approval: proposal.requires_approval,
-    }).select("id").single();
+    }).select("id, slug").single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -68,7 +68,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
       .single();
 
     if (proposerProfile?.email) {
-      sendProposalApprovedEmail(proposerProfile.email, proposal.proposer_handle, proposal.name, expedition.id).catch(() => {});
+      sendProposalApprovedEmail(proposerProfile.email, proposal.proposer_handle, proposal.name, expedition.slug).catch(() => {});
     }
 
     await service.from("notifications").insert({
@@ -76,7 +76,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
       type: "story_approved",
       title: "Trip proposal approved!",
       body: `${proposal.name} is now live.`,
-      link: `/expeditions/${expedition.id}`,
+      link: `/expeditions/${expedition.slug}`,
     });
 
     return NextResponse.json({ ok: true, expeditionId: expedition.id });

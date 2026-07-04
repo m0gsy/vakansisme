@@ -43,7 +43,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
   // Only leader or admin
   const { data: expedition } = await supabase
     .from("expeditions")
-    .select("name, leader_id")
+    .select("name, slug, leader_id")
     .eq("id", id)
     .single();
   if (!expedition) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -79,7 +79,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
         type: "leader_update",
         title: `Update: ${expedition.name}`,
         body: content.trim().slice(0, 120),
-        link: `/expeditions/${id}`,
+        link: `/expeditions/${expedition.slug}`,
       }))
     );
   }

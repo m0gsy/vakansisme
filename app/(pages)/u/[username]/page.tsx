@@ -68,14 +68,14 @@ export default async function ProfilePage({ params }: { params: Params }) {
   const [{ data: stories }, { data: expeditions }, { data: chaos }, { count: storyCount }, { count: tripCount }, { data: ledExpeditions }] = await Promise.all([
     supabase
       .from("stories")
-      .select("id, type, title, excerpt, image_url, created_at")
+      .select("id, slug, type, title, excerpt, image_url, created_at")
       .eq("author_id", profile.id)
       .eq("published", true)
       .order("created_at", { ascending: false })
       .limit(6),
     supabase
       .from("expedition_members")
-      .select("expedition_id, expeditions(id, name, location, date_start, image_url)")
+      .select("expedition_id, expeditions(id, slug, name, location, date_start, image_url)")
       .eq("user_id", profile.id)
       .limit(4),
     supabase
@@ -96,17 +96,17 @@ export default async function ProfilePage({ params }: { params: Params }) {
       .eq("user_id", profile.id),
     supabase
       .from("expeditions")
-      .select("id, name, location, date_start, status")
+      .select("id, slug, name, location, date_start, status")
       .eq("leader_id", profile.id)
       .order("date_start", { ascending: false })
       .limit(6),
   ]);
 
-  let drafts: Array<{ id: string; type: string; title: string; created_at: string; status: string }> = [];
+  let drafts: Array<{ id: string; slug: string; type: string; title: string; created_at: string; status: string }> = [];
   if (isSelf) {
     const { data: draftData } = await supabase
       .from("stories")
-      .select("id, type, title, created_at, status")
+      .select("id, slug, type, title, created_at, status")
       .eq("author_id", profile.id)
       .eq("published", false)
       .order("created_at", { ascending: false })
@@ -273,7 +273,7 @@ export default async function ProfilePage({ params }: { params: Params }) {
                 return (
                   <Link
                     key={d.id}
-                    href={`/stories/${d.id}/edit`}
+                    href={`/stories/${d.slug}/edit`}
                     className="group"
                     style={{
                       display: "flex",
@@ -319,7 +319,7 @@ export default async function ProfilePage({ params }: { params: Params }) {
             </h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "12px" }}>
               {stories.map((s) => (
-                <Link key={s.id} href={`/stories/${s.id}`} className="group block">
+                <Link key={s.id} href={`/stories/${s.slug}`} className="group block">
                   <article style={{ background: "#1F3B2C", border: "1px solid rgba(74,59,42,0.4)" }}>
                     <div className="relative overflow-hidden" style={{ height: "140px" }}>
                       <Image
@@ -399,7 +399,7 @@ export default async function ProfilePage({ params }: { params: Params }) {
               {ledExpeditions.map((exp) => (
                 <a
                   key={exp.id}
-                  href={`/expeditions/${exp.id}`}
+                  href={`/expeditions/${exp.slug}`}
                   style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.35)", padding: "16px 20px", flex: "1 1 200px", textDecoration: "none" }}
                 >
                   <p className="font-body font-semibold uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.12em", color: exp.status === "ongoing" ? "#FF6B1A" : exp.status === "completed" ? "#4A3B2A" : "#9BFF3C", marginBottom: "6px" }}>

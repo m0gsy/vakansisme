@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     const { data: trip } = await supabase
       .from("expeditions")
-      .select("name, id")
+      .select("name, id, slug")
       .eq("id", payment.expedition_id)
       .single();
 
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
         type: "join",
         title: "Pembayaran dikonfirmasi",
         body: `Kamu bergabung ke ${trip.name}`,
-        link: `/expeditions/${trip.id}`,
+        link: `/expeditions/${trip.slug}`,
       });
     }
   } catch {

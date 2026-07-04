@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   const { data, error } = await supabase
     .from("story_series")
     .insert({ author_id: user.id, title: title.trim(), description: description?.trim() || null, cover_image: cover_image?.trim() || null })
-    .select("id, title, description, cover_image, created_at")
+    .select("id, slug, title, description, cover_image, created_at")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

@@ -25,6 +25,7 @@ async function getTrips(): Promise<Trip[]> {
   return data
     .map((row) => ({
       id: row.id,
+      slug: row.slug,
       name: row.name,
       location: row.location,
       difficulty: row.difficulty,
@@ -61,7 +62,7 @@ async function getStories(): Promise<Story[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("stories")
-    .select("id, author_handle, type, title, excerpt, image_url, created_at")
+    .select("id, slug, author_handle, type, title, excerpt, image_url, created_at")
     .eq("published", true)
     .order("featured", { ascending: false })
     .order("created_at", { ascending: false })

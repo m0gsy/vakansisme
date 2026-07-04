@@ -69,7 +69,7 @@ export default function Stories({ stories, locale = "id" }: { stories: Story[]; 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
           {/* Featured card */}
           <Link
-            href={`/stories/${featured.id}`}
+            href={`/stories/${featured.slug}`}
             className="group"
             style={{
               position: "relative",
@@ -164,7 +164,7 @@ export default function Stories({ stories, locale = "id" }: { stories: Story[]; 
             {rest.map((story, i) => (
               <Link
                 key={story.id}
-                href={`/stories/${story.id}`}
+                href={`/stories/${story.slug}`}
                 className="group"
                 style={{
                   position: "relative",

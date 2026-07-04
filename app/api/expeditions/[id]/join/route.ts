@@ -100,7 +100,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
 
   const { data: trip } = await supabase
     .from("expeditions")
-    .select("name, location, date_start, leader_handle")
+    .select("name, slug, location, date_start, leader_handle")
     .eq("id", id)
     .single();
 
@@ -124,13 +124,13 @@ export async function POST(req: Request, { params }: { params: Params }) {
         .then(({ data: leader }) => {
           if (!leader || leader.username === profile.username) return;
           if (leader.email) {
-            sendLeaderJoinEmail(leader.email, leader.username, profile.username, trip.name, id).catch(() => {});
+            sendLeaderJoinEmail(leader.email, leader.username, profile.username, trip.name, trip.slug).catch(() => {});
           }
           void supabase.from("notifications").insert({
             user_id: leader.id,
             type: "join",
             title: `@${profile.username} joined ${trip.name}`,
-            link: `/expeditions/${id}`,
+            link: `/expeditions/${trip.slug}`,
           });
         });
     }
@@ -172,7 +172,7 @@ export async function DELETE(_req: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "Cannot leave a trip that has already completed." }, { status: 403 });
   }
 
-  const { data: expInfo } = await supabase.from("expeditions").select("name").eq("id", id).single();
+  const { data: expInfo } = await supabase.from("expeditions").select("name, slug").eq("id", id).single();
 
   const { error } = await supabase
     .from("expedition_members")
@@ -195,7 +195,7 @@ export async function DELETE(_req: Request, { params }: { params: Params }) {
         user_id: waitlist[0].user_id,
         type: "waitlist_spot",
         title: `A spot opened on ${expInfo?.name ?? "your waitlisted trip"} — join now`,
-        link: `/expeditions/${id}`,
+        link: expInfo?.slug ? `/expeditions/${expInfo.slug}` : `/expeditions/${id}`,
       });
     });
 

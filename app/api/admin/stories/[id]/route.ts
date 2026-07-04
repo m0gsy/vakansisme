@@ -46,7 +46,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
   // Email + in-app notification (fire-and-forget)
   supabase
     .from("stories")
-    .select("title, author_id, profiles!stories_author_id_fkey(email, username)")
+    .select("title, slug, author_id, profiles!stories_author_id_fkey(email, username)")
     .eq("id", id)
     .single()
     .then(({ data: story }) => {
@@ -54,7 +54,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
       const profile = Array.isArray(story.profiles) ? story.profiles[0] : story.profiles as { email?: string; username?: string } | null;
       if (profile?.email) {
         if (action === "approve") {
-          sendStoryApprovedEmail(profile.email, profile.username ?? "", story.title, id).catch(() => {});
+          sendStoryApprovedEmail(profile.email, profile.username ?? "", story.title, story.slug).catch(() => {});
         } else {
           sendStoryRejectedEmail(profile.email, profile.username ?? "", story.title).catch(() => {});
         }
@@ -65,7 +65,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
         type: action === "approve" ? "story_approved" : "story_rejected",
         title: action === "approve" ? `Your story was published` : `Your story was not approved`,
         body: story.title,
-        link: action === "approve" ? `/stories/${id}` : null,
+        link: action === "approve" ? `/stories/${story.slug}` : null,
       });
     });
 

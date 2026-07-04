@@ -38,7 +38,7 @@ export default function NewSeriesPage() {
 
     if (res.ok) {
       const data = await res.json();
-      router.push(`/series/${data.id}`);
+      router.push(`/series/${data.slug}`);
     } else {
       const data = await res.json();
       setError(data.error ?? "Gagal membuat seri.");

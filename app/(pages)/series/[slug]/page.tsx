@@ -56,7 +56,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
 
   const { data: stories } = await supabase
     .from("stories")
-    .select("id, title, excerpt, image_url, type, series_order, created_at, profiles(username)")
+    .select("id, slug, title, excerpt, image_url, type, series_order, created_at, profiles(username)")
     .eq("series_id", series.id)
     .eq("published", true)
     .order("series_order", { ascending: true });
@@ -129,7 +129,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
               return (
                 <Link
                   key={story.id}
-                  href={`/stories/${story.id}`}
+                  href={`/stories/${story.slug}`}
                   className="group"
                   style={{ display: "flex", gap: "20px", alignItems: "center", padding: "20px 22px", background: "#141414", border: "1px solid rgba(74,59,42,0.25)" }}
                 >

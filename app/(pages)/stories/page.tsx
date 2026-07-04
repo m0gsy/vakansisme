@@ -51,7 +51,7 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
 
   let query = supabase
     .from("stories")
-    .select("id, author_id, author_handle, type, title, excerpt, image_url, created_at, tags, view_count, featured", { count: "exact" })
+    .select("id, slug, author_id, author_handle, type, title, excerpt, image_url, created_at, tags, view_count, featured", { count: "exact" })
     .eq("published", true)
     .order("featured", { ascending: false })
     .order("created_at", { ascending: false });
@@ -63,7 +63,7 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
   const { data: stories, count } = await query.range(from, to);
 
   // Trending: top 4 most liked stories in last 7 days (via DB view)
-  let trendingStories: { id: string; title: string; author_handle: string; image_url: string | null; type: string }[] = [];
+  let trendingStories: { id: string; slug: string; title: string; author_handle: string; image_url: string | null; type: string }[] = [];
   if (!type && !tag && page === 1) {
     const { data: trendingIds } = await supabase
       .from("trending_stories")
@@ -72,7 +72,7 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
     if (topIds.length) {
       const { data: trending } = await supabase
         .from("stories")
-        .select("id, title, author_handle, image_url, type")
+        .select("id, slug, title, author_handle, image_url, type")
         .eq("published", true)
         .in("id", topIds);
       trendingStories = trending ?? [];
@@ -138,7 +138,7 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "8px" }}>
               {trendingStories.map((s) => (
-                <Link key={s.id} href={`/stories/${s.id}`} className="group flex items-center gap-3" style={{ padding: "10px 14px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.3)" }}>
+                <Link key={s.id} href={`/stories/${s.slug}`} className="group flex items-center gap-3" style={{ padding: "10px 14px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.3)" }}>
                   {s.image_url && (
                     <div style={{ position: "relative", width: "44px", height: "36px", flexShrink: 0 }}>
                       <Image src={s.image_url} alt={s.title} fill sizes="44px" className="object-cover" style={{ filter: "grayscale(20%)" }} />
@@ -211,7 +211,7 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
             {stories.map((story) => (
-              <Link key={story.id} href={`/stories/${story.id}`} className="group block">
+              <Link key={story.id} href={`/stories/${story.slug}`} className="group block">
                 <article style={{ background: "#1F3B2C", border: "1px solid rgba(74,59,42,0.4)" }}>
                   <div className="relative overflow-hidden" style={{ height: "180px" }}>
                     <Image

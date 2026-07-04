@@ -14,7 +14,7 @@ export default async function MyTripsPage() {
 
   const { data: memberships } = await supabase
     .from("expedition_members")
-    .select("expedition_id, joined_at, expeditions(id, name, location, difficulty, date_start, date_end, image_url, status)")
+    .select("expedition_id, joined_at, expeditions(id, slug, name, location, difficulty, date_start, date_end, image_url, status)")
     .eq("user_id", user.id)
     .order("joined_at", { ascending: false });
 
@@ -31,7 +31,7 @@ export default async function MyTripsPage() {
 
   function ExpCard({ m }: { m: NonNullable<typeof memberships>[number] }) {
     const exp = (Array.isArray(m.expeditions) ? m.expeditions[0] : m.expeditions) as {
-      id: string; name: string; location: string; difficulty: string;
+      id: string; slug: string; name: string; location: string; difficulty: string;
       date_start: string; date_end: string; image_url: string | null; status: string | null;
     } | null;
     if (!exp) return null;
@@ -40,7 +40,7 @@ export default async function MyTripsPage() {
     const statusColors: Record<string, string> = { upcoming: "#9BFF3C", ongoing: "#FF6B1A", completed: "#8B7355", cancelled: "#7A2E12" };
     const statusColor = statusColors[exp.status ?? "upcoming"] ?? "#8B7355";
     return (
-      <Link href={`/expeditions/${exp.id}`} className="group block">
+      <Link href={`/expeditions/${exp.slug}`} className="group block">
         <article
           style={{
             display: "flex",

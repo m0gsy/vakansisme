@@ -1,5 +1,6 @@
 export type Trip = {
   id: string;
+  slug: string;
   name: string;
   location: string;
   difficulty: string;

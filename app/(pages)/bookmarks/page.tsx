@@ -19,7 +19,7 @@ export default async function BookmarksPage() {
 
   const { data: bookmarks } = await supabase
     .from("bookmarks")
-    .select("expedition_id, created_at, expeditions(id, name, location, difficulty, date_start, image_url, status)")
+    .select("expedition_id, created_at, expeditions(id, slug, name, location, difficulty, date_start, image_url, status)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -44,10 +44,10 @@ export default async function BookmarksPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {(bookmarks ?? []).map((b) => {
-            const exp = (Array.isArray(b.expeditions) ? b.expeditions[0] : b.expeditions) as { id: string; name: string; location: string; difficulty: string; date_start: string; image_url: string | null; status: string | null } | null;
+            const exp = (Array.isArray(b.expeditions) ? b.expeditions[0] : b.expeditions) as { id: string; slug: string; name: string; location: string; difficulty: string; date_start: string; image_url: string | null; status: string | null } | null;
             if (!exp) return null;
             return (
-              <Link key={b.expedition_id} href={`/expeditions/${exp.id}`} className="group block">
+              <Link key={b.expedition_id} href={`/expeditions/${exp.slug}`} className="group block">
                 <article style={{ display: "flex", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.35)", overflow: "hidden" }}>
                   <div className="relative flex-shrink-0" style={{ width: "100px" }}>
                     <Image src={exp.image_url ?? FALLBACK} alt={exp.name} fill sizes="100px" className="object-cover transition-transform duration-500 group-hover:scale-105" style={{ filter: "grayscale(20%) brightness(0.75)" }} />

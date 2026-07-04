@@ -102,7 +102,7 @@ export default function Expeditions({ trips, joinedIds = [], locale = "id" }: { 
             className="group cursor-pointer"
             style={{ background: "#1F3B2C", border: "1px solid rgba(74,59,42,0.4)", position: "relative" }}
           >
-            <Link href={`/expeditions/${trip.id}`} className="absolute inset-0 z-10" aria-label={`View ${trip.name}`} />
+            <Link href={`/expeditions/${trip.slug}`} className="absolute inset-0 z-10" aria-label={`View ${trip.name}`} />
             {/* Photo */}
             <div className="relative overflow-hidden" style={{ height: "220px" }}>
               <Image

@@ -45,7 +45,7 @@ export default async function FeedPage() {
 
   let storiesQuery = supabase
     .from("stories")
-    .select("id, title, type, image_url, created_at, author_handle, author_id")
+    .select("id, slug, title, type, image_url, created_at, author_handle, author_id")
     .eq("published", true)
     .in("author_id", followingIds)
     .order("created_at", { ascending: false })
@@ -56,22 +56,22 @@ export default async function FeedPage() {
     storiesQuery,
     supabase
       .from("expedition_members")
-      .select("user_id, joined_at, expedition_id, profiles(username), expeditions(id, name, location)")
+      .select("user_id, joined_at, expedition_id, profiles(username), expeditions(id, slug, name, location)")
       .in("user_id", followingIds)
       .order("joined_at", { ascending: false })
       .limit(20),
   ]);
 
   type FeedItem =
-    | { kind: "story"; id: string; title: string; type: string; image_url: string | null; created_at: string; author_handle: string }
-    | { kind: "join"; username: string; expedition_id: string; expedition_name: string; expedition_location: string; joined_at: string };
+    | { kind: "story"; id: string; slug: string; title: string; type: string; image_url: string | null; created_at: string; author_handle: string }
+    | { kind: "join"; username: string; expedition_id: string; expedition_slug: string; expedition_name: string; expedition_location: string; joined_at: string };
 
   const items: FeedItem[] = [
-    ...(stories ?? []).map((s) => ({ kind: "story" as const, id: s.id, title: s.title, type: s.type, image_url: s.image_url, created_at: s.created_at, author_handle: s.author_handle })),
+    ...(stories ?? []).map((s) => ({ kind: "story" as const, id: s.id, slug: s.slug, title: s.title, type: s.type, image_url: s.image_url, created_at: s.created_at, author_handle: s.author_handle })),
     ...(joins ?? []).map((j) => {
       const p = Array.isArray(j.profiles) ? j.profiles[0] : j.profiles as { username: string } | null;
-      const e = Array.isArray(j.expeditions) ? j.expeditions[0] : j.expeditions as { id: string; name: string; location: string } | null;
-      return { kind: "join" as const, username: p?.username ?? "", expedition_id: e?.id ?? j.expedition_id, expedition_name: e?.name ?? "", expedition_location: e?.location ?? "", joined_at: j.joined_at };
+      const e = Array.isArray(j.expeditions) ? j.expeditions[0] : j.expeditions as { id: string; slug: string; name: string; location: string } | null;
+      return { kind: "join" as const, username: p?.username ?? "", expedition_id: e?.id ?? j.expedition_id, expedition_slug: e?.slug ?? j.expedition_id, expedition_name: e?.name ?? "", expedition_location: e?.location ?? "", joined_at: j.joined_at };
     }),
   ].sort((a, b) => {
     const aDate = a.kind === "story" ? a.created_at : a.joined_at;
@@ -96,7 +96,7 @@ export default async function FeedPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           {items.map((item, i) => (
             item.kind === "story" ? (
-              <Link key={`s-${item.id}`} href={`/stories/${item.id}`} className="group">
+              <Link key={`s-${item.id}`} href={`/stories/${item.slug}`} className="group">
                 <div style={{ display: "flex", gap: "0", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.3)", overflow: "hidden" }}>
                   <div className="relative flex-shrink-0" style={{ width: "80px" }}>
                     <Image src={item.image_url ?? FALLBACK} alt={item.title} fill sizes="80px" className="object-cover" style={{ filter: "grayscale(20%)" }} />
@@ -115,7 +115,7 @@ export default async function FeedPage() {
                 </div>
               </Link>
             ) : (
-              <Link key={`j-${i}`} href={`/expeditions/${item.expedition_id}`} className="group">
+              <Link key={`j-${i}`} href={`/expeditions/${item.expedition_slug}`} className="group">
                 <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 20px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.3)" }}>
                   <span className="font-display font-black text-muted-ink" style={{ fontSize: "1rem" }}>↗</span>
                   <div style={{ flex: 1 }}>

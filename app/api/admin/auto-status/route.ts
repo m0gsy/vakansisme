@@ -23,16 +23,16 @@ async function runAutoStatus(req: Request) {
       .lt("date_start", now)
       .gt("date_end", now)
       .eq("status", "upcoming")
-      .select("id, name"),
+      .select("id, slug, name"),
     supabase
       .from("expeditions")
       .update({ status: "completed" })
       .lt("date_end", now)
       .in("status", ["upcoming", "ongoing"])
-      .select("id, name"),
+      .select("id, slug, name"),
   ]);
 
-  async function notifyBatch(rows: { id: string; name: string }[], newStatus: "ongoing" | "completed") {
+  async function notifyBatch(rows: { id: string; slug: string; name: string }[], newStatus: "ongoing" | "completed") {
     for (const exp of rows) {
       const { data: members } = await supabase
         .from("expedition_members")
@@ -49,7 +49,7 @@ async function runAutoStatus(req: Request) {
           user_id: m.user_id,
           type: `expedition_${newStatus}`,
           title,
-          link: `/expeditions/${exp.id}`,
+          link: `/expeditions/${exp.slug}`,
         }))
       );
     }

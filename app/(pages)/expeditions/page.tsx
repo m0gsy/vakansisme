@@ -77,7 +77,7 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
 
   let query = supabase
     .from("expeditions")
-    .select("id, name, location, difficulty, price, date_start, date_end, quota_max, image_url, status, featured, activity_category, expedition_members(count)", { count: "exact" })
+    .select("id, slug, name, location, difficulty, price, date_start, date_end, quota_max, image_url, status, featured, activity_category, expedition_members(count)", { count: "exact" })
     .order("featured", { ascending: false })
     .order("date_start", { ascending: true });
 
@@ -239,7 +239,7 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
               const diff = getDifficulty(e.difficulty);
               const rating = ratingMap.get(e.id);
               return (
-                <Link key={e.id} href={`/expeditions/${e.id}`} className="group block">
+                <Link key={e.id} href={`/expeditions/${e.slug}`} className="group block">
                   <article style={{ background: "#1F3B2C", border: "1px solid rgba(74,59,42,0.4)" }}>
                     <div className="relative overflow-hidden" style={{ height: "200px" }}>
                       <Image

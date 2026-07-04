@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   // Expeditions starting on target date
   const { data: expeditions } = await supabase
     .from("expeditions")
-    .select("id, name, location, date_start")
+    .select("id, slug, name, location, date_start")
     .gte("date_start", `${targetDate}T00:00:00`)
     .lte("date_start", `${targetDate}T23:59:59`)
     .in("status", ["upcoming", "ongoing"]);
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     for (const m of members ?? []) {
       const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles as { username?: string; email?: string } | null;
       if (!p?.email || !p?.username) continue;
-      await sendReminderEmail(p.email, p.username, exp.name, exp.id, days).catch(() => {});
+      await sendReminderEmail(p.email, p.username, exp.name, exp.slug, days).catch(() => {});
       sent++;
     }
 
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
           user_id: m.user_id,
           type: "reminder",
           title: `${exp.name} starts in ${days} day${days !== 1 ? "s" : ""}`,
-          link: `/expeditions/${exp.id}`,
+          link: `/expeditions/${exp.slug}`,
         }))
       );
     }

@@ -65,9 +65,9 @@ export async function POST(req: Request) {
       published: false,
       status: submit === true ? "pending" : "draft",
     })
-    .select("id")
+    .select("id, slug")
     .single();
 
   if (error) return NextResponse.json({ error: "Failed to create story" }, { status: 400 });
-  return NextResponse.json({ id: data.id });
+  return NextResponse.json({ id: data.id, slug: data.slug });
 }

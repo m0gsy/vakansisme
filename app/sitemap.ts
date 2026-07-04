@@ -7,8 +7,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient();
 
   const [{ data: expeditions }, { data: stories }, { data: profiles }] = await Promise.all([
-    supabase.from("expeditions").select("id"),
-    supabase.from("stories").select("id, created_at").eq("published", true),
+    supabase.from("expeditions").select("slug"),
+    supabase.from("stories").select("slug, created_at").eq("published", true),
     supabase.from("profiles").select("username").not("bio", "is", null),
   ]);
 
@@ -25,13 +25,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const expeditionRoutes: MetadataRoute.Sitemap = (expeditions ?? []).map((e) => ({
-    url: `${SITE_URL}/expeditions/${e.id}`,
+    url: `${SITE_URL}/expeditions/${e.slug}`,
     lastModified: new Date(),
     priority: 0.8,
   }));
 
   const storyRoutes: MetadataRoute.Sitemap = (stories ?? []).map((s) => ({
-    url: `${SITE_URL}/stories/${s.id}`,
+    url: `${SITE_URL}/stories/${s.slug}`,
     lastModified: new Date(s.created_at),
     priority: 0.7,
   }));

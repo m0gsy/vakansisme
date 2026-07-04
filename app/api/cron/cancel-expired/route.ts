@@ -12,7 +12,7 @@ export async function GET(req: Request) {
 
   const { data: expired } = await supabase
     .from("expedition_members")
-    .select("user_id, expedition_id")
+    .select("user_id, expedition_id, expeditions(slug)")
     .eq("status", "pending_payment")
     .lt("payment_due_at", new Date().toISOString());
 
@@ -33,12 +33,13 @@ export async function GET(req: Request) {
       .eq("expedition_id", row.expedition_id)
       .eq("status", "pending");
 
+    const exp = Array.isArray(row.expeditions) ? row.expeditions[0] : row.expeditions as { slug: string } | null;
     await supabase.from("notifications").insert({
       user_id: row.user_id,
       type: "join",
       title: "Reservasi trip dibatalkan",
       body: "Tenggat pembayaran terlewati. Slot kamu dilepas.",
-      link: `/expeditions/${row.expedition_id}`,
+      link: `/expeditions/${exp?.slug ?? row.expedition_id}`,
     });
   }
 

@@ -31,7 +31,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
   const supabase = await createClient();
   const { data: expeditions } = await supabase
     .from("expeditions")
-    .select("id, name, date_start, date_end, status, location")
+    .select("id, slug, name, date_start, date_end, status, location")
     .gte("date_start", firstDay.toISOString().slice(0, 10))
     .lte("date_start", lastDay.toISOString().slice(0, 10))
     .order("date_start", { ascending: true });
@@ -143,7 +143,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
                     {exps.map((exp) => (
                       <Link
                         key={exp.id}
-                        href={`/expeditions/${exp.id}`}
+                        href={`/expeditions/${exp.slug}`}
                         style={{
                           display: "block",
                           background: STATUS_COLOR[exp.status ?? "upcoming"] ?? "#9BFF3C",
@@ -199,7 +199,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
               {expeditions.map((exp) => (
                 <Link
                   key={exp.id}
-                  href={`/expeditions/${exp.id}`}
+                  href={`/expeditions/${exp.slug}`}
                   className="group"
                   style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", background: "#141414", border: "1px solid rgba(74,59,42,0.25)" }}
                 >

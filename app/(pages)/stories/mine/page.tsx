@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 
 type Story = {
   id: string;
+  slug: string;
   title: string;
   type: string;
   status: string;
@@ -34,7 +35,7 @@ export default function MyStoriesPage() {
       if (!user) { router.push("/login"); return; }
       supabase
         .from("stories")
-        .select("id, title, type, status, published, created_at, excerpt")
+        .select("id, slug, title, type, status, published, created_at, excerpt")
         .eq("author_id", user.id)
         .order("created_at", { ascending: false })
         .then(({ data }) => {
@@ -105,7 +106,7 @@ export default function MyStoriesPage() {
           <div style={{ display: "flex", flexDirection: "column" }}>
             {stories.map((s) => {
               const badge = STATUS_STYLE[s.status] ?? STATUS_STYLE.draft;
-              const href = s.status === "published" ? `/stories/${s.id}` : `/stories/${s.id}/edit`;
+              const href = s.status === "published" ? `/stories/${s.slug}` : `/stories/${s.slug}/edit`;
               return (
                 <div
                   key={s.id}
@@ -160,7 +161,7 @@ export default function MyStoriesPage() {
                   <div style={{ display: "flex", gap: "8px", flexShrink: 0, paddingTop: "2px" }}>
                     {s.status !== "published" && (
                       <Link
-                        href={`/stories/${s.id}/edit`}
+                        href={`/stories/${s.slug}/edit`}
                         className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-150"
                         style={{ fontSize: "0.65rem", letterSpacing: "0.1em", padding: "5px 10px", border: "1px solid rgba(74,59,42,0.4)", background: "transparent" }}
                       >

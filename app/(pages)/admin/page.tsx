@@ -64,19 +64,19 @@ export default async function AdminPage() {
       .limit(100),
     supabase
       .from("expeditions")
-      .select("id, name, location, difficulty, price, date_start, date_end, quota_max, leader_id, profiles!leader_id(username), image_url, description, requires_approval, application_prompt, featured, expedition_members(count)")
+      .select("id, slug, name, location, difficulty, price, date_start, date_end, quota_max, leader_id, profiles!leader_id(username), image_url, description, requires_approval, application_prompt, featured, expedition_members(count)")
       .order("date_start", { ascending: true })
       .limit(50),
     supabase
       .from("stories")
-      .select("id, author_handle, type, title, excerpt, created_at, featured")
+      .select("id, slug, author_handle, type, title, excerpt, created_at, featured")
       .eq("published", false)
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(100),
     supabase
       .from("stories")
-      .select("id, author_handle, type, title, status, created_at, featured")
+      .select("id, slug, author_handle, type, title, status, created_at, featured")
       .order("created_at", { ascending: false })
       .limit(100),
     supabase.from("newsletter_subscribers").select("*", { count: "exact", head: true }),
@@ -202,7 +202,7 @@ export default async function AdminPage() {
                     <tr key={s.id} style={rowStyle}>
                       <Cell>
                         <Link
-                          href={`/stories/${s.id}/edit`}
+                          href={`/stories/${s.slug}/edit`}
                           className="hover:text-neon-green transition-colors duration-150"
                         >
                           {s.title}
@@ -319,7 +319,7 @@ export default async function AdminPage() {
                       <tr key={s.id} style={rowStyle}>
                         <Cell>
                           <Link
-                            href={s.status === "published" ? `/stories/${s.id}` : `/stories/${s.id}/edit`}
+                            href={s.status === "published" ? `/stories/${s.slug}` : `/stories/${s.slug}/edit`}
                             className="hover:text-neon-green transition-colors duration-150"
                           >
                             {s.title}
@@ -412,7 +412,7 @@ export default async function AdminPage() {
                       <tr key={e.id} style={rowStyle}>
                         <Cell>
                           <Link
-                            href={`/expeditions/${e.id}`}
+                            href={`/expeditions/${e.slug}`}
                             className="hover:text-neon-green transition-colors duration-150"
                           >
                             {e.name}

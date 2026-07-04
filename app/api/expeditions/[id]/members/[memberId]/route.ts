@@ -38,6 +38,8 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
 
   if (action === "reject") {
     await supabase.from("expedition_members").delete().eq("expedition_id", id).eq("user_id", memberId);
+    // ponytail: link stays UUID here — resolving to slug would cost an extra query on a
+    // fire-and-forget notification insert; the [slug] route 301s UUIDs so this still works.
     void supabase.from("notifications").insert({
       user_id: memberId,
       type: "join_rejected",

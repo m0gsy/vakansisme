@@ -38,22 +38,22 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
     ? await Promise.all([
         supabase
           .from("expeditions")
-          .select("id, name, location, difficulty, image_url, date_start")
+          .select("id, slug, name, location, difficulty, image_url, date_start")
           .textSearch("fts", ftsQuery, { type: "websearch", config: "english" })
           .limit(6)
           .then(async (r) => r.error
-            ? supabase.from("expeditions").select("id, name, location, difficulty, image_url, date_start").or(`name.ilike.%${safeQuery}%,location.ilike.%${safeQuery}%`).limit(6)
+            ? supabase.from("expeditions").select("id, slug, name, location, difficulty, image_url, date_start").or(`name.ilike.%${safeQuery}%,location.ilike.%${safeQuery}%`).limit(6)
             : r
           ),
         supabase
           .from("stories")
-          .select("id, type, title, excerpt, image_url, author_handle, author_id")
+          .select("id, slug, type, title, excerpt, image_url, author_handle, author_id")
           .eq("published", true)
           .textSearch("fts", ftsQuery, { type: "websearch", config: "english" })
           .limit(6)
           .then(async (r) => {
             const base = r.error
-              ? await supabase.from("stories").select("id, type, title, excerpt, image_url, author_handle, author_id").eq("published", true).or(`title.ilike.%${safeQuery}%,excerpt.ilike.%${safeQuery}%`).limit(6)
+              ? await supabase.from("stories").select("id, slug, type, title, excerpt, image_url, author_handle, author_id").eq("published", true).or(`title.ilike.%${safeQuery}%,excerpt.ilike.%${safeQuery}%`).limit(6)
               : r;
             if (blockedIds.length && base.data) {
               return { ...base, data: base.data.filter((s) => !blockedIds.includes(s.author_id)) };
@@ -135,7 +135,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {expeditions.map((e) => (
-                <Link key={e.id} href={`/expeditions/${e.id}`} className="group block">
+                <Link key={e.id} href={`/expeditions/${e.slug}`} className="group block">
                   <div
                     style={{
                       display: "flex",
@@ -187,7 +187,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {stories.map((s) => (
-                <Link key={s.id} href={`/stories/${s.id}`} className="group block">
+                <Link key={s.id} href={`/stories/${s.slug}`} className="group block">
                   <div
                     style={{
                       display: "flex",

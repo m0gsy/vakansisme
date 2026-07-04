@@ -14,6 +14,7 @@ async function getAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
 async function notifyMembers(
   supabase: Awaited<ReturnType<typeof createClient>>,
   expeditionId: string,
+  expeditionSlug: string,
   tripName: string,
   newStatus: "cancelled" | "ongoing" | "completed"
 ) {
@@ -30,7 +31,7 @@ async function notifyMembers(
     completed: `${tripName} is complete — rate your trip`,
   }[newStatus];
 
-  const notifLink = `/expeditions/${expeditionId}`;
+  const notifLink = `/expeditions/${expeditionSlug}`;
 
   const notifRows = members.map((m) => ({
     user_id: m.user_id,
@@ -47,7 +48,7 @@ async function notifyMembers(
       const email = p?.email;
       const username = p?.username;
       if (email && username) {
-        sendExpeditionStatusEmail(email, username, tripName, expeditionId, "cancelled").catch(() => {});
+        sendExpeditionStatusEmail(email, username, tripName, expeditionSlug, "cancelled").catch(() => {});
       }
     }
   }
@@ -79,7 +80,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
   if (!leaderProfile?.id) return NextResponse.json({ error: "Leader username not found" }, { status: 400 });
 
   // Fetch current status before update to detect changes
-  const { data: current } = await supabase.from("expeditions").select("status, name").eq("id", id).single();
+  const { data: current } = await supabase.from("expeditions").select("status, name, slug").eq("id", id).single();
   const prevStatus = current?.status ?? "upcoming";
   const tripName = name.trim();
 
@@ -105,7 +106,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
 
   // Notify members when status changes to a meaningful state
   if (status && status !== prevStatus && ["cancelled", "ongoing", "completed"].includes(status)) {
-    notifyMembers(supabase, id, tripName, status as "cancelled" | "ongoing" | "completed").catch(() => {});
+    notifyMembers(supabase, id, current?.slug ?? id, tripName, status as "cancelled" | "ongoing" | "completed").catch(() => {});
   }
 
   return NextResponse.json({ ok: true });
