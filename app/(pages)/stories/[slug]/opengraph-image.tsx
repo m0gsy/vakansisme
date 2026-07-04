@@ -1,28 +1,39 @@
 import { ImageResponse } from "next/og";
 import { createClient } from "@/lib/supabase/server";
+import { UUID_RE } from "@/lib/seo";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-type Params = Promise<{ id: string }>;
+type Params = Promise<{ slug: string }>;
 
 export default async function Image({ params }: { params: Params }) {
-  const { id } = await params;
+  const { slug } = await params;
   const supabase = await createClient();
 
+  const select = "title, excerpt, type, author_handle, image_url";
   const { data: story } = await supabase
     .from("stories")
-    .select("title, excerpt, type, author_handle, image_url")
-    .eq("id", id)
+    .select(select)
+    .eq("slug", slug)
     .eq("published", true)
-    .single();
+    .maybeSingle();
+
+  // ponytail: no redirect here (image routes can't 301) — fall back to a UUID lookup for
+  // old-style og-image requests still in a CDN/social-card cache.
+  const { data: fallbackStory } =
+    !story && UUID_RE.test(slug)
+      ? await supabase.from("stories").select(select).eq("id", slug).eq("published", true).maybeSingle()
+      : { data: null };
+
+  const resolved = story ?? fallbackStory;
 
   const TYPE_COLORS: Record<string, string> = {
     trip: "#9BFF3C",
     gear: "#FF6B1A",
     opinion: "#F0EDEA",
   };
-  const accentColor = TYPE_COLORS[story?.type ?? ""] ?? "#9BFF3C";
+  const accentColor = TYPE_COLORS[resolved?.type ?? ""] ?? "#9BFF3C";
 
   return new ImageResponse(
     (
@@ -37,10 +48,10 @@ export default async function Image({ params }: { params: Params }) {
         }}
       >
         {/* Cover image — right half */}
-        {story?.image_url && (
+        {resolved?.image_url && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={story.image_url}
+            src={resolved.image_url}
             alt=""
             style={{
               position: "absolute",
@@ -104,7 +115,7 @@ export default async function Image({ params }: { params: Params }) {
 
           {/* Main */}
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            {story?.type && (
+            {resolved?.type && (
               <div
                 style={{
                   display: "inline-flex",
@@ -119,7 +130,7 @@ export default async function Image({ params }: { params: Params }) {
                   alignSelf: "flex-start",
                 }}
               >
-                {story.type}
+                {resolved.type}
               </div>
             )}
 
@@ -134,10 +145,10 @@ export default async function Image({ params }: { params: Params }) {
                 textTransform: "uppercase",
               }}
             >
-              {story?.title ?? "Story"}
+              {resolved?.title ?? "Story"}
             </div>
 
-            {story?.excerpt && (
+            {resolved?.excerpt && (
               <div
                 style={{
                   fontFamily: "sans-serif",
@@ -148,15 +159,15 @@ export default async function Image({ params }: { params: Params }) {
                   maxWidth: 540,
                 }}
               >
-                {story.excerpt.length > 120
-                  ? story.excerpt.slice(0, 120) + "…"
-                  : story.excerpt}
+                {resolved.excerpt.length > 120
+                  ? resolved.excerpt.slice(0, 120) + "…"
+                  : resolved.excerpt}
               </div>
             )}
           </div>
 
           {/* Author */}
-          {story?.author_handle && (
+          {resolved?.author_handle && (
             <div
               style={{
                 fontFamily: "sans-serif",
@@ -166,7 +177,7 @@ export default async function Image({ params }: { params: Params }) {
                 letterSpacing: "0.06em",
               }}
             >
-              @{story.author_handle}
+              @{resolved.author_handle}
             </div>
           )}
         </div>

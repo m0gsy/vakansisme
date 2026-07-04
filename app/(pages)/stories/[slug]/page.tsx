@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { resolveSlugOrRedirect } from "@/lib/resolve";
+import { absoluteUrl, buildEntityMetadata } from "@/lib/seo";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import StoryComments from "@/components/StoryComments";
 import StoryLikeButton from "@/components/StoryLikeButton";
 import ShareButtons from "@/components/ShareButtons";
@@ -16,63 +18,73 @@ function readingTime(content: string | null): string {
   return `${mins} min read`;
 }
 
-type Params = Promise<{ id: string }>;
+type Params = Promise<{ slug: string }>;
+
+type Story = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  type: string;
+  author_handle: string;
+  author_id: string;
+  image_url: string | null;
+  audio_url: string | null;
+  content: string | null;
+  tags: string[] | null;
+  created_at: string;
+  view_count: number;
+  published: boolean;
+};
+
+const getStory = cache(async (param: string) => {
+  const supabase = await createClient();
+  return resolveSlugOrRedirect<Story>({
+    supabase,
+    table: "stories",
+    entityType: "story",
+    param,
+    basePath: "/stories",
+    select: "*",
+    filter: [{ column: "published", value: true }],
+  });
+});
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const { id } = await params;
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("stories")
-    .select("title, excerpt, type, author_handle, image_url")
-    .eq("id", id)
-    .eq("published", true)
-    .single();
-  if (!data) return { title: "Story — VAKANSISME" };
-  const desc = data.excerpt ?? `A ${data.type} story by ${data.author_handle}.`;
-  return {
-    title: `${data.title} — VAKANSISME`,
+  const { slug } = await params;
+  const story = await getStory(slug);
+  const desc = story.excerpt ?? `A ${story.type} story by ${story.author_handle}.`;
+  return buildEntityMetadata({
+    title: `${story.title} — VAKANSISME`,
     description: desc,
-    openGraph: {
-      title: data.title,
-      description: desc,
-      type: "article",
-      ...(data.image_url ? { images: [{ url: data.image_url, width: 1200, height: 630 }] } : {}),
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: data.title,
-      description: desc,
-      ...(data.image_url ? { images: [data.image_url] } : {}),
-    },
-  };
+    path: `/stories/${story.slug}`,
+    image: story.image_url,
+    type: "article",
+  });
 }
 
 export default async function StoryPage({ params }: { params: Params }) {
-  const { id } = await params;
+  const { slug } = await params;
+  const story = await getStory(slug);
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: story }, { data: comments }, { count: likeCount }, { data: userLike }] = await Promise.all([
-    supabase.from("stories").select("*").eq("id", id).eq("published", true).single(),
-    supabase.from("story_comments").select("id, author_id, author_handle, content, created_at").eq("story_id", id).order("created_at", { ascending: true }),
-    supabase.from("story_likes").select("*", { count: "exact", head: true }).eq("story_id", id),
+  const [{ data: comments }, { count: likeCount }, { data: userLike }] = await Promise.all([
+    supabase.from("story_comments").select("id, author_id, author_handle, content, created_at").eq("story_id", story.id).order("created_at", { ascending: true }),
+    supabase.from("story_likes").select("*", { count: "exact", head: true }).eq("story_id", story.id),
     user
-      ? supabase.from("story_likes").select("user_id").eq("story_id", id).eq("user_id", user.id).maybeSingle()
+      ? supabase.from("story_likes").select("user_id").eq("story_id", story.id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
-  if (!story) notFound();
-
   const { data: related } = await supabase
     .from("stories")
-    .select("id, title, type, image_url, author_handle")
+    .select("id, slug, title, type, image_url, author_handle")
     .eq("published", true)
     .eq("type", story.type)
-    .neq("id", id)
+    .neq("id", story.id)
     .limit(3);
-
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -82,17 +94,18 @@ export default async function StoryPage({ params }: { params: Params }) {
     author: { "@type": "Person", name: `@${story.author_handle}` },
     ...(story.image_url ? { image: story.image_url } : {}),
     datePublished: story.created_at,
-    url: `${siteUrl}/stories/${id}`,
-    publisher: { "@type": "Organization", name: "Vakansisme", url: siteUrl },
+    url: absoluteUrl(`/stories/${story.slug}`),
+    mainEntityOfPage: absoluteUrl(`/stories/${story.slug}`),
+    publisher: { "@type": "Organization", name: "Vakansisme", url: absoluteUrl("") },
   };
 
   const breadcrumbLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Vakansisme", item: siteUrl },
-      { "@type": "ListItem", position: 2, name: "Journal", item: `${siteUrl}/stories` },
-      { "@type": "ListItem", position: 3, name: story.title, item: `${siteUrl}/stories/${id}` },
+      { "@type": "ListItem", position: 1, name: "Vakansisme", item: absoluteUrl("") },
+      { "@type": "ListItem", position: 2, name: "Journal", item: absoluteUrl("/stories") },
+      { "@type": "ListItem", position: 3, name: story.title, item: absoluteUrl(`/stories/${story.slug}`) },
     ],
   };
 
@@ -183,10 +196,10 @@ export default async function StoryPage({ params }: { params: Params }) {
               {story.view_count} view{story.view_count !== 1 ? "s" : ""}
             </span>
           )}
-          <ReportButton contentType="story" contentId={id} currentUserId={user?.id ?? null} />
+          <ReportButton contentType="story" contentId={story.id} currentUserId={user?.id ?? null} />
           {user && story.author_id === user.id && !story.published && (
             <Link
-              href={`/stories/${id}/edit`}
+              href={`/stories/${story.slug}/edit`}
               className="font-body font-semibold text-muted-ink hover:text-neon-green transition-colors duration-150"
               style={{ fontSize: "0.72rem", letterSpacing: "0.1em" }}
             >
@@ -225,12 +238,12 @@ export default async function StoryPage({ params }: { params: Params }) {
         {/* Like + Share */}
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", marginBottom: "32px" }}>
           <StoryLikeButton
-            storyId={id}
+            storyId={story.id}
             initialCount={likeCount ?? 0}
             initialLiked={!!userLike}
             currentUserId={user?.id ?? null}
           />
-          <ShareButtons title={story.title} url={`${siteUrl}/stories/${id}`} />
+          <ShareButtons title={story.title} url={absoluteUrl(`/stories/${story.slug}`)} />
         </div>
 
         {/* Excerpt */}
@@ -243,7 +256,7 @@ export default async function StoryPage({ params }: { params: Params }) {
           </p>
         )}
 
-        <ViewCounter storyId={id} />
+        <ViewCounter storyId={story.id} />
 
         {/* Content */}
         {story.content ? (
@@ -255,7 +268,7 @@ export default async function StoryPage({ params }: { params: Params }) {
         )}
 
         <StoryComments
-          storyId={id}
+          storyId={story.id}
           initialComments={comments ?? []}
           currentUserId={user?.id ?? null}
         />
@@ -273,7 +286,7 @@ export default async function StoryPage({ params }: { params: Params }) {
               {related.map((r) => (
                 <Link
                   key={r.id}
-                  href={`/stories/${r.id}`}
+                  href={`/stories/${r.slug}`}
                   className="group"
                   style={{
                     display: "flex",

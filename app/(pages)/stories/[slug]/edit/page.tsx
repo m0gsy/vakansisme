@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { UUID_RE } from "@/lib/seo";
 import ImageUpload from "@/components/ImageUpload";
 
 const TYPES = ["photo dump", "short story", "video POV", "chaos moment"] as const;
@@ -14,12 +15,13 @@ const inputStyle = {
   padding: "10px 0", fontSize: "0.95rem", color: "#F0EDEA", transition: "border-color 0.2s", width: "100%",
 };
 
-type Params = Promise<{ id: string }>;
+type Params = Promise<{ slug: string }>;
 type Expedition = { id: string; name: string };
 
 export default function EditStoryPage({ params }: { params: Params }) {
   const router = useRouter();
   const [storyId, setStoryId] = useState<string | null>(null);
+  const [storySlug, setStorySlug] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [type, setType] = useState<string>(TYPES[0]);
   const [title, setTitle] = useState("");
@@ -36,20 +38,28 @@ export default function EditStoryPage({ params }: { params: Params }) {
   const redirected = useRef(false);
 
   useEffect(() => {
-    params.then(({ id }) => {
-      setStoryId(id);
+    params.then(({ slug }) => {
       const supabase = createClient();
       supabase.auth.getUser().then(async ({ data: auth }) => {
         if (!auth.user) { router.replace("/login"); return; }
-        const { data: story } = await supabase
-          .from("stories")
-          .select("author_id, type, title, excerpt, content, image_url, audio_url, expedition_id, tags, published")
-          .eq("id", id).single();
+        const select = "id, slug, author_id, type, title, excerpt, content, image_url, audio_url, expedition_id, tags, published";
+        const { data: bySlug } = await supabase.from("stories").select(select).eq("slug", slug).maybeSingle();
+        // ponytail: old UUID edit bookmarks fall back to an id lookup and soft-redirect to the
+        // canonical slug URL below; stale-slug (renamed-then-bookmarked) links aren't handled here —
+        // this page isn't crawled/indexed, so it's not worth the slug_redirects round-trip.
+        const story = bySlug ?? (UUID_RE.test(slug)
+          ? (await supabase.from("stories").select(select).eq("id", slug).maybeSingle()).data
+          : null);
         if (!story) { router.replace("/stories"); return; }
+        if (story.slug !== slug && !redirected.current) {
+          redirected.current = true; router.replace(`/stories/${story.slug}/edit`); return;
+        }
+        setStoryId(story.id);
+        setStorySlug(story.slug);
         if (story.published) {
           const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", auth.user.id).single();
           if (!profile?.is_admin && !redirected.current) {
-            redirected.current = true; router.replace(`/stories/${id}`); return;
+            redirected.current = true; router.replace(`/stories/${story.slug}`); return;
           }
         }
         setType(story.type ?? TYPES[0]);
@@ -80,7 +90,7 @@ export default function EditStoryPage({ params }: { params: Params }) {
       body: JSON.stringify({ type, title, excerpt, content, image_url: imageUrl, audio_url: audioUrl || null, expedition_id: expeditionId || null, tags }),
     });
     const json = await res.json();
-    if (res.ok) router.push(`/stories/${storyId}`);
+    if (res.ok) router.push(`/stories/${storySlug}`);
     else { setError(json.error ?? "Something went wrong"); setLoading(false); }
   }
 
@@ -89,7 +99,7 @@ export default function EditStoryPage({ params }: { params: Params }) {
   return (
     <div className="min-h-screen bg-charcoal" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
       <div className="max-w-3xl mx-auto px-6">
-        <Link href={storyId ? `/stories/${storyId}` : "/stories"}
+        <Link href={storySlug ? `/stories/${storySlug}` : "/stories"}
           className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-200 inline-block mb-10"
           style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}>
           ← BACK TO STORY
@@ -196,7 +206,7 @@ export default function EditStoryPage({ params }: { params: Params }) {
               style={{ fontSize: "0.72rem", letterSpacing: "0.14em", padding: "14px 36px", border: "none", cursor: loading ? "not-allowed" : "pointer" }}>
               {loading ? "SAVING..." : "SAVE CHANGES"}
             </button>
-            <Link href={storyId ? `/stories/${storyId}` : "/stories"}
+            <Link href={storySlug ? `/stories/${storySlug}` : "/stories"}
               className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-150"
               style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}>
               CANCEL
