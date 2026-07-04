@@ -7,9 +7,9 @@ import NewsletterForm from "@/components/NewsletterForm";
 
 export const metadata = { title: "Admin — VAKANSISME" };
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ id, title, children }: { id?: string; title: string; children: React.ReactNode }) {
   return (
-    <section style={{ marginBottom: "56px" }}>
+    <section id={id} style={{ marginBottom: "56px" }}>
       <h2
         className="font-display font-black uppercase text-off-white"
         style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)", letterSpacing: "-0.02em", marginBottom: "20px" }}
@@ -119,8 +119,26 @@ export default async function AdminPage() {
           </h1>
         </div>
 
+        {/* Section nav */}
+        <nav style={{ position: "sticky", top: "64px", zIndex: 10, background: "#111111", borderBottom: "1px solid rgba(74,59,42,0.3)", marginBottom: "32px", overflowX: "auto", whiteSpace: "nowrap", padding: "10px 0" }}>
+          {[
+            { id: "gallery-section", label: "GALLERY" },
+            { id: "stories-section", label: "STORIES" },
+            { id: "expeditions-section", label: "EXPEDITIONS" },
+            { id: "users-section", label: "USERS" },
+            { id: "proposals-section", label: "PROPOSALS" },
+            { id: "activities-section", label: "ACTIVITIES" },
+            { id: "reminders-section", label: "REMINDERS" },
+          ].map(({ id, label }) => (
+            <a key={id} href={`#${id}`} className="font-body font-semibold text-muted-ink hover:text-neon-green transition-colors duration-150"
+              style={{ fontSize: "0.58rem", letterSpacing: "0.12em", padding: "4px 16px", textDecoration: "none", display: "inline-block" }}>
+              {label}
+            </a>
+          ))}
+        </nav>
+
         {/* Gallery pending */}
-        <Section title={`GALLERY PENDING (${pendingGallery?.length ?? 0})`}>
+        <Section id="gallery-section" title={`GALLERY PENDING (${pendingGallery?.length ?? 0})`}>
           {!pendingGallery?.length ? (
             <p className="font-body text-muted-ink" style={{ fontSize: "0.88rem" }}>No photos awaiting review.</p>
           ) : (
@@ -164,7 +182,7 @@ export default async function AdminPage() {
         </Section>
 
         {/* Stories pending review */}
-        <Section title={`STORIES PENDING (${pendingStories?.length ?? 0})`}>
+        <Section id="stories-section" title={`STORIES PENDING (${pendingStories?.length ?? 0})`}>
           {!pendingStories?.length ? (
             <p className="font-body text-muted-ink" style={{ fontSize: "0.88rem" }}>No stories awaiting review.</p>
           ) : (
@@ -343,12 +361,12 @@ export default async function AdminPage() {
         </Section>
 
         {/* Reminders */}
-        <Section title="TRIP REMINDERS">
+        <Section id="reminders-section" title="TRIP REMINDERS">
           <AdminRemindersButton />
         </Section>
 
         {/* Content Reports */}
-        <Section title="TRIP PROPOSALS">
+        <Section id="proposals-section" title="TRIP PROPOSALS">
           <AdminProposalsSection />
         </Section>
 
@@ -357,17 +375,17 @@ export default async function AdminPage() {
         </Section>
 
         {/* Activity Categories */}
-        <Section title="ACTIVITY CATEGORIES">
+        <Section id="activities-section" title="ACTIVITY CATEGORIES">
           <AdminActivitiesSection />
         </Section>
 
         {/* Users */}
-        <Section title="USERS">
+        <Section id="users-section" title="USERS">
           <AdminUsersSection />
         </Section>
 
         {/* Expeditions */}
-        <Section title={`EXPEDITIONS (${expeditions?.length ?? 0})`}>
+        <Section id="expeditions-section" title={`EXPEDITIONS (${expeditions?.length ?? 0})`}>
           <div style={{ marginBottom: "20px" }}>
             <AdminAutoStatusButton />
           </div>

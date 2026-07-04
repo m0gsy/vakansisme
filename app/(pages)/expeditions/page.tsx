@@ -60,7 +60,20 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
   const to = from + PAGE_SIZE - 1;
 
   const supabase = await createClient();
-  const locale = await getLocale();
+  const [{ data: { user } }, locale] = await Promise.all([
+    supabase.auth.getUser(),
+    getLocale(),
+  ]);
+
+  let isAdmin = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .single();
+    isAdmin = profile?.is_admin ?? false;
+  }
 
   let query = supabase
     .from("expeditions")
@@ -120,13 +133,23 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
             </p>
           </div>
           <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", marginTop: "8px" }}>
-            <Link
-              href="/expeditions/propose"
-              className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150"
-              style={{ fontSize: "0.65rem", letterSpacing: "0.12em", padding: "10px 20px", whiteSpace: "nowrap", textDecoration: "none" }}
-            >
-              + PROPOSE TRIP
-            </Link>
+            {isAdmin ? (
+              <Link
+                href="/admin#expeditions-section"
+                className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150"
+                style={{ fontSize: "0.65rem", letterSpacing: "0.12em", padding: "10px 20px", whiteSpace: "nowrap", textDecoration: "none" }}
+              >
+                + CREATE TRIP
+              </Link>
+            ) : (
+              <Link
+                href="/expeditions/propose"
+                className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150"
+                style={{ fontSize: "0.65rem", letterSpacing: "0.12em", padding: "10px 20px", whiteSpace: "nowrap", textDecoration: "none" }}
+              >
+                + PROPOSE TRIP
+              </Link>
+            )}
             <Link
               href="/expeditions/calendar"
               className="font-body font-semibold text-muted-ink hover:text-neon-green transition-colors duration-200"
