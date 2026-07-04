@@ -286,6 +286,35 @@ export async function sendProposalRejectedEmail(to: string, username: string, tr
   });
 }
 
+export async function sendReminderEmail(
+  to: string,
+  username: string,
+  tripName: string,
+  tripId: string,
+  days: number
+) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Reminder: ${tripName} departs in ${days} day${days !== 1 ? "s" : ""}`,
+    html: base(`
+      <tr><td>
+        <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.14em;color:#FF6B1A;text-transform:uppercase;">TRIP REMINDER</p>
+        <h1 style="margin:0 0 16px;font-size:38px;font-weight:900;letter-spacing:-0.025em;line-height:0.9;color:#F0EDEA;text-transform:uppercase;">
+          ${tripName}
+        </h1>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#8B7355;">
+          Hey @${username}, <strong style="color:#F0EDEA;">${tripName}</strong> departs in <strong style="color:#FF6B1A;">${days} day${days !== 1 ? "s" : ""}</strong>. Make sure you're prepared.
+        </p>
+        <a href="${SITE_URL}/expeditions/${tripId}" style="display:inline-block;background:#FF6B1A;color:#111111;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:12px 28px;">
+          VIEW EXPEDITION →
+        </a>
+      </td></tr>
+    `),
+  });
+}
+
 export async function sendNewsletterEmail(to: string[], subject: string, html: string) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return { sent: 0 };
   const batches = [];

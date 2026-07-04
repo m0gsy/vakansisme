@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { sendExpeditionStatusEmail } from "@/lib/email";
+import { sendReminderEmail } from "@/lib/email";
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     for (const m of members ?? []) {
       const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles as { username?: string; email?: string } | null;
       if (!p?.email || !p?.username) continue;
-      await sendExpeditionStatusEmail(p.email, p.username, exp.name, exp.id, "ongoing").catch(() => {});
+      await sendReminderEmail(p.email, p.username, exp.name, exp.id, days).catch(() => {});
       sent++;
     }
 
