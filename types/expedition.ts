@@ -16,4 +16,5 @@ export type Trip = {
   price_amount?: number | null;
   requires_approval?: boolean;
   application_prompt?: string | null;
+  activity_category?: string | null;
 };

@@ -30,7 +30,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 const PAGE_SIZE = 9;
 const FALLBACK = "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?auto=format&fit=crop&w=800&q=80";
 
-type SearchParams = Promise<{ difficulty?: string; page?: string; status?: string }>;
+type SearchParams = Promise<{ difficulty?: string; page?: string; status?: string; activity?: string }>;
 
 function formatDate(start: string, end: string) {
   const s = new Date(start);
@@ -54,7 +54,7 @@ function StarRating({ avg, count }: { avg: number; count: number }) {
 }
 
 export default async function ExpeditionsPage({ searchParams }: { searchParams: SearchParams }) {
-  const { difficulty, page: pageStr, status } = await searchParams;
+  const { difficulty, page: pageStr, status, activity } = await searchParams;
   const page = Math.max(1, parseInt(pageStr ?? "1", 10));
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
@@ -77,12 +77,13 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
 
   let query = supabase
     .from("expeditions")
-    .select("id, name, location, difficulty, price, date_start, date_end, quota_max, image_url, status, featured, expedition_members(count)", { count: "exact" })
+    .select("id, name, location, difficulty, price, date_start, date_end, quota_max, image_url, status, featured, activity_category, expedition_members(count)", { count: "exact" })
     .order("featured", { ascending: false })
     .order("date_start", { ascending: true });
 
   if (difficulty) query = query.eq("difficulty", difficulty);
   if (status) query = query.eq("status", status);
+  if (activity) query = query.eq("activity_category", activity);
 
   const { data: expeditions, count } = await query.range(from, to);
 
@@ -93,12 +94,20 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
     : { data: [] };
   const ratingMap = new Map((ratings ?? []).map((r) => [r.expedition_id, r]));
 
+  const { data: activityRows } = await supabase
+    .from("activities")
+    .select("name")
+    .eq("archived", false)
+    .order("name", { ascending: true });
+  const activityNames = activityRows?.map((r) => r.name) ?? [];
+
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE);
 
-  function pillHref(d?: string, s?: string) {
+  function pillHref(d?: string, s?: string, a?: string) {
     const p = new URLSearchParams();
     if (d) p.set("difficulty", d);
     if (s) p.set("status", s);
+    if (a) p.set("activity", a);
     return `/expeditions${p.size ? "?" + p.toString() : ""}`;
   }
 
@@ -165,7 +174,7 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
           {STATUS_FILTERS.map((sf) => {
             const active = status === sf.value || (!status && !sf.value);
             return (
-              <Link key={sf.label} href={pillHref(difficulty, sf.value)} className="font-body font-semibold transition-all duration-150"
+              <Link key={sf.label} href={pillHref(difficulty, sf.value, activity)} className="font-body font-semibold transition-all duration-150"
                 style={{ fontSize: "0.6rem", letterSpacing: "0.1em", padding: "5px 12px", border: "1px solid", background: active ? "#FF6B1A" : "transparent", color: active ? "#111111" : "#8B7355", borderColor: active ? "#FF6B1A" : "rgba(74,59,42,0.5)" }}>
                 {sf.label}
               </Link>
@@ -173,19 +182,44 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
           })}
         </div>
 
-        {/* Difficulty filter pills */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "48px" }}>
-          <Link href={pillHref(undefined, status)} className="font-body font-semibold transition-all duration-150"
-            style={{ fontSize: "0.66rem", letterSpacing: "0.1em", padding: "7px 14px", border: "1px solid", background: !difficulty ? "#9BFF3C" : "transparent", color: !difficulty ? "#111111" : "#8B7355", borderColor: !difficulty ? "#9BFF3C" : "rgba(74,59,42,0.5)" }}>
+        {/* Difficulty + Activity horizontal scroll strip */}
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", whiteSpace: "nowrap", marginBottom: "48px", paddingBottom: "4px" }}>
+          <span className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", display: "inline-block", verticalAlign: "middle", marginRight: "8px" }}>
+            DIFFICULTY
+          </span>
+          <Link href={pillHref(undefined, status, activity)} className="font-body font-semibold transition-all duration-150"
+            style={{ fontSize: "0.66rem", letterSpacing: "0.1em", padding: "7px 14px", border: "1px solid", display: "inline-block", verticalAlign: "middle", marginRight: "6px", textDecoration: "none",
+              background: !difficulty ? "#9BFF3C" : "transparent", color: !difficulty ? "#111111" : "#8B7355", borderColor: !difficulty ? "#9BFF3C" : "rgba(74,59,42,0.5)" }}>
             {t(locale, "all_levels")}
           </Link>
           {DIFFICULTIES.map((d) => {
             const active = difficulty === d.value;
             return (
-              <Link key={d.value} href={pillHref(d.value, status)} className="font-body font-semibold transition-all duration-150"
-                title={d.desc}
-                style={{ fontSize: "0.66rem", letterSpacing: "0.08em", padding: "7px 14px", border: "1px solid", background: active ? "#9BFF3C" : "transparent", color: active ? "#111111" : "#8B7355", borderColor: active ? "#9BFF3C" : "rgba(74,59,42,0.5)" }}>
+              <Link key={d.value} href={pillHref(d.value, status, activity)} className="font-body font-semibold transition-all duration-150" title={d.desc}
+                style={{ fontSize: "0.66rem", letterSpacing: "0.08em", padding: "7px 14px", border: "1px solid", display: "inline-block", verticalAlign: "middle", marginRight: "6px", textDecoration: "none",
+                  background: active ? "#9BFF3C" : "transparent", color: active ? "#111111" : "#8B7355", borderColor: active ? "#9BFF3C" : "rgba(74,59,42,0.5)" }}>
                 {d.label}
+              </Link>
+            );
+          })}
+
+          <span style={{ display: "inline-block", verticalAlign: "middle", color: "rgba(74,59,42,0.5)", margin: "0 12px", fontSize: "1rem" }}>|</span>
+
+          <span className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", display: "inline-block", verticalAlign: "middle", marginRight: "8px" }}>
+            ACTIVITY
+          </span>
+          <Link href={pillHref(difficulty, status, undefined)} className="font-body font-semibold transition-all duration-150"
+            style={{ fontSize: "0.66rem", letterSpacing: "0.1em", padding: "7px 14px", border: "1px solid", display: "inline-block", verticalAlign: "middle", marginRight: "6px", textDecoration: "none",
+              background: !activity ? "#FF6B1A" : "transparent", color: !activity ? "#111111" : "#8B7355", borderColor: !activity ? "#FF6B1A" : "rgba(74,59,42,0.5)" }}>
+            All
+          </Link>
+          {activityNames.map((name) => {
+            const active = activity === name;
+            return (
+              <Link key={name} href={pillHref(difficulty, status, name)} className="font-body font-semibold transition-all duration-150"
+                style={{ fontSize: "0.66rem", letterSpacing: "0.08em", padding: "7px 14px", border: "1px solid", display: "inline-block", verticalAlign: "middle", marginRight: "6px", textDecoration: "none",
+                  background: active ? "#FF6B1A" : "transparent", color: active ? "#111111" : "#8B7355", borderColor: active ? "#FF6B1A" : "rgba(74,59,42,0.5)" }}>
+                {name}
               </Link>
             );
           })}
@@ -268,7 +302,7 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
         {totalPages > 1 && (
           <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "56px", alignItems: "center" }}>
             {page > 1 && (
-              <Link href={`/expeditions?${difficulty ? `difficulty=${encodeURIComponent(difficulty)}&` : ""}${status ? `status=${status}&` : ""}page=${page - 1}`}
+              <Link href={`/expeditions?${difficulty ? `difficulty=${encodeURIComponent(difficulty)}&` : ""}${status ? `status=${status}&` : ""}${activity ? `activity=${encodeURIComponent(activity)}&` : ""}page=${page - 1}`}
                 className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-150"
                 style={{ fontSize: "0.68rem", letterSpacing: "0.12em", padding: "8px 16px", border: "1px solid rgba(74,59,42,0.4)" }}>
                 ← PREV
@@ -278,7 +312,7 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
               {page} / {totalPages}
             </span>
             {page < totalPages && (
-              <Link href={`/expeditions?${difficulty ? `difficulty=${encodeURIComponent(difficulty)}&` : ""}${status ? `status=${status}&` : ""}page=${page + 1}`}
+              <Link href={`/expeditions?${difficulty ? `difficulty=${encodeURIComponent(difficulty)}&` : ""}${status ? `status=${status}&` : ""}${activity ? `activity=${encodeURIComponent(activity)}&` : ""}page=${page + 1}`}
                 className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-150"
                 style={{ fontSize: "0.68rem", letterSpacing: "0.12em", padding: "8px 16px", border: "1px solid rgba(74,59,42,0.4)" }}>
                 NEXT →
