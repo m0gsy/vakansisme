@@ -1269,7 +1269,8 @@ export function AdminActivitiesSection() {
   function load() {
     fetch("/api/admin/activities")
       .then((r) => r.json())
-      .then(({ activities: a }) => { setActivities(a ?? []); setLoading(false); });
+      .then(({ activities: a }) => { setActivities(a ?? []); setLoading(false); })
+      .catch(() => setLoading(false));
   }
 
   useEffect(() => { load(); }, []);
@@ -1292,11 +1293,15 @@ export function AdminActivitiesSection() {
 
   async function toggleArchive(id: string, archived: boolean) {
     setActionId(id);
-    await fetch(`/api/admin/activities/${id}`, {
+    const res = await fetch(`/api/admin/activities/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ archived: !archived }),
     });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      setError(json.error ?? "Failed to update activity");
+    }
     setActionId(null);
     load();
   }
