@@ -26,11 +26,19 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
   if (typeof body.archived === "boolean") update.archived = body.archived;
   if (!Object.keys(update).length) return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
 
-  const { error } = await supabase.from("activities").update(update).eq("id", id);
+  const { data: updated, error } = await supabase
+    .from("activities")
+    .update(update)
+    .eq("id", id)
+    .select("id")
+    .single();
+
   if (error) {
     if (error.code === "23505") return NextResponse.json({ error: "Activity name already exists" }, { status: 409 });
+    if (error.code === "PGRST116") return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }
 
