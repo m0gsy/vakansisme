@@ -22,6 +22,14 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    sitemap: [
+      `${SITE_URL}/sitemap/static.xml`,
+      `${SITE_URL}/sitemap/stories.xml`,
+      `${SITE_URL}/sitemap/expeditions.xml`,
+      `${SITE_URL}/sitemap/profiles.xml`,
+      `${SITE_URL}/sitemap/series.xml`,
+      `${SITE_URL}/sitemap/destinations.xml`,
+      `${SITE_URL}/sitemap/hubs.xml`,
+    ],
   };
 }
