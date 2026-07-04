@@ -22,8 +22,18 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
   if (!leader) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { action } = await req.json();
-  if (action !== "approve" && action !== "reject") {
-    return NextResponse.json({ error: "action must be approve or reject" }, { status: 400 });
+  if (action !== "approve" && action !== "reject" && action !== "pending") {
+    return NextResponse.json({ error: "action must be approve, reject, or pending" }, { status: 400 });
+  }
+
+  if (action === "pending") {
+    const { error } = await supabase
+      .from("expedition_members")
+      .update({ status: "pending" })
+      .eq("expedition_id", id)
+      .eq("user_id", memberId);
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ success: true });
   }
 
   if (action === "reject") {

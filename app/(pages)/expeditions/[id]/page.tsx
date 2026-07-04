@@ -16,6 +16,7 @@ import ExpeditionReviews from "@/components/ExpeditionReviews";
 import ExpeditionMapClient from "@/components/ExpeditionMapClient";
 import PayButton from "@/components/PayButton";
 import CancelReservationButton from "@/components/CancelReservationButton";
+import MemberManagement from "@/components/MemberManagement";
 import { getLocale } from "@/lib/locale";
 import { t } from "@/lib/i18n";
 
@@ -324,104 +325,58 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
             </div>
 
             {/* Members */}
-            {/* Pending members — leader only */}
-            {isLeader && pendingMembers.length > 0 && (
-              <div style={{ marginBottom: "32px", padding: "16px 20px", background: "#1a1a1a", border: "1px solid rgba(155,255,60,0.2)" }}>
-                <p className="font-body font-semibold text-neon-green uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "12px" }}>
-                  {t(locale, "pending_members")} ({pendingMembers.length})
-                </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  {pendingMembers.map((m) => {
-                    const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles as { username: string } | null;
-                    if (!profile) return null;
-                    return (
-                      <div key={m.user_id} style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                        <span className="font-body font-semibold text-off-white" style={{ fontSize: "0.78rem", letterSpacing: "0.04em", flex: 1 }}>
-                          @{profile.username}
-                        </span>
-                        <button
-                          onClick={async () => {
-                            await fetch(`/api/expeditions/${id}/members/${m.user_id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) });
-                            window.location.reload();
-                          }}
-                          className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150"
-                          style={{ fontSize: "0.6rem", letterSpacing: "0.1em", padding: "5px 12px", border: "none", cursor: "pointer" }}
-                        >
-                          {t(locale, "approve")}
-                        </button>
-                        <button
-                          onClick={async () => {
-                            await fetch(`/api/expeditions/${id}/members/${m.user_id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reject" }) });
-                            window.location.reload();
-                          }}
-                          className="font-body font-semibold text-off-white hover:text-chaos-orange transition-colors duration-150"
-                          style={{ fontSize: "0.6rem", letterSpacing: "0.1em", padding: "5px 12px", border: "1px solid rgba(255,107,26,0.4)", background: "transparent", cursor: "pointer" }}
-                        >
-                          {t(locale, "reject")}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+            {isLeader && (
+              <div style={{ marginBottom: "14px" }}>
+                <a
+                  href={`/api/expeditions/${id}/export`}
+                  download
+                  className="font-body font-semibold text-muted-ink hover:text-neon-green transition-colors duration-150"
+                  style={{ fontSize: "0.58rem", letterSpacing: "0.1em", border: "1px solid rgba(74,59,42,0.4)", padding: "4px 10px", textDecoration: "none" }}
+                >
+                  {t(locale, "export_csv")}
+                </a>
               </div>
             )}
-
-            {!!approvedMembers.length && (
+            {isLeader ? (
+              <MemberManagement
+                expeditionId={id}
+                currentUserId={user?.id ?? null}
+                initialPending={pendingMembers.map((m) => ({
+                  user_id: m.user_id,
+                  profiles: Array.isArray(m.profiles) ? m.profiles[0] ?? null : m.profiles as { username: string } | null,
+                }))}
+                initialApproved={approvedMembers.map((m) => ({
+                  user_id: m.user_id,
+                  profiles: Array.isArray(m.profiles) ? m.profiles[0] ?? null : m.profiles as { username: string; avatar_url: string | null } | null,
+                }))}
+                locale={locale}
+              />
+            ) : approvedMembers.length > 0 ? (
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "14px", flexWrap: "wrap" }}>
-                  <p
-                    className="font-body font-semibold text-muted-ink uppercase"
-                    style={{ fontSize: "0.65rem", letterSpacing: "0.12em" }}
-                  >
-                    {t(locale, "crew")} ({memberCount ?? 0})
-                  </p>
-                  {isLeader && (
-                    <a
-                      href={`/api/expeditions/${id}/export`}
-                      download
-                      className="font-body font-semibold text-muted-ink hover:text-neon-green transition-colors duration-150"
-                      style={{ fontSize: "0.58rem", letterSpacing: "0.1em", border: "1px solid rgba(74,59,42,0.4)", padding: "4px 10px", textDecoration: "none" }}
-                    >
-                      {t(locale, "export_csv")}
-                    </a>
-                  )}
-                </div>
+                <p
+                  className="font-body font-semibold text-muted-ink uppercase"
+                  style={{ fontSize: "0.65rem", letterSpacing: "0.12em", marginBottom: "14px" }}
+                >
+                  {t(locale, "crew")} ({memberCount ?? 0})
+                </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                   {approvedMembers.map((m) => {
                     const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles as { username: string; avatar_url: string | null } | null;
                     if (!profile) return null;
                     return (
-                      <div key={m.user_id} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                        <Link
-                          href={`/u/${profile.username}`}
-                          className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-150"
-                          style={{ fontSize: "0.72rem", letterSpacing: "0.06em", padding: "6px 12px", border: "1px solid rgba(74,59,42,0.4)", background: "#1a1a1a" }}
-                        >
-                          @{profile.username}
-                        </Link>
-                        {isLeader && m.user_id !== user?.id && (
-                          <form action={`/api/expeditions/${id}/members/${m.user_id}`} method="DELETE">
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                if (!confirm(`Remove @${profile.username}?`)) return;
-                                await fetch(`/api/expeditions/${id}/members/${m.user_id}`, { method: "DELETE" });
-                                window.location.reload();
-                              }}
-                              className="font-body text-muted-ink hover:text-chaos-orange transition-colors duration-150"
-                              style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.6rem", padding: "4px 6px" }}
-                              title="Remove member"
-                            >
-                              ✕
-                            </button>
-                          </form>
-                        )}
-                      </div>
+                      <Link
+                        key={m.user_id}
+                        href={`/u/${profile.username}`}
+                        className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-150"
+                        style={{ fontSize: "0.72rem", letterSpacing: "0.06em", padding: "6px 12px", border: "1px solid rgba(74,59,42,0.4)", background: "#1a1a1a" }}
+                      >
+                        @{profile.username}
+                      </Link>
                     );
                   })}
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* Sidebar */}
