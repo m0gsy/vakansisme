@@ -182,13 +182,13 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
           })}
         </div>
 
-        {/* Difficulty + Activity horizontal scroll strip */}
-        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", whiteSpace: "nowrap", marginBottom: "48px", paddingBottom: "4px" }}>
-          <span className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", display: "inline-block", verticalAlign: "middle", marginRight: "8px" }}>
+        {/* Difficulty filter */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center", marginBottom: "8px" }}>
+          <span className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginRight: "2px" }}>
             DIFFICULTY
           </span>
           <Link href={pillHref(undefined, status, activity)} className="font-body font-semibold transition-all duration-150"
-            style={{ fontSize: "0.66rem", letterSpacing: "0.1em", padding: "7px 14px", border: "1px solid", display: "inline-block", verticalAlign: "middle", marginRight: "6px", textDecoration: "none",
+            style={{ fontSize: "0.66rem", letterSpacing: "0.1em", padding: "7px 14px", border: "1px solid", textDecoration: "none",
               background: !difficulty ? "#9BFF3C" : "transparent", color: !difficulty ? "#111111" : "#8B7355", borderColor: !difficulty ? "#9BFF3C" : "rgba(74,59,42,0.5)" }}>
             {t(locale, "all_levels")}
           </Link>
@@ -196,20 +196,21 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
             const active = difficulty === d.value;
             return (
               <Link key={d.value} href={pillHref(d.value, status, activity)} className="font-body font-semibold transition-all duration-150" title={d.desc}
-                style={{ fontSize: "0.66rem", letterSpacing: "0.08em", padding: "7px 14px", border: "1px solid", display: "inline-block", verticalAlign: "middle", marginRight: "6px", textDecoration: "none",
+                style={{ fontSize: "0.66rem", letterSpacing: "0.08em", padding: "7px 14px", border: "1px solid", textDecoration: "none",
                   background: active ? "#9BFF3C" : "transparent", color: active ? "#111111" : "#8B7355", borderColor: active ? "#9BFF3C" : "rgba(74,59,42,0.5)" }}>
                 {d.label}
               </Link>
             );
           })}
+        </div>
 
-          <span style={{ display: "inline-block", verticalAlign: "middle", color: "rgba(74,59,42,0.5)", margin: "0 12px", fontSize: "1rem" }}>|</span>
-
-          <span className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", display: "inline-block", verticalAlign: "middle", marginRight: "8px" }}>
+        {/* Activity filter */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center", marginBottom: "48px" }}>
+          <span className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginRight: "2px" }}>
             ACTIVITY
           </span>
           <Link href={pillHref(difficulty, status, undefined)} className="font-body font-semibold transition-all duration-150"
-            style={{ fontSize: "0.66rem", letterSpacing: "0.1em", padding: "7px 14px", border: "1px solid", display: "inline-block", verticalAlign: "middle", marginRight: "6px", textDecoration: "none",
+            style={{ fontSize: "0.66rem", letterSpacing: "0.1em", padding: "7px 14px", border: "1px solid", textDecoration: "none",
               background: !activity ? "#FF6B1A" : "transparent", color: !activity ? "#111111" : "#8B7355", borderColor: !activity ? "#FF6B1A" : "rgba(74,59,42,0.5)" }}>
             All
           </Link>
@@ -217,7 +218,7 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
             const active = activity === name;
             return (
               <Link key={name} href={pillHref(difficulty, status, name)} className="font-body font-semibold transition-all duration-150"
-                style={{ fontSize: "0.66rem", letterSpacing: "0.08em", padding: "7px 14px", border: "1px solid", display: "inline-block", verticalAlign: "middle", marginRight: "6px", textDecoration: "none",
+                style={{ fontSize: "0.66rem", letterSpacing: "0.08em", padding: "7px 14px", border: "1px solid", textDecoration: "none",
                   background: active ? "#FF6B1A" : "transparent", color: active ? "#111111" : "#8B7355", borderColor: active ? "#FF6B1A" : "rgba(74,59,42,0.5)" }}>
                 {name}
               </Link>
