@@ -1,60 +1,63 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/locale";
 import { t } from "@/lib/i18n";
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { resolveSlugOrRedirect } from "@/lib/resolve";
+import { buildEntityMetadata } from "@/lib/seo";
 
-type Params = Promise<{ id: string }>;
+type Params = Promise<{ slug: string }>;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
+type Series = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  cover_image: string | null;
+  author_id: string;
+  created_at: string;
+  profiles: { username: string } | { username: string }[] | null;
+};
+
+const getSeries = cache(async (param: string) => {
+  const supabase = await createClient();
+  return resolveSlugOrRedirect<Series>({
+    supabase,
+    table: "story_series",
+    entityType: "series",
+    param,
+    basePath: "/series",
+    select: "id, slug, title, description, cover_image, author_id, created_at, profiles(username)",
+  });
+});
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const { id } = await params;
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("story_series")
-    .select("title, description, cover_image")
-    .eq("id", id)
-    .single();
-  if (!data) return { title: "Series — Vakansisme" };
-  const title = `${data.title} — Vakansisme`;
-  const description = data.description ?? `Baca series cerita "${data.title}" di Vakansisme.`;
-  return {
-    title,
+  const { slug } = await params;
+  const series = await getSeries(slug);
+  const description = series.description ?? `Baca series cerita "${series.title}" di Vakansisme.`;
+  return buildEntityMetadata({
+    title: `${series.title} — Vakansisme`,
     description,
-    alternates: { canonical: `${SITE_URL}/series/${id}` },
-    openGraph: {
-      title,
-      description,
-      url: `${SITE_URL}/series/${id}`,
-      type: "article",
-      ...(data.cover_image ? { images: [{ url: data.cover_image, width: 1200, height: 630 }] } : {}),
-    },
-    twitter: { card: "summary_large_image", title },
-  };
+    path: `/series/${series.slug}`,
+    image: series.cover_image,
+    type: "article",
+  });
 }
 
 export default async function SeriesDetailPage({ params }: { params: Params }) {
-  const { id } = await params;
+  const { slug } = await params;
+  const series = await getSeries(slug);
   const supabase = await createClient();
   const locale = await getLocale();
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: series } = await supabase
-    .from("story_series")
-    .select("id, title, description, cover_image, author_id, created_at, profiles(username)")
-    .eq("id", id)
-    .single();
-
-  if (!series) notFound();
-
   const { data: stories } = await supabase
     .from("stories")
     .select("id, title, excerpt, image_url, type, series_order, created_at, profiles(username)")
-    .eq("series_id", id)
+    .eq("series_id", series.id)
     .eq("published", true)
     .order("series_order", { ascending: true });
 
@@ -89,7 +92,7 @@ export default async function SeriesDetailPage({ params }: { params: Params }) {
           </h1>
           {isOwner && (
             <Link
-              href={`/series/${id}/edit`}
+              href={`/series/${series.slug}/edit`}
               className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-150"
               style={{ fontSize: "0.62rem", letterSpacing: "0.1em", border: "1px solid rgba(74,59,42,0.4)", padding: "6px 14px", whiteSpace: "nowrap" }}
             >

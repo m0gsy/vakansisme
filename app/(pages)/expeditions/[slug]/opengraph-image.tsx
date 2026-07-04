@@ -1,20 +1,22 @@
 import { ImageResponse } from "next/og";
 import { createClient } from "@/lib/supabase/server";
+import { UUID_RE } from "@/lib/seo";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-type Params = Promise<{ id: string }>;
+type Params = Promise<{ slug: string }>;
 
 export default async function Image({ params }: { params: Params }) {
-  const { id } = await params;
+  const { slug } = await params;
   const supabase = await createClient();
 
+  const column = UUID_RE.test(slug) ? "id" : "slug";
   const { data: trip } = await supabase
     .from("expeditions")
     .select("name, location, difficulty, date_start, image_url")
-    .eq("id", id)
-    .single();
+    .eq(column, slug)
+    .maybeSingle();
 
   const dateStr = trip?.date_start
     ? new Date(trip.date_start).toLocaleDateString("en", {

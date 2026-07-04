@@ -1,8 +1,10 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { resolveSlugOrRedirect } from "@/lib/resolve";
+import { absoluteUrl, buildEntityMetadata } from "@/lib/seo";
 import JoinButton from "@/components/JoinButton";
 import RealtimeQuota from "@/components/RealtimeQuota";
 import { difficultyLabel, getDifficulty } from "@/lib/difficulty";
@@ -20,34 +22,50 @@ import MemberManagement from "@/components/MemberManagement";
 import { getLocale } from "@/lib/locale";
 import { t } from "@/lib/i18n";
 
-type Params = Promise<{ id: string }>;
+type Params = Promise<{ slug: string }>;
+
+type Expedition = {
+  id: string;
+  slug: string;
+  name: string;
+  location: string;
+  difficulty: string;
+  image_url: string | null;
+  description: string | null;
+  date_start: string;
+  date_end: string;
+  status: string;
+  quota_max: number;
+  price: string;
+  leader_id: string;
+  application_prompt: string | null;
+  requires_approval: boolean;
+  profiles: { username: string; avatar_url: string | null } | { username: string; avatar_url: string | null }[] | null;
+};
+
+const getExpedition = cache(async (param: string) => {
+  const supabase = await createClient();
+  return resolveSlugOrRedirect<Expedition>({
+    supabase,
+    table: "expeditions",
+    entityType: "expedition",
+    param,
+    basePath: "/expeditions",
+    select: "*, application_prompt, requires_approval, profiles!leader_id(username, avatar_url)",
+  });
+});
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const { id } = await params;
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("expeditions")
-    .select("name, location, difficulty, image_url")
-    .eq("id", id)
-    .single();
-  if (!data) return { title: "Expedition — VAKANSISME" };
-  const desc = `${data.difficulty} expedition to ${data.location}. Join the crew.`;
-  return {
-    title: `${data.name} — VAKANSISME`,
+  const { slug } = await params;
+  const trip = await getExpedition(slug);
+  const desc = `${trip.difficulty} expedition to ${trip.location}. Join the crew.`;
+  return buildEntityMetadata({
+    title: `${trip.name} — VAKANSISME`,
     description: desc,
-    openGraph: {
-      title: data.name,
-      description: desc,
-      type: "website",
-      ...(data.image_url ? { images: [{ url: data.image_url, width: 1200, height: 630 }] } : {}),
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: data.name,
-      description: desc,
-      ...(data.image_url ? { images: [data.image_url] } : {}),
-    },
-  };
+    path: `/expeditions/${trip.slug}`,
+    image: trip.image_url,
+    type: "website",
+  });
 }
 
 function daysUntil(dateStr: string) {
@@ -56,19 +74,13 @@ function daysUntil(dateStr: string) {
 }
 
 export default async function ExpeditionPage({ params }: { params: Params }) {
-  const { id } = await params;
+  const { slug } = await params;
+  const trip = await getExpedition(slug);
+  const id = trip.id;
   const supabase = await createClient();
   const locale = await getLocale();
 
   const { data: { user } } = await supabase.auth.getUser();
-
-  const { data: trip } = await supabase
-    .from("expeditions")
-    .select("*, application_prompt, requires_approval, profiles!leader_id(username, avatar_url)")
-    .eq("id", id)
-    .single();
-
-  if (!trip) notFound();
 
   const priceAmount = parseInt(((trip as { price?: string }).price ?? "").replace(/\D/g, ""), 10) || 0;
   const tripLeaderId = (trip as { leader_id?: string }).leader_id;
@@ -98,7 +110,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
     user
       ? supabase.from("bookmarks").select("user_id").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase.from("expeditions").select("id, name, location, date_start, status, difficulty").neq("id", id).ilike("location", `%${trip.location.split(",")[0].trim()}%`).limit(3),
+    supabase.from("expeditions").select("id, slug, name, location, date_start, status, difficulty").neq("id", id).ilike("location", `%${trip.location.split(",")[0].trim()}%`).limit(3),
     user && priceAmount > 0
       ? supabase.from("expedition_payments").select("status").eq("user_id", user.id).eq("expedition_id", id).eq("status", "paid").maybeSingle()
       : Promise.resolve({ data: null }),
@@ -121,7 +133,6 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
   const approvedMembers = (members ?? []).filter((m) => (m as { status?: string }).status !== "pending");
   const pendingMembers = (members ?? []).filter((m) => (m as { status?: string }).status === "pending");
   const isBookmarked = !!bookmarkRow;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
   const isLeader = !!(callerProfile && (user?.id === tripLeaderId || callerProfile.is_admin));
 
   const days = daysUntil(trip.date_start);
@@ -137,8 +148,8 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
     endDate: trip.date_end,
     location: { "@type": "Place", name: trip.location },
     ...(trip.image_url ? { image: trip.image_url } : {}),
-    url: `${siteUrl}/expeditions/${id}`,
-    organizer: { "@type": "Organization", name: "Vakansisme", url: siteUrl },
+    url: absoluteUrl(`/expeditions/${trip.slug}`),
+    organizer: { "@type": "Organization", name: "Vakansisme", url: absoluteUrl("") },
     eventStatus: trip.status === "cancelled"
       ? "https://schema.org/EventCancelled"
       : trip.status === "ongoing" || trip.status === "completed"
@@ -150,9 +161,9 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Vakansisme", item: siteUrl },
-      { "@type": "ListItem", position: 2, name: "Expeditions", item: `${siteUrl}/expeditions` },
-      { "@type": "ListItem", position: 3, name: trip.name, item: `${siteUrl}/expeditions/${id}` },
+      { "@type": "ListItem", position: 1, name: "Vakansisme", item: absoluteUrl("") },
+      { "@type": "ListItem", position: 2, name: "Expeditions", item: absoluteUrl("/expeditions") },
+      { "@type": "ListItem", position: 3, name: trip.name, item: absoluteUrl(`/expeditions/${trip.slug}`) },
     ],
   };
 
@@ -285,7 +296,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
             {/* Share + Bookmark */}
             <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", marginBottom: "20px" }}>
-              <ShareButtons title={trip.name} url={`${siteUrl}/expeditions/${id}`} />
+              <ShareButtons title={trip.name} url={absoluteUrl(`/expeditions/${trip.slug}`)} />
               <BookmarkButton
                 expeditionId={id}
                 initialBookmarked={isBookmarked}
@@ -474,7 +485,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
               {similar.map((s) => (
                 <Link
                   key={s.id}
-                  href={`/expeditions/${s.id}`}
+                  href={`/expeditions/${s.slug}`}
                   className="group"
                   style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.3)" }}
                 >
