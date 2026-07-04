@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextResponse } from "next/server";
 
 type Params = Promise<{ id: string }>;
@@ -32,7 +33,8 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     action === "promote" ? { is_admin: true } :
                            { is_admin: false };
 
-  const { error } = await supabase.from("profiles").update(update).eq("id", id);
+  const serviceSupabase = createServiceClient();
+  const { error } = await serviceSupabase.from("profiles").update(update).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ ok: true });

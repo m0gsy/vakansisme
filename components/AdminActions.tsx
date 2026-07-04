@@ -142,6 +142,7 @@ export function ExpeditionDeleteButton({ id }: { id: string }) {
 }
 
 const EXPEDITION_STATUSES = ["upcoming", "ongoing", "completed", "cancelled"] as const;
+const ACTIVITY_CATEGORIES = ["Hiking", "Mountaineering", "Camping", "Cycling", "Diving", "Surfing", "Kayaking", "Other"] as const;
 
 type ExpeditionData = {
   id: string;
@@ -160,6 +161,7 @@ type ExpeditionData = {
   requires_approval?: boolean | null;
   application_prompt?: string | null;
   featured?: boolean | null;
+  activity_category?: string | null;
 };
 
 export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }) {
@@ -171,6 +173,7 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState(expedition.image_url ?? "");
   const [editRequiresApproval, setEditRequiresApproval] = useState(expedition.requires_approval ?? false);
+  const [adminUsers, setAdminUsers] = useState<{ id: string; username: string }[]>([]);
   const [fields, setFields] = useState({
     name: expedition.name,
     location: expedition.location,
@@ -183,7 +186,14 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
     description: expedition.description ?? "",
     application_prompt: expedition.application_prompt ?? "",
     status: expedition.status ?? "upcoming",
+    activity_category: expedition.activity_category ?? "Other",
   });
+
+  useEffect(() => {
+    fetch("/api/admin/users")
+      .then((r) => r.json())
+      .then(({ users }) => setAdminUsers((users ?? []).filter((u: { is_admin: boolean }) => u.is_admin)));
+  }, []);
 
   function set(key: string, val: string) {
     setFields((prev) => ({ ...prev, [key]: val }));
@@ -224,8 +234,6 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
               { key: "name", label: "Name *", placeholder: "Mount Rinjani Circuit" },
               { key: "location", label: "Location *", placeholder: "Lombok, Indonesia" },
               { key: "price", label: "Price *", placeholder: "Rp 2.500.000" },
-              { key: "leader_handle", label: "Leader *", placeholder: "@username" },
-              { key: "quota_max", label: "Quota *", placeholder: "12", type: "number" },
               { key: "date_start", label: "Date start *", type: "date" },
               { key: "date_end", label: "Date end *", type: "date" },
             ].map(({ key, label, placeholder, type = "text" }) => (
@@ -245,6 +253,37 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
               </div>
             ))}
             <div>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Leader *</label>
+              <select
+                value={fields.leader_handle}
+                onChange={(e) => set("leader_handle", e.target.value)}
+                required
+                className="font-body text-off-white focus:outline-none"
+                style={{ ...fieldStyle, cursor: "pointer" }}
+              >
+                <option value="">— Select leader —</option>
+                {adminUsers.map((u) => (
+                  <option key={u.id} value={u.username} style={{ background: "#111111" }}>@{u.username}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Quota *</label>
+              <input
+                type="number"
+                value={fields.quota_max}
+                onChange={(e) => set("quota_max", e.target.value)}
+                placeholder="12"
+                min={3}
+                required
+                className="font-body text-off-white placeholder:text-muted-ink focus:outline-none"
+                style={fieldStyle}
+                onFocus={(e) => (e.currentTarget.style.borderBottomColor = "#9BFF3C")}
+                onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")}
+              />
+              <span className="font-body" style={{ fontSize: "0.52rem", color: "#8B7355" }}>Min. 3 orang</span>
+            </div>
+            <div>
               <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Difficulty *</label>
               <select
                 value={fields.difficulty}
@@ -254,6 +293,19 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
               >
                 {DIFFICULTIES.map((d) => (
                   <option key={d.value} value={d.value} style={{ background: "#111111" }}>{d.label} — Lv.{d.level}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Activity *</label>
+              <select
+                value={fields.activity_category}
+                onChange={(e) => set("activity_category", e.target.value)}
+                className="font-body text-off-white focus:outline-none"
+                style={{ ...fieldStyle, cursor: "pointer" }}
+              >
+                {ACTIVITY_CATEGORIES.map((c) => (
+                  <option key={c} value={c} style={{ background: "#111111" }}>{c}</option>
                 ))}
               </select>
             </div>
@@ -390,10 +442,12 @@ export function AdminExpeditionForm() {
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [requiresApproval, setRequiresApproval] = useState(false);
+  const [adminUsers, setAdminUsers] = useState<{ id: string; username: string }[]>([]);
   const [fields, setFields] = useState({
     name: "",
     location: "",
     difficulty: "Moderate",
+    activity_category: "Other",
     price: "",
     date_start: "",
     date_end: "",
@@ -402,6 +456,12 @@ export function AdminExpeditionForm() {
     description: "",
     application_prompt: "",
   });
+
+  useEffect(() => {
+    fetch("/api/admin/users")
+      .then((r) => r.json())
+      .then(({ users }) => setAdminUsers((users ?? []).filter((u: { is_admin: boolean }) => u.is_admin)));
+  }, []);
 
   function set(key: string, val: string) {
     setFields((prev) => ({ ...prev, [key]: val }));
@@ -420,7 +480,7 @@ export function AdminExpeditionForm() {
     const json = await res.json();
 
     if (res.ok) {
-      setFields({ name: "", location: "", difficulty: "Moderate", price: "", date_start: "", date_end: "", quota_max: "", leader_handle: "", description: "", application_prompt: "" });
+      setFields({ name: "", location: "", difficulty: "Moderate", activity_category: "Other", price: "", date_start: "", date_end: "", quota_max: "", leader_handle: "", description: "", application_prompt: "" });
       setRequiresApproval(false);
       setImageUrl("");
       setOpen(false);
@@ -466,8 +526,6 @@ export function AdminExpeditionForm() {
             { key: "name", label: "Name *", placeholder: "Mount Rinjani Circuit" },
             { key: "location", label: "Location *", placeholder: "Lombok, Indonesia" },
             { key: "price", label: "Price *", placeholder: "Rp 2.500.000" },
-            { key: "leader_handle", label: "Leader handle *", placeholder: "@username" },
-            { key: "quota_max", label: "Quota *", placeholder: "12", type: "number" },
             { key: "date_start", label: "Date start *", type: "date" },
             { key: "date_end", label: "Date end *", type: "date" },
           ].map(({ key, label, placeholder, type = "text" }) => (
@@ -493,6 +551,43 @@ export function AdminExpeditionForm() {
           ))}
 
           <div>
+            <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}>
+              Leader *
+            </label>
+            <select
+              value={fields.leader_handle}
+              onChange={(e) => set("leader_handle", e.target.value)}
+              required
+              className="font-body text-off-white focus:outline-none"
+              style={{ ...fieldStyle, cursor: "pointer" }}
+            >
+              <option value="">— Select leader —</option>
+              {adminUsers.map((u) => (
+                <option key={u.id} value={u.username} style={{ background: "#111111" }}>@{u.username}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}>
+              Quota *
+            </label>
+            <input
+              type="number"
+              value={fields.quota_max}
+              onChange={(e) => set("quota_max", e.target.value)}
+              placeholder="12"
+              min={3}
+              required
+              className="font-body text-off-white placeholder:text-muted-ink focus:outline-none"
+              style={fieldStyle}
+              onFocus={(e) => (e.currentTarget.style.borderBottomColor = "#9BFF3C")}
+              onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")}
+            />
+            <span className="font-body" style={{ fontSize: "0.52rem", color: "#8B7355" }}>Min. 3 orang</span>
+          </div>
+
+          <div>
             <label
               className="font-body font-semibold text-muted-ink uppercase block"
               style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}
@@ -509,6 +604,22 @@ export function AdminExpeditionForm() {
                 <option key={d.value} value={d.value} style={{ background: "#111111" }}>
                   {d.label} — Lv.{d.level}
                 </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}>
+              Activity *
+            </label>
+            <select
+              value={fields.activity_category}
+              onChange={(e) => set("activity_category", e.target.value)}
+              className="font-body text-off-white focus:outline-none"
+              style={{ ...fieldStyle, cursor: "pointer" }}
+            >
+              {ACTIVITY_CATEGORIES.map((c) => (
+                <option key={c} value={c} style={{ background: "#111111" }}>{c}</option>
               ))}
             </select>
           </div>
