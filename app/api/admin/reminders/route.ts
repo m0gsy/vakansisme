@@ -30,7 +30,8 @@ export async function POST(req: Request) {
     const { data: members } = await supabase
       .from("expedition_members")
       .select("user_id, profiles(username, email)")
-      .eq("expedition_id", exp.id);
+      .eq("expedition_id", exp.id)
+      .eq("status", "approved");
 
     for (const m of members ?? []) {
       const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles as { username?: string; email?: string } | null;

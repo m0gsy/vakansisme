@@ -307,7 +307,8 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
                 className="font-body text-off-white focus:outline-none"
                 style={{ ...fieldStyle, cursor: "pointer" }}
               >
-                {(activities.length ? activities : ["Other"]).map((c) => (
+                {/* ponytail: inject archived value so controlled select always has a matching option */}
+                {(activities.includes(fields.activity_category) ? activities : [...activities, fields.activity_category]).map((c) => (
                   <option key={c} value={c} style={{ background: "#111111" }}>{c}</option>
                 ))}
               </select>
@@ -625,7 +626,8 @@ export function AdminExpeditionForm() {
               className="font-body text-off-white focus:outline-none"
               style={{ ...fieldStyle, cursor: "pointer" }}
             >
-              {(activities.length ? activities : ["Other"]).map((c) => (
+              {/* ponytail: inject archived value so controlled select always has a matching option */}
+              {(activities.includes(fields.activity_category) ? activities : [...activities, fields.activity_category]).map((c) => (
                 <option key={c} value={c} style={{ background: "#111111" }}>{c}</option>
               ))}
             </select>
