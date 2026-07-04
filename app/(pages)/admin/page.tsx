@@ -366,7 +366,7 @@ export default async function AdminPage() {
         </Section>
 
         {/* Content Reports */}
-        <Section id="proposals-section" title="TRIP PROPOSALS">
+        <Section id="proposals-section" title="PROPOSALS">
           <AdminProposalsSection />
         </Section>
 
