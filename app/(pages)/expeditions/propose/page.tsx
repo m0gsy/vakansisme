@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DIFFICULTIES } from "@/lib/difficulty";
 import ImageUpload from "@/components/ImageUpload";
@@ -24,6 +24,7 @@ export default function ProposePage() {
     name: "",
     location: "",
     difficulty: "Moderate",
+    activity_category: "Other",
     price: "Free",
     date_start: "",
     date_end: "",
@@ -32,9 +33,19 @@ export default function ProposePage() {
     image_url: "",
     requires_approval: false,
   });
+  const [activities, setActivities] = useState<string[]>(["Other"]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/activities")
+      .then((r) => r.json())
+      .then(({ activities: a }) => {
+        const names = (a ?? []).filter((x: { archived: boolean }) => !x.archived).map((x: { name: string }) => x.name);
+        if (names.length) setActivities(names);
+      });
+  }, []);
 
   function set(key: string, value: string | boolean) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -101,13 +112,20 @@ export default function ProposePage() {
               onFocus={(e) => (e.currentTarget.style.borderBottomColor = "#9BFF3C")} onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")} />
           </div>
 
-          {/* Difficulty + Price */}
+          {/* Difficulty + Activity + Price */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
             <div>
               <p className="font-body text-muted-ink" style={{ fontSize: "0.65rem", letterSpacing: "0.1em", marginBottom: "6px" }}>DIFFICULTY *</p>
               <select required value={form.difficulty} onChange={(e) => set("difficulty", e.target.value)} className="font-body"
                 style={{ ...INPUT.base, cursor: "pointer" }}>
                 {DIFFICULTIES.map((d) => <option key={d.value} value={d.value} style={{ background: "#1a1a1a" }}>{d.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <p className="font-body text-muted-ink" style={{ fontSize: "0.65rem", letterSpacing: "0.1em", marginBottom: "6px" }}>ACTIVITY</p>
+              <select value={form.activity_category} onChange={(e) => set("activity_category", e.target.value)} className="font-body"
+                style={{ ...INPUT.base, cursor: "pointer" }}>
+                {activities.map((c) => <option key={c} value={c} style={{ background: "#1a1a1a" }}>{c}</option>)}
               </select>
             </div>
             <div>

@@ -142,7 +142,6 @@ export function ExpeditionDeleteButton({ id }: { id: string }) {
 }
 
 const EXPEDITION_STATUSES = ["upcoming", "ongoing", "completed", "cancelled"] as const;
-const ACTIVITY_CATEGORIES = ["Hiking", "Mountaineering", "Camping", "Cycling", "Diving", "Surfing", "Kayaking", "Other"] as const;
 
 type ExpeditionData = {
   id: string;
@@ -174,6 +173,7 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
   const [imageUrl, setImageUrl] = useState(expedition.image_url ?? "");
   const [editRequiresApproval, setEditRequiresApproval] = useState(expedition.requires_approval ?? false);
   const [adminUsers, setAdminUsers] = useState<{ id: string; username: string }[]>([]);
+  const [activities, setActivities] = useState<string[]>([]);
   const [fields, setFields] = useState({
     name: expedition.name,
     location: expedition.location,
@@ -193,6 +193,9 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
     fetch("/api/admin/users")
       .then((r) => r.json())
       .then(({ users }) => setAdminUsers((users ?? []).filter((u: { is_admin: boolean }) => u.is_admin)));
+    fetch("/api/admin/activities")
+      .then((r) => r.json())
+      .then(({ activities: a }) => setActivities((a ?? []).filter((x: { archived: boolean }) => !x.archived).map((x: { name: string }) => x.name)));
   }, []);
 
   function set(key: string, val: string) {
@@ -304,7 +307,7 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
                 className="font-body text-off-white focus:outline-none"
                 style={{ ...fieldStyle, cursor: "pointer" }}
               >
-                {ACTIVITY_CATEGORIES.map((c) => (
+                {(activities.length ? activities : ["Other"]).map((c) => (
                   <option key={c} value={c} style={{ background: "#111111" }}>{c}</option>
                 ))}
               </select>
@@ -443,6 +446,7 @@ export function AdminExpeditionForm() {
   const [imageUrl, setImageUrl] = useState("");
   const [requiresApproval, setRequiresApproval] = useState(false);
   const [adminUsers, setAdminUsers] = useState<{ id: string; username: string }[]>([]);
+  const [activities, setActivities] = useState<string[]>([]);
   const [fields, setFields] = useState({
     name: "",
     location: "",
@@ -461,6 +465,9 @@ export function AdminExpeditionForm() {
     fetch("/api/admin/users")
       .then((r) => r.json())
       .then(({ users }) => setAdminUsers((users ?? []).filter((u: { is_admin: boolean }) => u.is_admin)));
+    fetch("/api/admin/activities")
+      .then((r) => r.json())
+      .then(({ activities: a }) => setActivities((a ?? []).filter((x: { archived: boolean }) => !x.archived).map((x: { name: string }) => x.name)));
   }, []);
 
   function set(key: string, val: string) {
@@ -618,7 +625,7 @@ export function AdminExpeditionForm() {
               className="font-body text-off-white focus:outline-none"
               style={{ ...fieldStyle, cursor: "pointer" }}
             >
-              {ACTIVITY_CATEGORIES.map((c) => (
+              {(activities.length ? activities : ["Other"]).map((c) => (
                 <option key={c} value={c} style={{ background: "#111111" }}>{c}</option>
               ))}
             </select>
@@ -1245,6 +1252,152 @@ export function AdminProposalsSection() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+export function AdminActivitiesSection() {
+  const [activities, setActivities] = useState<{ id: string; name: string; archived: boolean }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newName, setNewName] = useState("");
+  const [addLoading, setAddLoading] = useState(false);
+  const [actionId, setActionId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameName, setRenameName] = useState("");
+
+  function load() {
+    fetch("/api/admin/activities")
+      .then((r) => r.json())
+      .then(({ activities: a }) => { setActivities(a ?? []); setLoading(false); });
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function add() {
+    if (!newName.trim()) return;
+    setAddLoading(true);
+    setError("");
+    const res = await fetch("/api/admin/activities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName.trim() }),
+    });
+    const json = await res.json();
+    if (!res.ok) { setError(json.error ?? "Failed"); setAddLoading(false); return; }
+    setNewName("");
+    setAddLoading(false);
+    load();
+  }
+
+  async function toggleArchive(id: string, archived: boolean) {
+    setActionId(id);
+    await fetch(`/api/admin/activities/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ archived: !archived }),
+    });
+    setActionId(null);
+    load();
+  }
+
+  async function rename(id: string) {
+    if (!renameName.trim()) return;
+    setActionId(id);
+    const res = await fetch(`/api/admin/activities/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: renameName.trim() }),
+    });
+    const json = await res.json();
+    if (!res.ok) { setError(json.error ?? "Failed to rename"); }
+    setRenameId(null);
+    setRenameName("");
+    setActionId(null);
+    load();
+  }
+
+  async function del(id: string, name: string) {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    setActionId(id);
+    const res = await fetch(`/api/admin/activities/${id}`, { method: "DELETE" });
+    const json = await res.json();
+    if (!res.ok) { setError(json.error ?? "Failed to delete"); }
+    setActionId(null);
+    load();
+  }
+
+  if (loading) return <p className="font-body text-muted-ink" style={{ fontSize: "0.82rem" }}>Loading...</p>;
+
+  const active = activities.filter((a) => !a.archived);
+  const archived = activities.filter((a) => a.archived);
+
+  return (
+    <div>
+      {error && <p className="font-body" style={{ color: "#FF6B1A", fontSize: "0.75rem", marginBottom: "10px" }}>{error}</p>}
+
+      {/* Add form */}
+      <div style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
+        <input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && add()}
+          placeholder="New activity name..."
+          className="font-body text-off-white"
+          style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", padding: "8px 12px", fontSize: "0.8rem", flex: 1, outline: "none", color: "#F0EDEA" }}
+        />
+        <button
+          onClick={add}
+          disabled={addLoading}
+          style={{ ...BTN.base, background: "#9BFF3C", color: "#111111", padding: "8px 16px", opacity: addLoading ? 0.6 : 1 }}
+        >
+          ADD
+        </button>
+      </div>
+
+      {/* Active activities */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginBottom: "16px" }}>
+        {active.map((a) => (
+          <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.25)" }}>
+            {renameId === a.id ? (
+              <>
+                <input
+                  value={renameName}
+                  onChange={(e) => setRenameName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && rename(a.id)}
+                  className="font-body text-off-white"
+                  style={{ background: "transparent", border: "1px solid rgba(155,255,60,0.4)", padding: "4px 8px", fontSize: "0.78rem", flex: 1, outline: "none", color: "#F0EDEA" }}
+                  autoFocus
+                />
+                <button onClick={() => rename(a.id)} disabled={actionId === a.id} style={{ ...BTN.base, background: "#9BFF3C", color: "#111111", opacity: actionId === a.id ? 0.5 : 1 }}>SAVE</button>
+                <button onClick={() => { setRenameId(null); setRenameName(""); }} style={{ ...BTN.base, background: "transparent", color: "#8B7355", border: "1px solid rgba(74,59,42,0.4)" }}>CANCEL</button>
+              </>
+            ) : (
+              <>
+                <span className="font-body text-off-white" style={{ fontSize: "0.82rem", flex: 1 }}>{a.name}</span>
+                <button onClick={() => { setRenameId(a.id); setRenameName(a.name); }} disabled={!!actionId} style={{ ...BTN.base, background: "transparent", color: "#8B7355", border: "1px solid rgba(74,59,42,0.4)" }}>RENAME</button>
+                <button onClick={() => toggleArchive(a.id, a.archived)} disabled={actionId === a.id} style={{ ...BTN.base, background: "transparent", color: "#8B7355", border: "1px solid rgba(74,59,42,0.4)", opacity: actionId === a.id ? 0.5 : 1 }}>ARCHIVE</button>
+                <button onClick={() => del(a.id, a.name)} disabled={!!actionId} style={{ ...BTN.base, background: "transparent", color: "#FF6B1A", border: "1px solid rgba(255,107,26,0.3)" }}>DELETE</button>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Archived */}
+      {archived.length > 0 && (
+        <div>
+          <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "8px" }}>ARCHIVED ({archived.length})</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            {archived.map((a) => (
+              <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.25)", opacity: 0.6 }}>
+                <span className="font-body text-muted-ink" style={{ fontSize: "0.82rem", flex: 1 }}>{a.name}</span>
+                <button onClick={() => toggleArchive(a.id, a.archived)} disabled={actionId === a.id} style={{ ...BTN.base, background: "transparent", color: "#9BFF3C", border: "1px solid rgba(155,255,60,0.3)", opacity: actionId === a.id ? 0.5 : 1 }}>RESTORE</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

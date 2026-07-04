@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   if (profile?.is_banned) return NextResponse.json({ error: "Account suspended" }, { status: 403 });
   if (!profile?.username) return NextResponse.json({ error: "Set a username first" }, { status: 400 });
 
-  const { name, location, difficulty, price, date_start, date_end, quota_max, description, image_url, requires_approval } = await req.json();
+  const { name, location, difficulty, activity_category, price, date_start, date_end, quota_max, description, image_url, requires_approval } = await req.json();
 
   if (!name || !location || !difficulty || !price || !date_start || !date_end || !quota_max) {
     return NextResponse.json({ error: "All required fields must be filled" }, { status: 400 });
@@ -37,6 +37,7 @@ export async function POST(req: Request) {
     name: name.trim(),
     location: location.trim(),
     difficulty,
+    activity_category: activity_category ?? null,
     price: price.trim(),
     date_start,
     date_end,
