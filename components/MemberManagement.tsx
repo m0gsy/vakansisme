@@ -32,13 +32,12 @@ export default function MemberManagement({
   };
 
   async function doAction(userId: string, act: "approve" | "reject" | "pending") {
+    if (loadingId) return;
     setLoadingId(userId);
-    await fetch(`/api/expeditions/${expeditionId}/members/${userId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: act }),
-    });
-    setLoadingId(null);
+
+    // ponytail: snapshot before optimistic update for rollback
+    const prevPending = [...pending];
+    const prevApproved = [...approved];
 
     if (act === "approve") {
       const member = pending.find((m) => m.user_id === userId);
@@ -57,6 +56,18 @@ export default function MemberManagement({
         setApproved((prev) => prev.filter((m) => m.user_id !== userId));
         setPending((prev) => [...prev, { ...member, profiles: member.profiles as { username: string } | null }]);
       }
+    }
+
+    const res = await fetch(`/api/expeditions/${expeditionId}/members/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: act }),
+    });
+
+    setLoadingId(null);
+    if (!res.ok) {
+      setPending(prevPending);
+      setApproved(prevApproved);
     }
   }
 
