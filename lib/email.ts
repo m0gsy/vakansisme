@@ -1,8 +1,34 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const client = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.RESEND_FROM ?? "VAKANSISME <noreply@vakansisme.club>";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
+
+// Resend's SDK does NOT throw on API-level failures (bad domain, invalid
+// recipient, etc) — it returns { data, error }. Without checking `error` here,
+// every send below would silently no-op while callers think it succeeded.
+const resend = {
+  emails: {
+    async send(payload: Parameters<typeof client.emails.send>[0]) {
+      const { data, error } = await client.emails.send(payload);
+      if (error) {
+        console.error("[resend] email send failed:", error);
+        throw new Error(error.message);
+      }
+      return data;
+    },
+  },
+  batch: {
+    async send(payload: Parameters<typeof client.batch.send>[0]) {
+      const { data, error } = await client.batch.send(payload);
+      if (error) {
+        console.error("[resend] batch send failed:", error);
+        throw new Error(error.message);
+      }
+      return data;
+    },
+  },
+};
 
 export async function sendWelcomeEmail(to: string, username: string) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
