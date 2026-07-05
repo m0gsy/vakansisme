@@ -54,7 +54,7 @@ function Cell({ children, muted }: { children: React.ReactNode; muted?: boolean 
 type LocationRow = { id: string; type: "province" | "city"; name: string; slug: string | null; parent_id: string | null };
 type DestinationRow = {
   id: string;
-  kind: "mountain" | "trail" | "national_park";
+  kind: string;
   name: string;
   slug: string | null;
   parent_id: string | null;
@@ -75,9 +75,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+const DEFAULT_KINDS = ["mountain", "trail", "national_park"];
+
 export default function AdminDestinations() {
   const [locations, setLocations] = useState<LocationRow[]>([]);
   const [destinations, setDestinations] = useState<DestinationRow[]>([]);
+  const [kinds, setKinds] = useState<string[]>(DEFAULT_KINDS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -85,10 +88,12 @@ export default function AdminDestinations() {
     Promise.all([
       fetch("/api/admin/locations").then((r) => r.json()),
       fetch("/api/admin/destinations").then((r) => r.json()),
+      fetch("/api/admin/kinds").then((r) => r.json()),
     ])
-      .then(([locJson, destJson]) => {
+      .then(([locJson, destJson, kindsJson]) => {
         setLocations(locJson.locations ?? []);
         setDestinations(destJson.destinations ?? []);
+        if (kindsJson.kinds?.length) setKinds(kindsJson.kinds);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -104,9 +109,77 @@ export default function AdminDestinations() {
       <Section title="LOCATIONS">
         <LocationsSection locations={locations} onError={setError} reload={load} />
       </Section>
-      <Section title="DESTINATIONS">
-        <DestinationsSection destinations={destinations} locations={locations} onError={setError} reload={load} />
+      <Section title="DESTINATION KINDS">
+        <KindsSection kinds={kinds} destinations={destinations} onError={setError} reload={load} />
       </Section>
+      <Section title="DESTINATIONS">
+        <DestinationsSection destinations={destinations} locations={locations} kinds={kinds} onError={setError} reload={load} />
+      </Section>
+    </div>
+  );
+}
+
+function KindsSection({ kinds, destinations, onError, reload }: { kinds: string[]; destinations: DestinationRow[]; onError: (e: string) => void; reload: () => void }) {
+  const [name, setName] = useState("");
+  const [addLoading, setAddLoading] = useState(false);
+  const [actionKind, setActionKind] = useState<string | null>(null);
+
+  const inUse = new Set(destinations.map((d) => d.kind));
+
+  async function add() {
+    if (!name.trim()) return;
+    setAddLoading(true);
+    onError("");
+    const res = await fetch("/api/admin/kinds", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim() }),
+    });
+    const json = await res.json();
+    if (!res.ok) { onError(json.error ?? "Failed to add kind"); setAddLoading(false); return; }
+    setName("");
+    setAddLoading(false);
+    reload();
+  }
+
+  async function del(kind: string) {
+    if (!confirm(`Delete kind "${kind}"?`)) return;
+    onError("");
+    setActionKind(kind);
+    const res = await fetch(`/api/admin/kinds/${encodeURIComponent(kind)}`, { method: "DELETE" });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      onError(json.error ?? "Failed to delete kind");
+    }
+    setActionKind(null);
+    reload();
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "16px" }}>
+        {kinds.map((k) => (
+          <span key={k} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 10px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)" }}>
+            <span className="font-body text-off-white" style={{ fontSize: "0.78rem" }}>{k}</span>
+            {!inUse.has(k) && (
+              <button
+                onClick={() => del(k)}
+                disabled={actionKind === k}
+                style={{ ...BTN.base, background: "transparent", color: "#FF6B1A", padding: "2px 6px", opacity: actionKind === k ? 0.5 : 1 }}
+              >
+                ×
+              </button>
+            )}
+          </span>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: "8px", alignItems: "end", maxWidth: "320px" }}>
+        <div style={{ flex: 1 }}>
+          <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>New kind (snake_case)</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="beach" className="font-body text-off-white placeholder:text-muted-ink focus:outline-none" style={fieldStyle} />
+        </div>
+        <button onClick={add} disabled={addLoading} style={{ ...BTN.base, background: "#9BFF3C", color: "#111111", padding: "8px 16px", opacity: addLoading ? 0.6 : 1 }}>ADD</button>
+      </div>
     </div>
   );
 }
@@ -233,11 +306,9 @@ function LocationsSection({ locations, onError, reload }: { locations: LocationR
   );
 }
 
-const KINDS = ["mountain", "trail", "national_park"] as const;
-
-function DestinationsSection({ destinations, locations, onError, reload }: { destinations: DestinationRow[]; locations: LocationRow[]; onError: (e: string) => void; reload: () => void }) {
+function DestinationsSection({ destinations, locations, kinds, onError, reload }: { destinations: DestinationRow[]; locations: LocationRow[]; kinds: string[]; onError: (e: string) => void; reload: () => void }) {
   const [name, setName] = useState("");
-  const [kind, setKind] = useState<typeof KINDS[number]>("mountain");
+  const [kind, setKind] = useState(kinds[0] ?? "mountain");
   const [parentId, setParentId] = useState("");
   const [locationId, setLocationId] = useState("");
   const [elevation, setElevation] = useState("");
@@ -334,8 +405,8 @@ function DestinationsSection({ destinations, locations, onError, reload }: { des
         </div>
         <div>
           <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Kind</label>
-          <select value={kind} onChange={(e) => setKind(e.target.value as typeof KINDS[number])} className="font-body text-off-white focus:outline-none" style={{ ...fieldStyle, cursor: "pointer" }}>
-            {KINDS.map((k) => <option key={k} value={k} style={{ background: "#111111" }}>{k}</option>)}
+          <select value={kind} onChange={(e) => setKind(e.target.value)} className="font-body text-off-white focus:outline-none" style={{ ...fieldStyle, cursor: "pointer" }}>
+            {kinds.map((k) => <option key={k} value={k} style={{ background: "#111111" }}>{k}</option>)}
           </select>
         </div>
         {kind === "trail" && (

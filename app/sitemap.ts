@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { absoluteUrl, slugify } from "@/lib/seo";
+import { destBasePath } from "@/lib/related";
 
 export async function generateSitemaps() {
   return [
@@ -103,14 +104,8 @@ export default async function sitemap({
         .select("slug, kind, created_at, image_url")
         .not("description", "is", null);
 
-      const basePathByKind: Record<string, string> = {
-        mountain: "/mountain",
-        trail: "/trail",
-        national_park: "/national-park",
-      };
-
       return (destinations ?? []).map((d) => ({
-        url: absoluteUrl(`${basePathByKind[d.kind]}/${d.slug}`),
+        url: absoluteUrl(`${destBasePath(d.kind)}/${d.slug}`),
         lastModified: new Date(d.created_at),
         priority: 0.6,
         ...(d.image_url ? { images: [d.image_url] } : {}),

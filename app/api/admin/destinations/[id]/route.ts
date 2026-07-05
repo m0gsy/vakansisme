@@ -3,8 +3,13 @@ import { NextResponse } from "next/server";
 import { slugify } from "@/lib/seo";
 
 type Params = Promise<{ id: string }>;
-const KINDS = ["mountain", "trail", "national_park"] as const;
 const SELECT = "id, kind, name, slug, parent_id, location_id, elevation_m, description, image_url";
+
+async function isValidKind(supabase: Awaited<ReturnType<typeof createClient>>, kind: unknown) {
+  if (typeof kind !== "string") return false;
+  const { data } = await supabase.from("destination_kinds").select("name").eq("name", kind).maybeSingle();
+  return !!data;
+}
 
 async function getAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
@@ -27,7 +32,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     update.name = name;
   }
   if (body.kind !== undefined) {
-    if (!KINDS.includes(body.kind)) return NextResponse.json({ error: "Invalid kind" }, { status: 400 });
+    if (!await isValidKind(supabase, body.kind)) return NextResponse.json({ error: "Invalid kind" }, { status: 400 });
     update.kind = body.kind;
   }
   if (body.parent_id !== undefined) update.parent_id = body.parent_id || null;

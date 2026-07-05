@@ -1,13 +1,13 @@
-import type { DestKind } from "@/components/DestinationPage";
-
-const DEST_BASE_PATH: Record<DestKind, string> = {
+// Known kinds get a dedicated route (SEO-friendly path); any other kind (admin-added)
+// falls back to the generic /destination/[slug] route.
+const DEDICATED_BASE_PATH: Record<string, string> = {
   mountain: "/mountain",
   trail: "/trail",
   national_park: "/national-park",
 };
 
-export function destBasePath(kind: DestKind): string {
-  return DEST_BASE_PATH[kind];
+export function destBasePath(kind: string): string {
+  return DEDICATED_BASE_PATH[kind] ?? "/destination";
 }
 
 // ponytail: sums weights per row id across score groups, keeps first-seen row data,

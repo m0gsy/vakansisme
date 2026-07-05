@@ -1,8 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
-const KINDS = ["mountain", "trail", "national_park"] as const;
 const SELECT = "id, kind, name, slug, parent_id, location_id, elevation_m, description, image_url";
+
+async function isValidKind(supabase: Awaited<ReturnType<typeof createClient>>, kind: unknown) {
+  if (typeof kind !== "string") return false;
+  const { data } = await supabase.from("destination_kinds").select("name").eq("name", kind).maybeSingle();
+  return !!data;
+}
 
 async function getAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
@@ -30,7 +35,7 @@ export async function POST(req: Request) {
   if (!name || typeof name !== "string" || name.trim().length < 2 || name.trim().length > 100) {
     return NextResponse.json({ error: "Name must be 2–100 characters" }, { status: 400 });
   }
-  if (!KINDS.includes(kind)) {
+  if (!await isValidKind(supabase, kind)) {
     return NextResponse.json({ error: "Invalid kind" }, { status: 400 });
   }
   if (kind === "trail" && !parent_id) {

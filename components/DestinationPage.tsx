@@ -5,13 +5,14 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveSlugOrRedirect } from "@/lib/resolve";
 import { absoluteUrl } from "@/lib/seo";
 
-export type DestKind = "mountain" | "trail" | "national_park";
+// Kinds are admin-defined (destination_kinds table) — not a fixed union anymore.
+// The 3 original kinds keep dedicated routes/behavior below; any other kind renders
+// generically via the /destination/[slug] route.
+export type DestKind = string;
 
-const KIND_LABEL: Record<DestKind, string> = {
-  mountain: "MOUNTAIN",
-  trail: "TRAIL",
-  national_park: "NATIONAL PARK",
-};
+function kindLabel(kind: string): string {
+  return kind.replace(/_/g, " ").toUpperCase();
+}
 
 type Destination = {
   id: string;
@@ -55,7 +56,7 @@ const FALLBACK = "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?a
 // (object literals always fail cache dedup). generateMetadata and the page body
 // call with the same values and share one fetch per request.
 export const getDestinationData = cache(
-  async (kind: DestKind, param: string, basePath: string) => {
+  async (kind: DestKind | null, param: string, basePath: string) => {
     const supabase = await createClient();
 
     const dest = await resolveSlugOrRedirect<Destination>({
@@ -65,7 +66,7 @@ export const getDestinationData = cache(
       param,
       basePath,
       select: "id, kind, name, slug, parent_id, location_id, elevation_m, description, image_url",
-      filter: [{ column: "kind", value: kind }],
+      filter: kind ? [{ column: "kind", value: kind }] : [],
     });
 
     const [{ data: expeditions }, { data: stories }, parentMountain, childTrails, locationChain] =
@@ -149,7 +150,7 @@ export default async function DestinationPage({
   basePath,
   param,
 }: {
-  kind: DestKind;
+  kind: DestKind | null;
   basePath: string;
   param: string;
 }) {
@@ -242,7 +243,7 @@ export default async function DestinationPage({
             className="font-body font-semibold text-charcoal bg-neon-green"
             style={{ fontSize: "0.62rem", letterSpacing: "0.08em", padding: "4px 10px" }}
           >
-            {KIND_LABEL[dest.kind]}
+            {kindLabel(dest.kind)}
           </span>
           {!!dest.elevation_m && (
             <span
