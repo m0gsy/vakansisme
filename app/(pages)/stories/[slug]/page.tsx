@@ -3,6 +3,8 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { resolveSlugOrRedirect } from "@/lib/resolve";
 import { absoluteUrl, buildEntityMetadata, slugify } from "@/lib/seo";
+import { destBasePath, mergeScored } from "@/lib/related";
+import type { DestKind } from "@/components/DestinationPage";
 import Image from "next/image";
 import Link from "next/link";
 import StoryComments from "@/components/StoryComments";
@@ -35,6 +37,17 @@ type Story = {
   created_at: string;
   view_count: number;
   published: boolean;
+  destination_id: string | null;
+};
+
+type RelatedStory = {
+  id: string;
+  slug: string;
+  title: string;
+  type: string;
+  image_url: string | null;
+  author_handle: string;
+  created_at: string;
 };
 
 const getStory = cache(async (param: string) => {
@@ -70,21 +83,36 @@ export default async function StoryPage({ params }: { params: Params }) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: comments }, { count: likeCount }, { data: userLike }] = await Promise.all([
+  const relatedSelect = "id, slug, title, type, image_url, author_handle, created_at";
+
+  const [
+    { data: comments }, { count: likeCount }, { data: userLike },
+    { data: destRow }, { data: sameDest }, { data: sameTags }, { data: sameType },
+  ] = await Promise.all([
     supabase.from("story_comments").select("id, author_id, author_handle, content, created_at").eq("story_id", story.id).order("created_at", { ascending: true }),
     supabase.from("story_likes").select("*", { count: "exact", head: true }).eq("story_id", story.id),
     user
       ? supabase.from("story_likes").select("user_id").eq("story_id", story.id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
+    story.destination_id
+      ? supabase.from("destinations").select("kind, name, slug").eq("id", story.destination_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    story.destination_id
+      ? supabase.from("stories").select(relatedSelect).eq("published", true).eq("destination_id", story.destination_id).neq("id", story.id).order("created_at", { ascending: false }).limit(6)
+      : Promise.resolve({ data: null }),
+    story.tags?.length
+      ? supabase.from("stories").select(relatedSelect).eq("published", true).overlaps("tags", story.tags).neq("id", story.id).order("created_at", { ascending: false }).limit(6)
+      : Promise.resolve({ data: null }),
+    supabase.from("stories").select(relatedSelect).eq("published", true).eq("type", story.type).neq("id", story.id).order("created_at", { ascending: false }).limit(6),
   ]);
 
-  const { data: related } = await supabase
-    .from("stories")
-    .select("id, slug, title, type, image_url, author_handle")
-    .eq("published", true)
-    .eq("type", story.type)
-    .neq("id", story.id)
-    .limit(3);
+  const related = mergeScored<RelatedStory>(
+    { rows: (sameDest as RelatedStory[] | null) ?? [], weight: 3 },
+    { rows: (sameTags as RelatedStory[] | null) ?? [], weight: 2 },
+    { rows: (sameType as RelatedStory[] | null) ?? [], weight: 1 },
+  ).slice(0, 6);
+
+  const destination = destRow as { kind: DestKind; name: string; slug: string } | null;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -204,6 +232,15 @@ export default async function StoryPage({ params }: { params: Params }) {
               style={{ fontSize: "0.72rem", letterSpacing: "0.1em" }}
             >
               EDIT
+            </Link>
+          )}
+          {destination && (
+            <Link
+              href={`${destBasePath(destination.kind)}/${destination.slug}`}
+              className="font-body font-semibold text-muted-ink hover:text-neon-green transition-colors duration-150"
+              style={{ fontSize: "0.78rem" }}
+            >
+              📍 {destination.name}
             </Link>
           )}
         </div>

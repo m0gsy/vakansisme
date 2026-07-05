@@ -5,6 +5,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { resolveSlugOrRedirect } from "@/lib/resolve";
 import { absoluteUrl, buildEntityMetadata } from "@/lib/seo";
+import { destBasePath, mergeScored } from "@/lib/related";
+import type { DestKind } from "@/components/DestinationPage";
 import JoinButton from "@/components/JoinButton";
 import RealtimeQuota from "@/components/RealtimeQuota";
 import { difficultyLabel, getDifficulty } from "@/lib/difficulty";
@@ -41,7 +43,27 @@ type Expedition = {
   application_prompt: string | null;
   requires_approval: boolean;
   activity_category: string;
+  destination_id: string | null;
   profiles: { username: string; avatar_url: string | null } | { username: string; avatar_url: string | null }[] | null;
+};
+
+type SimilarExpedition = {
+  id: string;
+  slug: string;
+  name: string;
+  location: string;
+  date_start: string;
+  status: string;
+  difficulty: string;
+};
+
+type TripStory = {
+  id: string;
+  slug: string;
+  title: string;
+  image_url: string | null;
+  author_handle: string;
+  created_at: string;
 };
 
 const getExpedition = cache(async (param: string) => {
@@ -86,12 +108,17 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
   const priceAmount = parseInt(((trip as { price?: string }).price ?? "").replace(/\D/g, ""), 10) || 0;
   const tripLeaderId = (trip as { leader_id?: string }).leader_id;
 
+  const similarSelect = "id, slug, name, location, date_start, status, difficulty";
+  const storySelect = "id, slug, title, image_url, author_handle, created_at";
+
   const [
     { count: memberCount },
     { data: members }, { data: gallery }, { data: membership }, { data: comments },
     { data: waitlistRow }, { count: waitlistCount }, { data: updates }, { data: packingItems },
     { data: userChecks }, { data: reviews }, { data: bookmarkRow },
-    { data: similar }, { data: paidRow }, { data: callerProfile },
+    { data: sameDestExp }, { data: sameActivityExp }, { data: sameLocationExp },
+    { data: tripStories }, { data: destStories }, { data: destRow },
+    { data: paidRow }, { data: callerProfile },
   ] = await Promise.all([
     supabase.from("expedition_members").select("*", { count: "exact", head: true }).eq("expedition_id", id).eq("status", "approved"),
     supabase.from("expedition_members").select("user_id, status, profiles(username, avatar_url)").eq("expedition_id", id).neq("status", "rejected").limit(30),
@@ -111,7 +138,20 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
     user
       ? supabase.from("bookmarks").select("user_id").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase.from("expeditions").select("id, slug, name, location, date_start, status, difficulty").neq("id", id).ilike("location", `%${trip.location.split(",")[0].trim()}%`).limit(3),
+    trip.destination_id
+      ? supabase.from("expeditions").select(similarSelect).eq("destination_id", trip.destination_id).neq("id", id).in("status", ["upcoming", "ongoing"]).order("date_start", { ascending: true }).limit(6)
+      : Promise.resolve({ data: null }),
+    trip.activity_category
+      ? supabase.from("expeditions").select(similarSelect).eq("activity_category", trip.activity_category).neq("id", id).in("status", ["upcoming", "ongoing"]).order("date_start", { ascending: true }).limit(6)
+      : Promise.resolve({ data: null }),
+    supabase.from("expeditions").select(similarSelect).neq("id", id).ilike("location", `%${trip.location.split(",")[0].trim()}%`).in("status", ["upcoming", "ongoing"]).limit(6),
+    supabase.from("stories").select(storySelect).eq("published", true).eq("expedition_id", id).order("created_at", { ascending: false }).limit(6),
+    trip.destination_id
+      ? supabase.from("stories").select(storySelect).eq("published", true).eq("destination_id", trip.destination_id).order("created_at", { ascending: false }).limit(6)
+      : Promise.resolve({ data: null }),
+    trip.destination_id
+      ? supabase.from("destinations").select("kind, name, slug").eq("id", trip.destination_id).maybeSingle()
+      : Promise.resolve({ data: null }),
     user && priceAmount > 0
       ? supabase.from("expedition_payments").select("status").eq("user_id", user.id).eq("expedition_id", id).eq("status", "paid").maybeSingle()
       : Promise.resolve({ data: null }),
@@ -125,6 +165,19 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
   const { data: activityRow } = trip.activity_category
     ? await supabase.from("activities").select("slug").eq("name", trip.activity_category).maybeSingle()
     : { data: null };
+
+  const similar = mergeScored<SimilarExpedition>(
+    { rows: (sameDestExp as SimilarExpedition[] | null) ?? [], weight: 3 },
+    { rows: (sameActivityExp as SimilarExpedition[] | null) ?? [], weight: 2 },
+    { rows: (sameLocationExp as SimilarExpedition[] | null) ?? [], weight: 1 },
+  ).slice(0, 6);
+
+  const tripStoriesMerged = mergeScored<TripStory>(
+    { rows: (tripStories as TripStory[] | null) ?? [], weight: 1 },
+    { rows: (destStories as TripStory[] | null) ?? [], weight: 1 },
+  ).slice(0, 4);
+
+  const destination = destRow as { kind: DestKind; name: string; slug: string } | null;
 
   const isPaid = !!paidRow;
 
@@ -290,6 +343,18 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
             <p className="font-body text-muted-ink" style={{ fontSize: "0.88rem", marginBottom: trip.description ? "24px" : "40px" }}>
               {trip.location}
+              {destination && (
+                <>
+                  {" · "}
+                  <Link
+                    href={`${destBasePath(destination.kind)}/${destination.slug}`}
+                    className="font-body font-semibold hover:text-neon-green transition-colors duration-150"
+                    style={{ color: "#8B7355" }}
+                  >
+                    📍 {destination.name}
+                  </Link>
+                </>
+              )}
             </p>
 
             {/* Description */}
@@ -528,6 +593,38 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                     )}
                     <p className="font-body text-muted-ink" style={{ fontSize: "0.7rem", marginTop: "4px" }}>
                       {new Date(s.date_start).toLocaleDateString("en", { month: "short", year: "numeric" })}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {tripStoriesMerged.length > 0 && (
+          <section style={{ marginTop: "64px", paddingTop: "40px", borderTop: "1px solid rgba(74,59,42,0.3)" }}>
+            <h2 className="font-display font-black uppercase text-off-white" style={{ fontSize: "clamp(1rem, 2.5vw, 1.4rem)", letterSpacing: "-0.02em", marginBottom: "16px" }}>
+              STORIES FROM THIS TRIP
+            </h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {tripStoriesMerged.map((s) => (
+                <Link
+                  key={s.id}
+                  href={`/stories/${s.slug}`}
+                  className="group"
+                  style={{ display: "flex", gap: "14px", alignItems: "center", padding: "12px 14px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.3)" }}
+                >
+                  {s.image_url && (
+                    <div className="relative flex-shrink-0" style={{ width: "56px", height: "40px" }}>
+                      <Image src={s.image_url} alt={s.title} fill sizes="56px" className="object-cover" style={{ filter: "grayscale(20%)" }} />
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-display font-bold uppercase text-off-white group-hover:text-neon-green transition-colors duration-150" style={{ fontSize: "0.85rem", letterSpacing: "-0.01em" }}>
+                      {s.title}
+                    </p>
+                    <p className="font-body text-muted-ink" style={{ fontSize: "0.68rem", marginTop: "2px" }}>
+                      {s.author_handle}
                     </p>
                   </div>
                 </Link>
