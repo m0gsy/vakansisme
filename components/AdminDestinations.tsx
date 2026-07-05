@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { slugify } from "@/lib/seo";
 
 const BTN = {
@@ -316,9 +316,59 @@ function DestinationsSection({ destinations, locations, kinds, onError, reload }
   const [imageUrl, setImageUrl] = useState("");
   const [addLoading, setAddLoading] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "", kind: "", parentId: "", locationId: "", elevation: "", description: "", imageUrl: "", slug: "",
+  });
+  const [editSaving, setEditSaving] = useState(false);
 
   const mountains = destinations.filter((d) => d.kind === "mountain");
   const nameById = new Map(destinations.map((d) => [d.id, d.name]));
+
+  function startEdit(d: DestinationRow) {
+    onError("");
+    setEditingId(d.id);
+    setEditForm({
+      name: d.name,
+      kind: d.kind,
+      parentId: d.parent_id ?? "",
+      locationId: d.location_id ?? "",
+      elevation: d.elevation_m != null ? String(d.elevation_m) : "",
+      description: d.description ?? "",
+      imageUrl: d.image_url ?? "",
+      slug: d.slug ?? "",
+    });
+  }
+
+  async function saveEdit(id: string) {
+    if (!editForm.name.trim()) { onError("Name is required"); return; }
+    if (editForm.slug && slugify(editForm.slug) !== editForm.slug) { onError("Slug must be lowercase, alphanumeric, hyphen-separated"); return; }
+    setEditSaving(true);
+    onError("");
+    const res = await fetch(`/api/admin/destinations/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editForm.name.trim(),
+        kind: editForm.kind,
+        parent_id: editForm.kind === "trail" ? (editForm.parentId || null) : null,
+        location_id: editForm.locationId || null,
+        elevation_m: editForm.elevation || null,
+        description: editForm.description.trim() || null,
+        image_url: editForm.imageUrl.trim() || null,
+        slug: editForm.slug,
+      }),
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      onError(json.error ?? "Failed to save changes");
+      setEditSaving(false);
+      return;
+    }
+    setEditSaving(false);
+    setEditingId(null);
+    reload();
+  }
 
   async function add() {
     if (!name.trim()) return;
@@ -342,44 +392,6 @@ function DestinationsSection({ destinations, locations, kinds, onError, reload }
     if (!res.ok) { onError(json.error ?? "Failed to add destination"); setAddLoading(false); return; }
     setName(""); setParentId(""); setLocationId(""); setElevation(""); setDescription(""); setImageUrl("");
     setAddLoading(false);
-    reload();
-  }
-
-  async function rename(d: DestinationRow) {
-    const next = prompt("New name:", d.name);
-    if (!next || !next.trim() || next.trim() === d.name) return;
-    onError("");
-    setActionId(d.id);
-    const res = await fetch(`/api/admin/destinations/${d.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: next.trim() }),
-    });
-    if (!res.ok) {
-      const json = await res.json().catch(() => ({}));
-      onError(json.error ?? "Failed to rename");
-    }
-    setActionId(null);
-    reload();
-  }
-
-  async function editSlug(d: DestinationRow) {
-    const next = prompt("New slug:", d.slug ?? "");
-    if (next === null || !next.trim() || next.trim() === d.slug) return;
-    const slug = next.trim();
-    if (slugify(slug) !== slug) { onError("Slug must be lowercase, alphanumeric, hyphen-separated"); return; }
-    onError("");
-    setActionId(d.id);
-    const res = await fetch(`/api/admin/destinations/${d.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug }),
-    });
-    if (!res.ok) {
-      const json = await res.json().catch(() => ({}));
-      onError(json.error ?? "Failed to update slug");
-    }
-    setActionId(null);
     reload();
   }
 
@@ -452,18 +464,73 @@ function DestinationsSection({ destinations, locations, kinds, onError, reload }
           </thead>
           <tbody>
             {destinations.map((d) => (
-              <tr key={d.id} style={rowStyle}>
-                <Cell>{d.name}{d.parent_id ? <span className="font-body text-muted-ink" style={{ fontSize: "0.72rem" }}> ({nameById.get(d.parent_id) ?? "—"})</span> : null}</Cell>
-                <Cell muted>{d.kind}</Cell>
-                <Cell muted>{d.slug}</Cell>
-                <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    <button onClick={() => rename(d)} disabled={actionId === d.id} style={{ ...BTN.base, background: "transparent", color: "#8B7355", border: "1px solid rgba(74,59,42,0.4)", opacity: actionId === d.id ? 0.5 : 1 }}>RENAME</button>
-                    <button onClick={() => editSlug(d)} disabled={actionId === d.id} style={{ ...BTN.base, background: "transparent", color: "#9BFF3C", border: "1px solid rgba(155,255,60,0.3)", opacity: actionId === d.id ? 0.5 : 1 }}>SLUG</button>
-                    <button onClick={() => del(d)} disabled={actionId === d.id} style={{ ...BTN.base, background: "transparent", color: "#FF6B1A", border: "1px solid rgba(255,107,26,0.3)", opacity: actionId === d.id ? 0.5 : 1 }}>DELETE</button>
-                  </div>
-                </td>
-              </tr>
+              <Fragment key={d.id}>
+                <tr style={rowStyle}>
+                  <Cell>{d.name}{d.parent_id ? <span className="font-body text-muted-ink" style={{ fontSize: "0.72rem" }}> ({nameById.get(d.parent_id) ?? "—"})</span> : null}</Cell>
+                  <Cell muted>{d.kind}</Cell>
+                  <Cell muted>{d.slug}</Cell>
+                  <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <button onClick={() => (editingId === d.id ? setEditingId(null) : startEdit(d))} disabled={actionId === d.id} style={{ ...BTN.base, background: "transparent", color: "#8B7355", border: "1px solid rgba(74,59,42,0.4)", opacity: actionId === d.id ? 0.5 : 1 }}>{editingId === d.id ? "CLOSE" : "EDIT"}</button>
+                      <button onClick={() => del(d)} disabled={actionId === d.id} style={{ ...BTN.base, background: "transparent", color: "#FF6B1A", border: "1px solid rgba(255,107,26,0.3)", opacity: actionId === d.id ? 0.5 : 1 }}>DELETE</button>
+                    </div>
+                  </td>
+                </tr>
+                {editingId === d.id && (
+                  <tr style={rowStyle}>
+                    <td colSpan={4} style={{ padding: "16px", background: "#141414" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginBottom: "12px" }}>
+                        <div>
+                          <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Name</label>
+                          <input value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} className="font-body text-off-white focus:outline-none" style={fieldStyle} />
+                        </div>
+                        <div>
+                          <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Kind</label>
+                          <select value={editForm.kind} onChange={(e) => setEditForm((f) => ({ ...f, kind: e.target.value }))} className="font-body text-off-white focus:outline-none" style={{ ...fieldStyle, cursor: "pointer" }}>
+                            {kinds.map((k) => <option key={k} value={k} style={{ background: "#111111" }}>{k}</option>)}
+                          </select>
+                        </div>
+                        {editForm.kind === "trail" && (
+                          <div>
+                            <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Parent mountain</label>
+                            <select value={editForm.parentId} onChange={(e) => setEditForm((f) => ({ ...f, parentId: e.target.value }))} className="font-body text-off-white focus:outline-none" style={{ ...fieldStyle, cursor: "pointer" }}>
+                              <option value="">— Select —</option>
+                              {mountains.filter((m) => m.id !== d.id).map((m) => <option key={m.id} value={m.id} style={{ background: "#111111" }}>{m.name}</option>)}
+                            </select>
+                          </div>
+                        )}
+                        <div>
+                          <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Location</label>
+                          <select value={editForm.locationId} onChange={(e) => setEditForm((f) => ({ ...f, locationId: e.target.value }))} className="font-body text-off-white focus:outline-none" style={{ ...fieldStyle, cursor: "pointer" }}>
+                            <option value="">— None —</option>
+                            {locations.map((l) => <option key={l.id} value={l.id} style={{ background: "#111111" }}>{l.name}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Elevation (m)</label>
+                          <input type="number" value={editForm.elevation} onChange={(e) => setEditForm((f) => ({ ...f, elevation: e.target.value }))} className="font-body text-off-white focus:outline-none" style={fieldStyle} />
+                        </div>
+                        <div>
+                          <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Image URL</label>
+                          <input value={editForm.imageUrl} onChange={(e) => setEditForm((f) => ({ ...f, imageUrl: e.target.value }))} className="font-body text-off-white focus:outline-none" style={fieldStyle} />
+                        </div>
+                        <div>
+                          <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Slug</label>
+                          <input value={editForm.slug} onChange={(e) => setEditForm((f) => ({ ...f, slug: e.target.value }))} className="font-body text-off-white focus:outline-none" style={fieldStyle} />
+                        </div>
+                      </div>
+                      <div style={{ marginBottom: "12px" }}>
+                        <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Description</label>
+                        <textarea value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} rows={3} className="font-body text-off-white focus:outline-none resize-none" style={{ ...fieldStyle, lineHeight: 1.6 }} />
+                      </div>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button onClick={() => saveEdit(d.id)} disabled={editSaving} style={{ ...BTN.base, background: "#9BFF3C", color: "#111111", padding: "8px 16px", opacity: editSaving ? 0.6 : 1 }}>{editSaving ? "SAVING..." : "SAVE"}</button>
+                        <button onClick={() => setEditingId(null)} disabled={editSaving} style={{ ...BTN.base, background: "transparent", color: "#8B7355", border: "1px solid rgba(74,59,42,0.4)" }}>CANCEL</button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             ))}
             {!destinations.length && (
               <tr><td colSpan={4} className="font-body text-muted-ink" style={{ padding: "16px", fontSize: "0.82rem" }}>No destinations yet.</td></tr>

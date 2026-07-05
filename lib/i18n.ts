@@ -4,6 +4,7 @@ export const dict = {
   id: {
     // nav
     nav_expeditions: "EKSPEDISI",
+    nav_explore: "JELAJAH",
     nav_journal: "JURNAL",
     nav_crew: "KREW",
     nav_chaos: "CHAOS WALL",
@@ -120,6 +121,7 @@ export const dict = {
   },
   en: {
     nav_expeditions: "EXPEDITIONS",
+    nav_explore: "EXPLORE",
     nav_journal: "JOURNAL",
     nav_crew: "CREW",
     nav_chaos: "CHAOS WALL",

@@ -16,6 +16,7 @@ function getNavLinks(locale: Locale) {
   const d = dict[locale];
   return [
     { href: "/expeditions", label: d.nav_expeditions },
+    { href: "/explore", label: d.nav_explore },
     { href: "/stories", label: d.nav_journal },
     { href: "/crew", label: d.nav_crew },
     { href: "/chaos", label: d.nav_chaos },
