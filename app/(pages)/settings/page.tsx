@@ -29,6 +29,8 @@ export default function SettingsPage() {
   const [ready, setReady] = useState(false);
   const [userId, setUserId] = useState("");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [instagramHandle, setInstagramHandle] = useState("");
@@ -55,11 +57,13 @@ export default function SettingsPage() {
       if (!data.user) { router.replace("/login"); return; }
       setUserId(data.user.id);
       const [{ data: profile }, { prefs: fetchedPrefs }] = await Promise.all([
-        supabase.from("profiles").select("username, bio, avatar_url, instagram_handle, strava_url").eq("id", data.user.id).single(),
+        supabase.from("profiles").select("username, email, phone, bio, avatar_url, instagram_handle, strava_url").eq("id", data.user.id).single(),
         fetch("/api/account/notification-prefs").then((r) => r.json()),
       ]);
       if (profile) {
         setUsername(profile.username ?? "");
+        setEmail(profile.email ?? data.user.email ?? "");
+        setPhone(profile.phone ?? "");
         setBio(profile.bio ?? "");
         setAvatarUrl(profile.avatar_url ?? "");
         setInstagramHandle(profile.instagram_handle ?? "");
@@ -74,10 +78,16 @@ export default function SettingsPage() {
     e.preventDefault();
     setError("");
     setSuccess(false);
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("Enter a valid email address");
+      return;
+    }
     setSaving(true);
     const supabase = createClient();
     const { error } = await supabase.from("profiles").update({
       username: username.trim(),
+      email: email.trim() || null,
+      phone: phone.trim() || null,
       bio: bio.trim() || null,
       avatar_url: avatarUrl || null,
       instagram_handle: instagramHandle.trim().replace(/^@/, "") || null,
@@ -189,6 +199,20 @@ export default function SettingsPage() {
           <div>
             <label className="font-body font-semibold text-muted-ink uppercase block mb-2" style={{ fontSize: "0.65rem", letterSpacing: "0.12em" }}>Username *</label>
             <input type="text" value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} required maxLength={30}
+              className="font-body text-off-white placeholder:text-muted-ink focus:outline-none" style={inputStyle}
+              onFocus={(e) => (e.currentTarget.style.borderBottomColor = "#9BFF3C")}
+              onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")} />
+          </div>
+          <div>
+            <label className="font-body font-semibold text-muted-ink uppercase block mb-2" style={{ fontSize: "0.65rem", letterSpacing: "0.12em" }}>Email</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" maxLength={255}
+              className="font-body text-off-white placeholder:text-muted-ink focus:outline-none" style={inputStyle}
+              onFocus={(e) => (e.currentTarget.style.borderBottomColor = "#9BFF3C")}
+              onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")} />
+          </div>
+          <div>
+            <label className="font-body font-semibold text-muted-ink uppercase block mb-2" style={{ fontSize: "0.65rem", letterSpacing: "0.12em" }}>Phone <span style={{ textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+62 812 3456 7890" maxLength={20}
               className="font-body text-off-white placeholder:text-muted-ink focus:outline-none" style={inputStyle}
               onFocus={(e) => (e.currentTarget.style.borderBottomColor = "#9BFF3C")}
               onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#4A3B2A")} />

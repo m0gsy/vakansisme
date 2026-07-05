@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextResponse } from "next/server";
 import { sendReminderEmail } from "@/lib/email";
 
@@ -71,8 +72,17 @@ export async function POST(req: Request) {
 
     for (const m of members ?? []) {
       const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles as { username?: string; email?: string } | null;
-      if (!p?.email || !p?.username) continue;
-      await sendReminderEmail(p.email, p.username, exp.name, exp.slug, expDays).catch(() => {});
+      if (!p?.username) continue;
+      // profiles.email is only backfilled on first login confirmation, so older
+      // accounts often have it null — fall back to the authoritative auth email.
+      let email = p.email;
+      if (!email) {
+        const service = createServiceClient();
+        const { data } = await service.auth.admin.getUserById(m.user_id);
+        email = data.user?.email ?? null;
+      }
+      if (!email) continue;
+      await sendReminderEmail(email, p.username, exp.name, exp.slug, expDays).catch(() => {});
       sent++;
     }
 
