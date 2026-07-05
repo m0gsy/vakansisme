@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { slugify } from "@/lib/seo";
+import { kindLabel } from "@/lib/related";
 
 const BTN = {
   base: {
@@ -160,7 +161,7 @@ function KindsSection({ kinds, destinations, onError, reload }: { kinds: string[
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "16px" }}>
         {kinds.map((k) => (
           <span key={k} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px 10px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)" }}>
-            <span className="font-body text-off-white" style={{ fontSize: "0.78rem" }}>{k}</span>
+            <span className="font-body text-off-white" style={{ fontSize: "0.78rem" }}>{kindLabel(k)}</span>
             {!inUse.has(k) && (
               <button
                 onClick={() => del(k)}
@@ -418,7 +419,7 @@ function DestinationsSection({ destinations, locations, kinds, onError, reload }
         <div>
           <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Kind</label>
           <select value={kind} onChange={(e) => setKind(e.target.value)} className="font-body text-off-white focus:outline-none" style={{ ...fieldStyle, cursor: "pointer" }}>
-            {kinds.map((k) => <option key={k} value={k} style={{ background: "#111111" }}>{k}</option>)}
+            {kinds.map((k) => <option key={k} value={k} style={{ background: "#111111" }}>{kindLabel(k)}</option>)}
           </select>
         </div>
         {kind === "trail" && (
@@ -467,7 +468,7 @@ function DestinationsSection({ destinations, locations, kinds, onError, reload }
               <Fragment key={d.id}>
                 <tr style={rowStyle}>
                   <Cell>{d.name}{d.parent_id ? <span className="font-body text-muted-ink" style={{ fontSize: "0.72rem" }}> ({nameById.get(d.parent_id) ?? "—"})</span> : null}</Cell>
-                  <Cell muted>{d.kind}</Cell>
+                  <Cell muted>{kindLabel(d.kind)}</Cell>
                   <Cell muted>{d.slug}</Cell>
                   <td style={{ padding: "12px 16px", verticalAlign: "middle" }}>
                     <div style={{ display: "flex", gap: "6px" }}>
@@ -487,7 +488,7 @@ function DestinationsSection({ destinations, locations, kinds, onError, reload }
                         <div>
                           <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Kind</label>
                           <select value={editForm.kind} onChange={(e) => setEditForm((f) => ({ ...f, kind: e.target.value }))} className="font-body text-off-white focus:outline-none" style={{ ...fieldStyle, cursor: "pointer" }}>
-                            {kinds.map((k) => <option key={k} value={k} style={{ background: "#111111" }}>{k}</option>)}
+                            {kinds.map((k) => <option key={k} value={k} style={{ background: "#111111" }}>{kindLabel(k)}</option>)}
                           </select>
                         </div>
                         {editForm.kind === "trail" && (
