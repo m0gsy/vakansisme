@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { resolveSlugOrRedirect } from "@/lib/resolve";
-import { absoluteUrl, buildEntityMetadata, slugify } from "@/lib/seo";
+import { absoluteUrl, buildEntityMetadata } from "@/lib/seo";
 import JoinButton from "@/components/JoinButton";
 import RealtimeQuota from "@/components/RealtimeQuota";
 import { difficultyLabel, getDifficulty } from "@/lib/difficulty";
@@ -119,6 +119,12 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
       ? supabase.from("profiles").select("username, is_admin").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
   ]);
+
+  // Activity name -> slug lookup: activities.slug is immutable, so a renamed category
+  // (e.g. "Hiking" -> "Trekking") no longer matches its old slug. Look up by current name.
+  const { data: activityRow } = trip.activity_category
+    ? await supabase.from("activities").select("slug").eq("name", trip.activity_category).maybeSingle()
+    : { data: null };
 
   const isPaid = !!paidRow;
 
@@ -250,13 +256,22 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                 </span>
               )}
               {trip.activity_category && (
-                <Link
-                  href={`/categories/${slugify(trip.activity_category)}`}
-                  className="font-body font-semibold inline-block hover:text-neon-green transition-colors duration-150"
-                  style={{ fontSize: "0.65rem", letterSpacing: "0.1em", padding: "4px 10px", border: "1px solid rgba(74,59,42,0.5)", color: "#8B7355" }}
-                >
-                  {trip.activity_category.toUpperCase()}
-                </Link>
+                activityRow?.slug ? (
+                  <Link
+                    href={`/categories/${activityRow.slug}`}
+                    className="font-body font-semibold inline-block hover:text-neon-green transition-colors duration-150"
+                    style={{ fontSize: "0.65rem", letterSpacing: "0.1em", padding: "4px 10px", border: "1px solid rgba(74,59,42,0.5)", color: "#8B7355" }}
+                  >
+                    {trip.activity_category.toUpperCase()}
+                  </Link>
+                ) : (
+                  <span
+                    className="font-body font-semibold inline-block"
+                    style={{ fontSize: "0.65rem", letterSpacing: "0.1em", padding: "4px 10px", border: "1px solid rgba(74,59,42,0.5)", color: "#8B7355" }}
+                  >
+                    {trip.activity_category.toUpperCase()}
+                  </span>
+                )
               )}
             </div>
 

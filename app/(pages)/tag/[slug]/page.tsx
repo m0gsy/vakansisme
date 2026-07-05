@@ -35,6 +35,7 @@ const getTagData = cache(async (param: string) => {
   for (const row of tagRows ?? []) {
     for (const t of (row.tags as string[] | null) ?? []) allTags.add(t);
   }
+  // ponytail: distinct tags can collide post-slugify ("solo travel" vs "solo-travel") — first match wins; add tags table if this bites
   const tag = [...allTags].find((t) => slugify(t) === param);
   if (!tag) notFound();
 
