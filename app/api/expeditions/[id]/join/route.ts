@@ -100,7 +100,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
 
   const { data: trip } = await supabase
     .from("expeditions")
-    .select("name, slug, location, date_start, leader_handle")
+    .select("name, slug, location, date_start, leader_id, profiles!leader_id(id, email, username)")
     .eq("id", id)
     .single();
 
@@ -114,25 +114,18 @@ export async function POST(req: Request, { params }: { params: Params }) {
     ).catch(() => {});
 
     // Notify leader (email + in-app)
-    const leaderHandle = trip.leader_handle?.replace(/^@/, "");
-    if (leaderHandle) {
-      supabase
-        .from("profiles")
-        .select("id, email, username")
-        .eq("username", leaderHandle)
-        .maybeSingle()
-        .then(({ data: leader }) => {
-          if (!leader || leader.username === profile.username) return;
-          if (leader.email) {
-            sendLeaderJoinEmail(leader.email, leader.username, profile.username, trip.name, trip.slug).catch(() => {});
-          }
-          void supabase.from("notifications").insert({
-            user_id: leader.id,
-            type: "join",
-            title: `@${profile.username} joined ${trip.name}`,
-            link: `/expeditions/${trip.slug}`,
-          });
-        });
+    const leaderRaw = trip.profiles as { id: string; email: string | null; username: string } | { id: string; email: string | null; username: string }[] | null;
+    const leader = Array.isArray(leaderRaw) ? leaderRaw[0] ?? null : leaderRaw;
+    if (leader && leader.username !== profile.username) {
+      if (leader.email) {
+        sendLeaderJoinEmail(leader.email, leader.username, profile.username, trip.name, trip.slug).catch(() => {});
+      }
+      void supabase.from("notifications").insert({
+        user_id: leader.id,
+        type: "join",
+        title: `@${profile.username} joined ${trip.name}`,
+        link: `/expeditions/${trip.slug}`,
+      });
     }
   }
 

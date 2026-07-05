@@ -1201,7 +1201,7 @@ type Proposal = {
   created_at: string;
 };
 
-export function ProposalModerationActions({ proposal, onDone }: { proposal: Proposal; onDone: () => void }) {
+export function ProposalModerationActions({ proposal, onDone }: { proposal: Proposal; onDone?: () => void }) {
   const [loading, setLoading] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [note, setNote] = useState("");
@@ -1216,7 +1216,8 @@ export function ProposalModerationActions({ proposal, onDone }: { proposal: Prop
     });
     if (res.ok) {
       setDone(action === "approve" ? "APPROVED" : "REJECTED");
-      onDone();
+      if (onDone) onDone();
+      else window.location.href = "/admin/proposals";
     }
     setLoading(false);
   }

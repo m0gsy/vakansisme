@@ -73,7 +73,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
 
     await service.from("notifications").insert({
       user_id: proposal.proposer_id,
-      type: "story_approved",
+      type: "proposal_approved",
       title: "Trip proposal approved!",
       body: `${proposal.name} is now live.`,
       link: `/expeditions/${expedition.slug}`,
@@ -100,7 +100,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
 
   await service.from("notifications").insert({
     user_id: proposal.proposer_id,
-    type: "story_rejected",
+    type: "proposal_rejected",
     title: "Trip proposal not approved",
     body: admin_note?.trim() || "We couldn't greenlight this proposal.",
     link: "/expeditions/propose",

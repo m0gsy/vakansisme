@@ -99,7 +99,7 @@ export default async function ProposalDetailPage({ params }: { params: Params })
         {proposal.status === "pending" && (
           <div style={{ paddingTop: "24px", borderTop: "1px solid rgba(74,59,42,0.3)" }}>
             <p className="font-body text-muted-ink" style={{ fontSize: "0.65rem", letterSpacing: "0.1em", marginBottom: "14px" }}>MODERATION</p>
-            <ProposalModerationActions proposal={proposal} onDone={() => { window.location.href = "/admin/proposals"; }} />
+            <ProposalModerationActions proposal={proposal} />
           </div>
         )}
       </div>

@@ -86,6 +86,7 @@ export default function SettingsPage() {
     if (error) {
       setError(error.code === "23505" ? "Username already taken" : error.message);
     } else {
+      await supabase.auth.updateUser({ data: { username: username.trim() } });
       setSuccess(true);
       router.refresh();
     }

@@ -24,26 +24,33 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
 
   const { data: photo } = await supabase
     .from("expedition_gallery")
-    .select("uploader_id, uploader_handle, expedition_id, expeditions(name)")
+    .select("uploader_id, uploader_handle, expedition_id, expeditions(name, slug)")
     .eq("id", id)
     .single();
 
   const { error } = await supabase.from("expedition_gallery").update({ status }).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  // Notify uploader
+  // Notify uploader (email + in-app)
   if (photo?.uploader_id) {
+    const trip = Array.isArray(photo.expeditions) ? photo.expeditions[0] : photo.expeditions as { name: string; slug: string } | null;
     supabase
       .from("profiles")
       .select("email")
       .eq("id", photo.uploader_id)
       .maybeSingle()
       .then(({ data: profile }) => {
-        const tripName = Array.isArray(photo.expeditions) ? photo.expeditions[0]?.name : (photo.expeditions as { name: string } | null)?.name;
-        if (profile?.email && tripName) {
-          sendGalleryStatusEmail(profile.email, photo.uploader_handle, status as "approved" | "rejected", tripName).catch(() => {});
+        if (profile?.email && trip?.name) {
+          sendGalleryStatusEmail(profile.email, photo.uploader_handle, status as "approved" | "rejected", trip.name).catch(() => {});
         }
       });
+    void supabase.from("notifications").insert({
+      user_id: photo.uploader_id,
+      type: status === "approved" ? "gallery_approved" : "gallery_rejected",
+      title: status === "approved" ? "Your gallery photo was approved" : "Your gallery photo was not approved",
+      body: trip?.name ?? null,
+      link: status === "approved" && trip?.slug ? `/expeditions/${trip.slug}` : null,
+    });
   }
 
   return NextResponse.json({ ok: true });

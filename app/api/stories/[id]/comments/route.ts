@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/ratelimit";
+import { createNotification } from "@/lib/notify";
 
 type Params = Promise<{ id: string }>;
 
@@ -63,7 +64,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 400 });
   if (profile.is_banned) return NextResponse.json({ error: "Account suspended" }, { status: 403 });
 
-  const { data: story } = await supabase.from("stories").select("id").eq("id", id).eq("published", true).maybeSingle();
+  const { data: story } = await supabase.from("stories").select("id, slug, title, author_id").eq("id", id).eq("published", true).maybeSingle();
   if (!story) return NextResponse.json({ error: "Story not found" }, { status: 404 });
 
   const { data, error } = await supabase
@@ -73,6 +74,17 @@ export async function POST(req: Request, { params }: { params: Params }) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  if (story.author_id !== user.id) {
+    createNotification({
+      userId: story.author_id,
+      type: "story_comment",
+      title: `@${profile.username} commented on your story`,
+      body: content.trim().slice(0, 80),
+      link: `/stories/${story.slug}`,
+    }).catch(() => {});
+  }
+
   return NextResponse.json(data);
 }
 

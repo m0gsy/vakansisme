@@ -42,6 +42,13 @@ export async function POST(req: Request, { params }: { params: Params }) {
 
   if (recipientId === user.id) return NextResponse.json({ error: "Cannot message yourself" }, { status: 400 });
 
+  const { data: block } = await supabase
+    .from("user_blocks")
+    .select("blocker_id")
+    .or(`and(blocker_id.eq.${user.id},blocked_id.eq.${recipientId}),and(blocker_id.eq.${recipientId},blocked_id.eq.${user.id})`)
+    .maybeSingle();
+  if (block) return NextResponse.json({ error: "Cannot message this user" }, { status: 403 });
+
   const ip = req.headers.get("x-forwarded-for") ?? "anon";
   if (!await rateLimit(`dm:${user.id}:${ip}`, 30, 60_000)) {
     return NextResponse.json({ error: "Too many messages" }, { status: 429 });

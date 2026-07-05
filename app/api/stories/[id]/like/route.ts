@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { createNotification } from "@/lib/notify";
 
 type Params = Promise<{ id: string }>;
 
@@ -9,7 +10,7 @@ export async function POST(_req: Request, { params }: { params: Params }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
 
-  const { data: story } = await supabase.from("stories").select("id").eq("id", id).eq("published", true).maybeSingle();
+  const { data: story } = await supabase.from("stories").select("id, slug, title, author_id").eq("id", id).eq("published", true).maybeSingle();
   if (!story) return NextResponse.json({ error: "Story not found" }, { status: 404 });
 
   const { error } = await supabase.from("story_likes").insert({ story_id: id, user_id: user.id });
@@ -17,6 +18,18 @@ export async function POST(_req: Request, { params }: { params: Params }) {
     if (error.code === "23505") return NextResponse.json({ ok: true }); // already liked
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+
+  if (story.author_id !== user.id) {
+    const { data: liker } = await supabase.from("profiles").select("username").eq("id", user.id).single();
+    createNotification({
+      userId: story.author_id,
+      type: "story_like",
+      title: `@${liker?.username ?? "someone"} liked your story`,
+      body: story.title,
+      link: `/stories/${story.slug}`,
+    }).catch(() => {});
+  }
+
   return NextResponse.json({ ok: true });
 }
 

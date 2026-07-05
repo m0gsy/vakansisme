@@ -22,6 +22,10 @@ const TYPE_ICONS: Record<string, string> = {
   leader_update: "◈",
   gallery_approved: "◻",
   gallery_rejected: "◻",
+  proposal_approved: "✓",
+  proposal_rejected: "✕",
+  story_like: "♥",
+  story_comment: "◆",
 };
 
 export default function NotificationsPage() {
@@ -31,13 +35,14 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    fetch("/api/notifications")
-      .then((r) => r.json())
-      .then((d) => { setNotifs(Array.isArray(d) ? d : []); setLoading(false); })
-      .catch(() => setLoading(false));
-
     supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) return;
+      if (!data.user) { router.replace("/login"); return; }
+
+      fetch("/api/notifications")
+        .then((r) => r.json())
+        .then((d) => { setNotifs(Array.isArray(d) ? d : []); setLoading(false); })
+        .catch(() => setLoading(false));
+
       const channel = supabase
         .channel("notif-page")
         .on(
