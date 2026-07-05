@@ -8,14 +8,20 @@ CREATE TABLE destination_kinds (
 );
 INSERT INTO destination_kinds (name) VALUES ('mountain'), ('trail'), ('national_park');
 
--- Drop the unnamed CHECK from 037 (`kind IN (...)`). Its auto-generated name is
--- deterministic (destinations_kind_check), but a DO block guards against any
--- naming drift instead of hardcoding it.
+-- Drop the unnamed CHECK from 037 (`kind IN (...)`). Postgres stores IN-lists rewritten
+-- as `= ANY (ARRAY[...])`, so a `%IN%` match pattern would never fire; target the
+-- deterministic auto-generated name first, then fall back to scanning the rendered
+-- definition for the literal kind values.
 DO $$ DECLARE c text;
 BEGIN
   SELECT conname INTO c FROM pg_constraint
   WHERE conrelid = 'destinations'::regclass AND contype = 'c'
-    AND pg_get_constraintdef(oid) LIKE '%kind%IN%';
+    AND conname = 'destinations_kind_check';
+  IF c IS NULL THEN
+    SELECT conname INTO c FROM pg_constraint
+    WHERE conrelid = 'destinations'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%mountain%trail%national_park%';
+  END IF;
   IF c IS NOT NULL THEN EXECUTE format('ALTER TABLE destinations DROP CONSTRAINT %I', c); END IF;
 END $$;
 
