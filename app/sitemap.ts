@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { absoluteUrl } from "@/lib/seo";
+import { absoluteUrl, slugify } from "@/lib/seo";
 
 export async function generateSitemaps() {
   return [
@@ -110,9 +110,48 @@ export default async function sitemap({
       }));
     }
 
-    // ponytail: hubs arrive Task 10
-    case "hubs":
-      return [];
+    case "hubs": {
+      const supabase = await createClient();
+
+      const { data: tagRows } = await supabase
+        .from("stories")
+        .select("tags")
+        .eq("published", true)
+        .not("tags", "is", null);
+
+      const tagCounts = new Map<string, number>();
+      for (const row of tagRows ?? []) {
+        for (const t of (row.tags as string[] | null) ?? []) {
+          tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+        }
+      }
+      const tagUrls = [...tagCounts.entries()]
+        .filter(([, count]) => count >= 2)
+        .map(([tag]) => ({
+          url: absoluteUrl(`/tag/${slugify(tag)}`),
+          lastModified: new Date(),
+          priority: 0.5,
+        }));
+
+      const [{ data: activities }, { data: expeditions }] = await Promise.all([
+        supabase.from("activities").select("name, slug").eq("archived", false),
+        supabase.from("expeditions").select("activity_category"),
+      ]);
+
+      const categoryCounts = new Map<string, number>();
+      for (const e of expeditions ?? []) {
+        categoryCounts.set(e.activity_category, (categoryCounts.get(e.activity_category) ?? 0) + 1);
+      }
+      const categoryUrls = (activities ?? [])
+        .filter((a) => (categoryCounts.get(a.name) ?? 0) >= 2)
+        .map((a) => ({
+          url: absoluteUrl(`/categories/${a.slug}`),
+          lastModified: new Date(),
+          priority: 0.5,
+        }));
+
+      return [...tagUrls, ...categoryUrls];
+    }
 
     default:
       return [];

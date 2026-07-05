@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { resolveSlugOrRedirect } from "@/lib/resolve";
-import { absoluteUrl, buildEntityMetadata } from "@/lib/seo";
+import { absoluteUrl, buildEntityMetadata, slugify } from "@/lib/seo";
 import Image from "next/image";
 import Link from "next/link";
 import StoryComments from "@/components/StoryComments";
@@ -212,13 +212,14 @@ export default async function StoryPage({ params }: { params: Params }) {
         {!!story.tags?.length && (
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "20px" }}>
             {(story.tags as string[]).map((tag) => (
-              <span
+              <Link
                 key={tag}
+                href={`/tag/${slugify(tag)}`}
                 className="font-body"
                 style={{ fontSize: "0.62rem", letterSpacing: "0.08em", padding: "3px 8px", border: "1px solid rgba(155,255,60,0.25)", color: "#9BFF3C" }}
               >
                 #{tag}
-              </span>
+              </Link>
             ))}
           </div>
         )}

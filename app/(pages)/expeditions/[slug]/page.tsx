@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { resolveSlugOrRedirect } from "@/lib/resolve";
-import { absoluteUrl, buildEntityMetadata } from "@/lib/seo";
+import { absoluteUrl, buildEntityMetadata, slugify } from "@/lib/seo";
 import JoinButton from "@/components/JoinButton";
 import RealtimeQuota from "@/components/RealtimeQuota";
 import { difficultyLabel, getDifficulty } from "@/lib/difficulty";
@@ -40,6 +40,7 @@ type Expedition = {
   leader_id: string;
   application_prompt: string | null;
   requires_approval: boolean;
+  activity_category: string;
   profiles: { username: string; avatar_url: string | null } | { username: string; avatar_url: string | null }[] | null;
 };
 
@@ -247,6 +248,15 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                 >
                   {(trip.status as string).toUpperCase()}
                 </span>
+              )}
+              {trip.activity_category && (
+                <Link
+                  href={`/categories/${slugify(trip.activity_category)}`}
+                  className="font-body font-semibold inline-block hover:text-neon-green transition-colors duration-150"
+                  style={{ fontSize: "0.65rem", letterSpacing: "0.1em", padding: "4px 10px", border: "1px solid rgba(74,59,42,0.5)", color: "#8B7355" }}
+                >
+                  {trip.activity_category.toUpperCase()}
+                </Link>
               )}
             </div>
 
