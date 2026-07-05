@@ -119,15 +119,24 @@ export default async function StoriesPage({ searchParams }: { searchParams: Sear
               {count ?? 0} {locale === "id" ? "cerita dari lapangan." : "stories from the field."}
             </p>
           </div>
-          {user && (
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
             <Link
-              href="/stories/new"
-              className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150"
-              style={{ fontSize: "0.7rem", letterSpacing: "0.12em", padding: "11px 24px" }}
+              href="/series"
+              className="font-body font-semibold text-off-white/70 hover:text-off-white transition-colors duration-150"
+              style={{ fontSize: "0.7rem", letterSpacing: "0.12em", padding: "11px 20px", border: "1px solid rgba(74,59,42,0.4)" }}
             >
-              + {tr(locale, "write_story")}
+              {tr(locale, "series")}
             </Link>
-          )}
+            {user && (
+              <Link
+                href="/stories/new"
+                className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150"
+                style={{ fontSize: "0.7rem", letterSpacing: "0.12em", padding: "11px 24px" }}
+              >
+                + {tr(locale, "write_story")}
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Trending this week */}

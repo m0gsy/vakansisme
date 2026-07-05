@@ -35,6 +35,7 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const [dmUnread, setDmUnread] = useState(0);
   const profileRef = useRef<HTMLLIElement>(null);
@@ -50,6 +51,8 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
       if (!data.user) return;
+      supabase.from("profiles").select("is_admin").eq("id", data.user.id).single()
+        .then(({ data: profile }) => setIsAdmin(!!profile?.is_admin));
       // Load DM unread count
       fetch("/api/dm")
         .then((r) => r.json())
@@ -68,6 +71,7 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (!session?.user) setIsAdmin(false);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -211,6 +215,7 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
                         { href: "/trips", label: d.nav_my_trips },
                         { href: "/feed", label: d.nav_feed },
                         { href: "/bookmarks", label: d.nav_saved },
+                        ...(isAdmin ? [{ href: "/admin", label: "ADMIN" }] : []),
                       ].map((item) => (
                         <Link
                           key={item.href}
@@ -346,6 +351,11 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
                   <Link href="/messages" onClick={() => { setMenuOpen(false); setDmUnread(0); }} className="font-body font-semibold text-off-white/60" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
                     {d.nav_messages}{dmUnread > 0 ? ` (${dmUnread})` : ""}
                   </Link>
+                  {isAdmin && (
+                    <Link href="/admin" onClick={() => setMenuOpen(false)} className="font-body font-semibold text-off-white/60" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
+                      ADMIN
+                    </Link>
+                  )}
                   <LanguageSwitcher current={locale} />
                   <button
                     onClick={() => { setMenuOpen(false); handleSignOut(); }}
