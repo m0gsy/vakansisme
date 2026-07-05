@@ -105,6 +105,12 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Ensure the (possibly newly assigned) leader is an approved member
+  await supabase.from("expedition_members").upsert(
+    { expedition_id: id, user_id: leaderProfile.id, status: "approved" },
+    { onConflict: "expedition_id,user_id", ignoreDuplicates: true }
+  );
+
   // Notify members when status changes to a meaningful state
   if (status && status !== prevStatus && ["cancelled", "ongoing", "completed"].includes(status)) {
     notifyMembers(supabase, id, current?.slug ?? id, tripName, status as "cancelled" | "ongoing" | "completed").catch(() => {});

@@ -193,7 +193,8 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
   const approvedMembers = (members ?? []).filter((m) => (m as { status?: string }).status !== "pending");
   const pendingMembers = (members ?? []).filter((m) => (m as { status?: string }).status === "pending");
   const isBookmarked = !!bookmarkRow;
-  const isLeader = !!(callerProfile && (user?.id === tripLeaderId || callerProfile.is_admin));
+  const isActualLeader = user?.id === tripLeaderId;
+  const isLeader = !!(callerProfile && (isActualLeader || callerProfile.is_admin));
 
   const days = daysUntil(trip.date_start);
   const dateStr = new Date(trip.date_start).toLocaleDateString("en", { day: "numeric", month: "long", year: "numeric" });
@@ -396,7 +397,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
             {/* Join / Pay */}
             <div style={{ marginBottom: "48px" }}>
-              {priceAmount > 0 && userPendingPayment && !isLeader ? (
+              {priceAmount > 0 && userPendingPayment && !isActualLeader ? (
                 <>
                   <PayButton
                     expeditionId={trip.id}
@@ -407,7 +408,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                   />
                   <CancelReservationButton tripId={trip.id} />
                 </>
-              ) : !isLeader ? (
+              ) : !isActualLeader ? (
                 <JoinButton
                   tripId={trip.id}
                   initialCount={memberCount ?? 0}
@@ -420,7 +421,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                   applicationPrompt={trip.application_prompt ?? null}
                   initialPending={userPending}
                   locale={locale}
-                  isLeader={isLeader}
+                  isLeader={isActualLeader}
                 />
               ) : null}
             </div>
