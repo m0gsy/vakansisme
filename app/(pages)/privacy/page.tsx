@@ -47,11 +47,11 @@ export default function PrivacyPage() {
             },
             {
               title: "Data deletion",
-              body: "You can permanently delete your account from Settings → Delete Account. This removes all your profile data, joined expeditions, stories, and comments. Email us at hello@vakansisme.club if you need help.",
+              body: "You can permanently delete your account from Settings → Delete Account. This removes all your profile data, joined expeditions, stories, and comments. Email us at vakansi@vakansisme.club if you need help.",
             },
             {
               title: "Contact",
-              body: "Questions? hello@vakansisme.club",
+              body: "Questions? vakansi@vakansisme.club",
             },
           ].map(({ title, body }) => (
             <div key={title}>
