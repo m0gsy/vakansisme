@@ -4,15 +4,12 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { resolveSlugOrRedirect } from "@/lib/resolve";
 import { absoluteUrl } from "@/lib/seo";
+import { kindLabel } from "@/lib/related";
 
 // Kinds are admin-defined (destination_kinds table) — not a fixed union anymore.
 // The 3 original kinds keep dedicated routes/behavior below; any other kind renders
 // generically via the /destination/[slug] route.
 export type DestKind = string;
-
-function kindLabel(kind: string): string {
-  return kind.replace(/_/g, " ").toUpperCase();
-}
 
 type Destination = {
   id: string;

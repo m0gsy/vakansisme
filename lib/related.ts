@@ -10,6 +10,10 @@ export function destBasePath(kind: string): string {
   return DEDICATED_BASE_PATH[kind] ?? "/destination";
 }
 
+export function kindLabel(kind: string): string {
+  return kind.replace(/_/g, " ").toUpperCase();
+}
+
 // ponytail: sums weights per row id across score groups, keeps first-seen row data,
 // sorts score desc then created_at desc (if the rows carry one). Good enough for a
 // handful of small selects merged in-memory; no need for a DB-side scoring RPC.

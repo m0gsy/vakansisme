@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { resolveSlugOrRedirect } from "@/lib/resolve";
 import { absoluteUrl, buildEntityMetadata } from "@/lib/seo";
+import { destBasePath } from "@/lib/related";
 
 type Params = Promise<{ slug: string }>;
 
@@ -17,14 +18,8 @@ type LocationRow = {
   parent_id: string | null;
 };
 
-type DestRow = { id: string; name: string; slug: string; kind: "mountain" | "trail" | "national_park" };
+type DestRow = { id: string; name: string; slug: string; kind: string };
 type CityRow = { id: string; name: string; slug: string };
-
-const KIND_BASE_PATH: Record<DestRow["kind"], string> = {
-  mountain: "/mountain",
-  trail: "/trail",
-  national_park: "/national-park",
-};
 
 // ponytail: cache()-wrapped so generateMetadata and the page body share one fetch per request.
 const getLocationData = cache(async (param: string) => {
@@ -186,7 +181,7 @@ export default async function LocationPage({ params }: { params: Params }) {
               {destinations.map((d) => (
                 <Link
                   key={d.id}
-                  href={`${KIND_BASE_PATH[d.kind]}/${d.slug}`}
+                  href={`${destBasePath(d.kind)}/${d.slug}`}
                   className="font-body font-semibold text-off-white hover:text-neon-green transition-colors duration-150"
                   style={{ fontSize: "0.78rem", padding: "8px 14px", border: "1px solid rgba(74,59,42,0.4)" }}
                 >
