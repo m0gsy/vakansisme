@@ -36,6 +36,12 @@ export async function POST(req: Request) {
   if (kind === "trail" && !parent_id) {
     return NextResponse.json({ error: "Trail requires a parent mountain" }, { status: 400 });
   }
+  if (kind === "trail" && parent_id) {
+    const { data: parent } = await supabase.from("destinations").select("kind").eq("id", parent_id).maybeSingle();
+    if (parent?.kind !== "mountain") {
+      return NextResponse.json({ error: "Trail's parent must be a mountain" }, { status: 400 });
+    }
+  }
 
   const { data, error } = await supabase
     .from("destinations")
@@ -44,7 +50,7 @@ export async function POST(req: Request) {
       kind,
       parent_id: parent_id || null,
       location_id: location_id || null,
-      elevation_m: elevation_m ? Number(elevation_m) : null,
+      elevation_m: elevation_m !== undefined && elevation_m !== null && elevation_m !== "" ? Number(elevation_m) : null,
       description: description?.trim() || null,
       image_url: image_url?.trim() || null,
     })
@@ -53,6 +59,8 @@ export async function POST(req: Request) {
 
   if (error) {
     if (error.code === "23505") return NextResponse.json({ error: "A destination with this name already exists" }, { status: 409 });
+    if (error.code === "23503") return NextResponse.json({ error: "Invalid parent or location reference" }, { status: 400 });
+    if (error.code === "23514") return NextResponse.json({ error: "Violates hierarchy rules (trail needs mountain parent, city needs province)" }, { status: 400 });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

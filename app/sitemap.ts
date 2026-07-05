@@ -54,7 +54,8 @@ export default async function sitemap({
       const supabase = await createClient();
       const { data: expeditions } = await supabase
         .from("expeditions")
-        .select("slug, created_at, image_url");
+        .select("slug, created_at, image_url")
+        .neq("status", "cancelled");
 
       return (expeditions ?? []).map((e) => ({
         url: absoluteUrl(`/expeditions/${e.slug}`),
@@ -80,13 +81,19 @@ export default async function sitemap({
 
     case "series": {
       const supabase = await createClient();
-      const { data: series } = await supabase.from("story_series").select("slug, created_at");
+      const [{ data: series }, { data: activeSeries }] = await Promise.all([
+        supabase.from("story_series").select("id, slug, created_at"),
+        supabase.from("stories").select("series_id").eq("published", true).not("series_id", "is", null),
+      ]);
+      const activeIds = new Set((activeSeries ?? []).map((s) => s.series_id));
 
-      return (series ?? []).map((s) => ({
-        url: absoluteUrl(`/series/${s.slug}`),
-        lastModified: new Date(s.created_at),
-        priority: 0.6,
-      }));
+      return (series ?? [])
+        .filter((s) => activeIds.has(s.id))
+        .map((s) => ({
+          url: absoluteUrl(`/series/${s.slug}`),
+          lastModified: new Date(s.created_at),
+          priority: 0.6,
+        }));
     }
 
     case "destinations": {

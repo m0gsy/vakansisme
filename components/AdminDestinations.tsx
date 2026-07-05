@@ -141,6 +141,7 @@ function LocationsSection({ locations, onError, reload }: { locations: LocationR
   async function rename(loc: LocationRow) {
     const next = prompt("New name:", loc.name);
     if (!next || !next.trim() || next.trim() === loc.name) return;
+    onError("");
     setActionId(loc.id);
     const res = await fetch(`/api/admin/locations/${loc.id}`, {
       method: "PATCH",
@@ -157,6 +158,7 @@ function LocationsSection({ locations, onError, reload }: { locations: LocationR
 
   async function del(loc: LocationRow) {
     if (!confirm(`Delete "${loc.name}"? This cannot be undone.`)) return;
+    onError("");
     setActionId(loc.id);
     const res = await fetch(`/api/admin/locations/${loc.id}`, { method: "DELETE" });
     if (!res.ok) {
@@ -275,6 +277,7 @@ function DestinationsSection({ destinations, locations, onError, reload }: { des
   async function rename(d: DestinationRow) {
     const next = prompt("New name:", d.name);
     if (!next || !next.trim() || next.trim() === d.name) return;
+    onError("");
     setActionId(d.id);
     const res = await fetch(`/api/admin/destinations/${d.id}`, {
       method: "PATCH",
@@ -294,6 +297,7 @@ function DestinationsSection({ destinations, locations, onError, reload }: { des
     if (next === null || !next.trim() || next.trim() === d.slug) return;
     const slug = next.trim();
     if (slugify(slug) !== slug) { onError("Slug must be lowercase, alphanumeric, hyphen-separated"); return; }
+    onError("");
     setActionId(d.id);
     const res = await fetch(`/api/admin/destinations/${d.id}`, {
       method: "PATCH",
@@ -310,6 +314,7 @@ function DestinationsSection({ destinations, locations, onError, reload }: { des
 
   async function del(d: DestinationRow) {
     if (!confirm(`Delete "${d.name}"? This cannot be undone.`)) return;
+    onError("");
     setActionId(d.id);
     const res = await fetch(`/api/admin/destinations/${d.id}`, { method: "DELETE" });
     if (!res.ok) {

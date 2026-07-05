@@ -36,6 +36,12 @@ const getSeries = cache(async (param: string) => {
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const series = await getSeries(slug);
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("stories")
+    .select("id", { count: "exact", head: true })
+    .eq("series_id", series.id)
+    .eq("published", true);
   const description = series.description ?? `Baca series cerita "${series.title}" di Vakansisme.`;
   return buildEntityMetadata({
     title: `${series.title} — Vakansisme`,
@@ -43,6 +49,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     path: `/series/${series.slug}`,
     image: series.cover_image,
     type: "article",
+    noindex: !count,
   });
 }
 

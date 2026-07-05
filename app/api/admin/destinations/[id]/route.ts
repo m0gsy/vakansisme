@@ -32,7 +32,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
   }
   if (body.parent_id !== undefined) update.parent_id = body.parent_id || null;
   if (body.location_id !== undefined) update.location_id = body.location_id || null;
-  if (body.elevation_m !== undefined) update.elevation_m = body.elevation_m ? Number(body.elevation_m) : null;
+  if (body.elevation_m !== undefined) update.elevation_m = body.elevation_m !== null && body.elevation_m !== "" ? Number(body.elevation_m) : null;
   if (body.description !== undefined) update.description = body.description?.trim() || null;
   if (body.image_url !== undefined) update.image_url = body.image_url?.trim() || null;
   if (body.slug !== undefined) {
@@ -41,6 +41,20 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     update.slug = slug;
   }
   if (!Object.keys(update).length) return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+
+  if (body.parent_id !== undefined && body.parent_id) {
+    let kindToCheck = body.kind;
+    if (kindToCheck === undefined) {
+      const { data: current } = await supabase.from("destinations").select("kind").eq("id", id).maybeSingle();
+      kindToCheck = current?.kind;
+    }
+    if (kindToCheck === "trail") {
+      const { data: parent } = await supabase.from("destinations").select("kind").eq("id", body.parent_id).maybeSingle();
+      if (parent?.kind !== "mountain") {
+        return NextResponse.json({ error: "Trail's parent must be a mountain" }, { status: 400 });
+      }
+    }
+  }
 
   const { data: updated, error } = await supabase
     .from("destinations")
@@ -51,6 +65,8 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
 
   if (error) {
     if (error.code === "23505") return NextResponse.json({ error: "A destination with this name or slug already exists" }, { status: 409 });
+    if (error.code === "23503") return NextResponse.json({ error: "Invalid parent or location reference" }, { status: 400 });
+    if (error.code === "23514") return NextResponse.json({ error: "Violates hierarchy rules (trail needs mountain parent, city needs province)" }, { status: 400 });
     if (error.code === "PGRST116") return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

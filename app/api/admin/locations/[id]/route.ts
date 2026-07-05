@@ -38,6 +38,20 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
   }
   if (!Object.keys(update).length) return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
 
+  if (body.parent_id !== undefined && body.parent_id) {
+    let typeToCheck = body.type;
+    if (typeToCheck === undefined) {
+      const { data: current } = await supabase.from("locations").select("type").eq("id", id).maybeSingle();
+      typeToCheck = current?.type;
+    }
+    if (typeToCheck === "city") {
+      const { data: parent } = await supabase.from("locations").select("type").eq("id", body.parent_id).maybeSingle();
+      if (parent?.type !== "province") {
+        return NextResponse.json({ error: "City's parent must be a province" }, { status: 400 });
+      }
+    }
+  }
+
   const { data: updated, error } = await supabase
     .from("locations")
     .update(update)
@@ -47,6 +61,8 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
 
   if (error) {
     if (error.code === "23505") return NextResponse.json({ error: "A location with this name or slug already exists" }, { status: 409 });
+    if (error.code === "23503") return NextResponse.json({ error: "Invalid parent or location reference" }, { status: 400 });
+    if (error.code === "23514") return NextResponse.json({ error: "Violates hierarchy rules (trail needs mountain parent, city needs province)" }, { status: 400 });
     if (error.code === "PGRST116") return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

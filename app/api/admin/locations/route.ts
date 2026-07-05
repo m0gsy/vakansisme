@@ -36,6 +36,12 @@ export async function POST(req: Request) {
   if (type === "city" && !parent_id) {
     return NextResponse.json({ error: "City requires a parent province" }, { status: 400 });
   }
+  if (type === "city" && parent_id) {
+    const { data: parent } = await supabase.from("locations").select("type").eq("id", parent_id).maybeSingle();
+    if (parent?.type !== "province") {
+      return NextResponse.json({ error: "City's parent must be a province" }, { status: 400 });
+    }
+  }
 
   const { data, error } = await supabase
     .from("locations")
@@ -49,6 +55,8 @@ export async function POST(req: Request) {
 
   if (error) {
     if (error.code === "23505") return NextResponse.json({ error: "A location with this name already exists" }, { status: 409 });
+    if (error.code === "23503") return NextResponse.json({ error: "Invalid parent or location reference" }, { status: 400 });
+    if (error.code === "23514") return NextResponse.json({ error: "Violates hierarchy rules (trail needs mountain parent, city needs province)" }, { status: 400 });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
