@@ -170,12 +170,15 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
         </div>
 
         {/* Status filter */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "12px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center", marginBottom: "8px" }}>
+          <span className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", minWidth: "72px" }}>
+            STATUS
+          </span>
           {STATUS_FILTERS.map((sf) => {
             const active = status === sf.value || (!status && !sf.value);
             return (
               <Link key={sf.label} href={pillHref(difficulty, sf.value, activity)} className="font-body font-semibold transition-all duration-150"
-                style={{ fontSize: "0.6rem", letterSpacing: "0.1em", padding: "5px 12px", border: "1px solid", background: active ? "#FF6B1A" : "transparent", color: active ? "#111111" : "#8B7355", borderColor: active ? "#FF6B1A" : "rgba(74,59,42,0.5)" }}>
+                style={{ fontSize: "0.66rem", letterSpacing: "0.1em", padding: "7px 14px", border: "1px solid", textDecoration: "none", background: active ? "#FF6B1A" : "transparent", color: active ? "#111111" : "#8B7355", borderColor: active ? "#FF6B1A" : "rgba(74,59,42,0.5)" }}>
                 {sf.label}
               </Link>
             );
@@ -184,7 +187,7 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
 
         {/* Difficulty filter */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center", marginBottom: "8px" }}>
-          <span className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginRight: "2px" }}>
+          <span className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", minWidth: "72px" }}>
             DIFFICULTY
           </span>
           <Link href={pillHref(undefined, status, activity)} className="font-body font-semibold transition-all duration-150"
@@ -206,7 +209,7 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
 
         {/* Activity filter */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center", marginBottom: "48px" }}>
-          <span className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginRight: "2px" }}>
+          <span className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", minWidth: "72px" }}>
             ACTIVITY
           </span>
           <Link href={pillHref(difficulty, status, undefined)} className="font-body font-semibold transition-all duration-150"
