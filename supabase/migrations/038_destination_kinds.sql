@@ -2,11 +2,12 @@
 -- without a code deploy. Replaces the inline CHECK on destinations.kind with a FK to
 -- a destination_kinds lookup table (mirrors activities' pattern from 034).
 
-CREATE TABLE destination_kinds (
+CREATE TABLE IF NOT EXISTS destination_kinds (
   name text PRIMARY KEY,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-INSERT INTO destination_kinds (name) VALUES ('mountain'), ('trail'), ('national_park');
+INSERT INTO destination_kinds (name) VALUES ('mountain'), ('trail'), ('national_park')
+  ON CONFLICT (name) DO NOTHING;
 
 -- Drop the unnamed CHECK from 037 (`kind IN (...)`). Postgres stores IN-lists rewritten
 -- as `= ANY (ARRAY[...])`, so a `%IN%` match pattern would never fire; target the
@@ -27,14 +28,20 @@ END $$;
 
 -- Trail-parent CHECK (kind <> 'trail' OR parent_id IS NOT NULL) is untouched.
 
-ALTER TABLE destinations ADD CONSTRAINT destinations_kind_fkey
-  FOREIGN KEY (kind) REFERENCES destination_kinds(name) ON UPDATE CASCADE ON DELETE RESTRICT;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'destinations_kind_fkey') THEN
+    ALTER TABLE destinations ADD CONSTRAINT destinations_kind_fkey
+      FOREIGN KEY (kind) REFERENCES destination_kinds(name) ON UPDATE CASCADE ON DELETE RESTRICT;
+  END IF;
+END $$;
 
 ALTER TABLE destination_kinds ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "destination_kinds public read" ON destination_kinds;
 CREATE POLICY "destination_kinds public read"
   ON destination_kinds FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "admins manage destination_kinds" ON destination_kinds;
 CREATE POLICY "admins manage destination_kinds"
   ON destination_kinds FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true));

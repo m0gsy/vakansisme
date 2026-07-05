@@ -37,7 +37,7 @@ WITH ranked AS (
   FROM stories
 )
 UPDATE stories s SET slug = CASE WHEN r.rn = 1 THEN r.base ELSE r.base || '-' || r.rn END
-FROM ranked r WHERE s.id = r.id;
+FROM ranked r WHERE s.id = r.id AND s.slug IS NULL;
 
 WITH ranked AS (
   SELECT id,
@@ -49,7 +49,7 @@ WITH ranked AS (
   FROM expeditions
 )
 UPDATE expeditions e SET slug = CASE WHEN r.rn = 1 THEN r.base ELSE r.base || '-' || r.rn END
-FROM ranked r WHERE e.id = r.id;
+FROM ranked r WHERE e.id = r.id AND e.slug IS NULL;
 
 WITH ranked AS (
   SELECT id,
@@ -61,7 +61,7 @@ WITH ranked AS (
   FROM story_series
 )
 UPDATE story_series ss SET slug = CASE WHEN r.rn = 1 THEN r.base ELSE r.base || '-' || r.rn END
-FROM ranked r WHERE ss.id = r.id;
+FROM ranked r WHERE ss.id = r.id AND ss.slug IS NULL;
 
 WITH ranked AS (
   SELECT id,
@@ -73,7 +73,7 @@ WITH ranked AS (
   FROM activities
 )
 UPDATE activities a SET slug = CASE WHEN r.rn = 1 THEN r.base ELSE r.base || '-' || r.rn END
-FROM ranked r WHERE a.id = r.id;
+FROM ranked r WHERE a.id = r.id AND a.slug IS NULL;
 
 -- 3. NOT NULL + unique index
 ALTER TABLE stories ALTER COLUMN slug SET NOT NULL;
@@ -81,10 +81,10 @@ ALTER TABLE expeditions ALTER COLUMN slug SET NOT NULL;
 ALTER TABLE story_series ALTER COLUMN slug SET NOT NULL;
 ALTER TABLE activities ALTER COLUMN slug SET NOT NULL;
 
-CREATE UNIQUE INDEX stories_slug_key ON stories (slug);
-CREATE UNIQUE INDEX expeditions_slug_key ON expeditions (slug);
-CREATE UNIQUE INDEX story_series_slug_key ON story_series (slug);
-CREATE UNIQUE INDEX activities_slug_key ON activities (slug);
+CREATE UNIQUE INDEX IF NOT EXISTS stories_slug_key ON stories (slug);
+CREATE UNIQUE INDEX IF NOT EXISTS expeditions_slug_key ON expeditions (slug);
+CREATE UNIQUE INDEX IF NOT EXISTS story_series_slug_key ON story_series (slug);
+CREATE UNIQUE INDEX IF NOT EXISTS activities_slug_key ON activities (slug);
 
 -- 4. Auto-slug on insert. Generic over TG_ARGV[0] = source column name so one function
 -- serves all 4 tables. FOUND is not reliable after EXECUTE ... INTO, so collision checks
@@ -122,17 +122,17 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER stories_set_slug BEFORE INSERT ON stories
+CREATE OR REPLACE TRIGGER stories_set_slug BEFORE INSERT ON stories
   FOR EACH ROW EXECUTE FUNCTION public.set_slug('title');
-CREATE TRIGGER expeditions_set_slug BEFORE INSERT ON expeditions
+CREATE OR REPLACE TRIGGER expeditions_set_slug BEFORE INSERT ON expeditions
   FOR EACH ROW EXECUTE FUNCTION public.set_slug('name');
-CREATE TRIGGER story_series_set_slug BEFORE INSERT ON story_series
+CREATE OR REPLACE TRIGGER story_series_set_slug BEFORE INSERT ON story_series
   FOR EACH ROW EXECUTE FUNCTION public.set_slug('title');
-CREATE TRIGGER activities_set_slug BEFORE INSERT ON activities
+CREATE OR REPLACE TRIGGER activities_set_slug BEFORE INSERT ON activities
   FOR EACH ROW EXECUTE FUNCTION public.set_slug('name');
 
 -- 5. Redirect history for changed slugs, so old URLs 301 instead of 404.
-CREATE TABLE slug_redirects (
+CREATE TABLE IF NOT EXISTS slug_redirects (
   entity_type text NOT NULL CHECK (entity_type IN ('story','expedition','series','destination','activity','location')),
   old_slug    text NOT NULL,
   entity_id   uuid NOT NULL,
@@ -142,6 +142,7 @@ CREATE TABLE slug_redirects (
 
 ALTER TABLE slug_redirects ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "slug_redirects public read" ON slug_redirects;
 CREATE POLICY "slug_redirects public read"
   ON slug_redirects FOR SELECT USING (true);
 
@@ -165,11 +166,11 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER stories_record_slug_change AFTER UPDATE OF slug ON stories
+CREATE OR REPLACE TRIGGER stories_record_slug_change AFTER UPDATE OF slug ON stories
   FOR EACH ROW EXECUTE FUNCTION public.record_slug_change('story');
-CREATE TRIGGER expeditions_record_slug_change AFTER UPDATE OF slug ON expeditions
+CREATE OR REPLACE TRIGGER expeditions_record_slug_change AFTER UPDATE OF slug ON expeditions
   FOR EACH ROW EXECUTE FUNCTION public.record_slug_change('expedition');
-CREATE TRIGGER story_series_record_slug_change AFTER UPDATE OF slug ON story_series
+CREATE OR REPLACE TRIGGER story_series_record_slug_change AFTER UPDATE OF slug ON story_series
   FOR EACH ROW EXECUTE FUNCTION public.record_slug_change('series');
-CREATE TRIGGER activities_record_slug_change AFTER UPDATE OF slug ON activities
+CREATE OR REPLACE TRIGGER activities_record_slug_change AFTER UPDATE OF slug ON activities
   FOR EACH ROW EXECUTE FUNCTION public.record_slug_change('activity');
