@@ -64,7 +64,7 @@ export default async function AdminPage() {
       .limit(100),
     supabase
       .from("expeditions")
-      .select("id, slug, name, location, difficulty, price, date_start, date_end, quota_max, leader_id, profiles!leader_id(username), image_url, description, requires_approval, application_prompt, featured, expedition_members(count)")
+      .select("id, slug, name, location, difficulty, price, date_start, date_end, quota_max, leader_id, profiles!leader_id(username), image_url, description, requires_approval, application_prompt, featured, activity_category, destination_id, expedition_members(count)")
       .order("date_start", { ascending: true })
       .limit(50),
     supabase
@@ -135,6 +135,10 @@ export default async function AdminPage() {
               {label}
             </a>
           ))}
+          <Link href="/admin/destinations" className="font-body font-semibold text-muted-ink hover:text-neon-green transition-colors duration-150"
+            style={{ fontSize: "0.58rem", letterSpacing: "0.12em", padding: "4px 16px", textDecoration: "none", display: "inline-block" }}>
+            DESTINATIONS
+          </Link>
         </nav>
 
         {/* Gallery pending */}

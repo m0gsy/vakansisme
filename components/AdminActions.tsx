@@ -161,6 +161,7 @@ type ExpeditionData = {
   application_prompt?: string | null;
   featured?: boolean | null;
   activity_category?: string | null;
+  destination_id?: string | null;
 };
 
 export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }) {
@@ -174,6 +175,8 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
   const [editRequiresApproval, setEditRequiresApproval] = useState(expedition.requires_approval ?? false);
   const [adminUsers, setAdminUsers] = useState<{ id: string; username: string }[]>([]);
   const [activities, setActivities] = useState<string[]>([]);
+  const [destinations, setDestinations] = useState<{ id: string; name: string }[]>([]);
+  const [destinationId, setDestinationId] = useState(expedition.destination_id ?? "");
   const [fields, setFields] = useState({
     name: expedition.name,
     location: expedition.location,
@@ -196,6 +199,9 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
     fetch("/api/admin/activities")
       .then((r) => r.json())
       .then(({ activities: a }) => setActivities((a ?? []).filter((x: { archived: boolean }) => !x.archived).map((x: { name: string }) => x.name)));
+    fetch("/api/admin/destinations")
+      .then((r) => r.json())
+      .then(({ destinations: d }) => setDestinations(d ?? []));
   }, []);
 
   function set(key: string, val: string) {
@@ -216,7 +222,7 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
     const res = await fetch(`/api/admin/expeditions/${expedition.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...fields, image_url: imageUrl, requires_approval: editRequiresApproval }),
+      body: JSON.stringify({ ...fields, image_url: imageUrl, requires_approval: editRequiresApproval, destination_id: destinationId || null }),
     });
     const json = await res.json();
     if (res.ok) {
@@ -323,6 +329,20 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
               >
                 {EXPEDITION_STATUSES.map((s) => (
                   <option key={s} value={s} style={{ background: "#111111" }}>{s.toUpperCase()}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Destination</label>
+              <select
+                value={destinationId}
+                onChange={(e) => setDestinationId(e.target.value)}
+                className="font-body text-off-white focus:outline-none"
+                style={{ ...fieldStyle, cursor: "pointer" }}
+              >
+                <option value="">— None —</option>
+                {destinations.map((d) => (
+                  <option key={d.id} value={d.id} style={{ background: "#111111" }}>{d.name}</option>
                 ))}
               </select>
             </div>
@@ -448,6 +468,8 @@ export function AdminExpeditionForm() {
   const [requiresApproval, setRequiresApproval] = useState(false);
   const [adminUsers, setAdminUsers] = useState<{ id: string; username: string }[]>([]);
   const [activities, setActivities] = useState<string[]>([]);
+  const [destinations, setDestinations] = useState<{ id: string; name: string }[]>([]);
+  const [destinationId, setDestinationId] = useState("");
   const [fields, setFields] = useState({
     name: "",
     location: "",
@@ -469,6 +491,9 @@ export function AdminExpeditionForm() {
     fetch("/api/admin/activities")
       .then((r) => r.json())
       .then(({ activities: a }) => setActivities((a ?? []).filter((x: { archived: boolean }) => !x.archived).map((x: { name: string }) => x.name)));
+    fetch("/api/admin/destinations")
+      .then((r) => r.json())
+      .then(({ destinations: d }) => setDestinations(d ?? []));
   }, []);
 
   function set(key: string, val: string) {
@@ -483,7 +508,7 @@ export function AdminExpeditionForm() {
     const res = await fetch("/api/admin/expeditions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...fields, image_url: imageUrl, requires_approval: requiresApproval }),
+      body: JSON.stringify({ ...fields, image_url: imageUrl, requires_approval: requiresApproval, destination_id: destinationId || null }),
     });
     const json = await res.json();
 
@@ -491,6 +516,7 @@ export function AdminExpeditionForm() {
       setFields({ name: "", location: "", difficulty: "Moderate", activity_category: "Other", price: "", date_start: "", date_end: "", quota_max: "", leader_handle: "", description: "", application_prompt: "" });
       setRequiresApproval(false);
       setImageUrl("");
+      setDestinationId("");
       setOpen(false);
       router.refresh();
     } else {
@@ -629,6 +655,23 @@ export function AdminExpeditionForm() {
               {/* ponytail: inject archived value so controlled select always has a matching option */}
               {(activities.includes(fields.activity_category) ? activities : [...activities, fields.activity_category]).map((c) => (
                 <option key={c} value={c} style={{ background: "#111111" }}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}>
+              Destination
+            </label>
+            <select
+              value={destinationId}
+              onChange={(e) => setDestinationId(e.target.value)}
+              className="font-body text-off-white focus:outline-none"
+              style={{ ...fieldStyle, cursor: "pointer" }}
+            >
+              <option value="">— None —</option>
+              {destinations.map((d) => (
+                <option key={d.id} value={d.id} style={{ background: "#111111" }}>{d.name}</option>
               ))}
             </select>
           </div>

@@ -59,7 +59,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
   const supabase = await createClient();
   if (!await getAdmin(supabase)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { name, location, difficulty, price, date_start, date_end, quota_max, leader_handle, image_url, description, status, requires_approval, application_prompt, featured, activity_category } = await req.json();
+  const { name, location, difficulty, price, date_start, date_end, quota_max, leader_handle, image_url, description, status, requires_approval, application_prompt, featured, activity_category, destination_id } = await req.json();
 
   if (!name || !location || !difficulty || !price || !date_start || !date_end || !quota_max || !leader_handle) {
     return NextResponse.json({ error: "All fields required except image and description" }, { status: 400 });
@@ -100,6 +100,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     ...(status ? { status } : {}),
     ...(featured !== undefined ? { featured: !!featured } : {}),
     ...(activity_category ? { activity_category } : {}),
+    ...(destination_id !== undefined ? { destination_id: destination_id || null } : {}),
   }).eq("id", id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

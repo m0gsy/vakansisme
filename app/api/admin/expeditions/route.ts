@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
   if (!profile?.is_admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { name, location, difficulty, price, date_start, date_end, quota_max, leader_handle, image_url, description, requires_approval, application_prompt, activity_category } = await req.json();
+  const { name, location, difficulty, price, date_start, date_end, quota_max, leader_handle, image_url, description, requires_approval, application_prompt, activity_category, destination_id } = await req.json();
 
   if (!name || !location || !difficulty || !price || !date_start || !date_end || !quota_max || !leader_handle) {
     return NextResponse.json({ error: "All fields required except image and description" }, { status: 400 });
@@ -46,6 +46,7 @@ export async function POST(req: Request) {
       requires_approval: requires_approval ?? false,
       application_prompt: application_prompt?.trim() || null,
       activity_category: activity_category ?? "Other",
+      destination_id: destination_id || null,
     })
     .select("id")
     .single();
