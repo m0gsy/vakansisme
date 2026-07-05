@@ -134,7 +134,7 @@ export default async function ChaosPage({ searchParams }: { searchParams: Search
             Nothing here{type ? ` tagged "${type}"` : ""} yet.
           </p>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, min(340px, 100%)))", gap: "16px" }}>
             {cards.map((card, i) => (
               <div
                 key={card.id}

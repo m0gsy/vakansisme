@@ -89,7 +89,7 @@ export default function Expeditions({ trips, joinedIds = [], locale = "id" }: { 
         className="max-w-7xl mx-auto px-6"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, min(360px, 100%)))",
           gap: "16px",
         }}
       >

@@ -49,7 +49,7 @@ export default function ChaosWall({ initialCards }: { initialCards: ChaosCard[] 
             Nothing here yet. Be the first to post some chaos.
           </p>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, min(340px, 100%)))", gap: "16px" }}>
             {initialCards.map((card, i) => (
               <motion.div
                 key={card.id}
