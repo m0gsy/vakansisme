@@ -144,7 +144,7 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
           <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", marginTop: "8px" }}>
             {isAdmin ? (
               <Link
-                href="/admin#expeditions-section"
+                href="/admin/expeditions"
                 className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150"
                 style={{ fontSize: "0.65rem", letterSpacing: "0.12em", padding: "10px 20px", whiteSpace: "nowrap", textDecoration: "none" }}
               >

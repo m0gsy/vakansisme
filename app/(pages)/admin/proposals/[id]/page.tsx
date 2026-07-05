@@ -29,8 +29,8 @@ export default async function ProposalDetailPage({ params }: { params: Params })
   return (
     <div className="min-h-screen bg-charcoal" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
       <div style={{ maxWidth: "720px", margin: "0 auto", padding: "0 24px" }}>
-        <Link href="/admin" className="font-body text-muted-ink hover:text-neon-green transition-colors duration-150" style={{ fontSize: "0.72rem", letterSpacing: "0.1em", display: "inline-block", marginBottom: "32px" }}>
-          ← BACK TO ADMIN
+        <Link href="/admin/proposals" className="font-body text-muted-ink hover:text-neon-green transition-colors duration-150" style={{ fontSize: "0.72rem", letterSpacing: "0.1em", display: "inline-block", marginBottom: "32px" }}>
+          ← BACK TO PROPOSALS
         </Link>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", flexWrap: "wrap", marginBottom: "8px" }}>
@@ -99,7 +99,7 @@ export default async function ProposalDetailPage({ params }: { params: Params })
         {proposal.status === "pending" && (
           <div style={{ paddingTop: "24px", borderTop: "1px solid rgba(74,59,42,0.3)" }}>
             <p className="font-body text-muted-ink" style={{ fontSize: "0.65rem", letterSpacing: "0.1em", marginBottom: "14px" }}>MODERATION</p>
-            <ProposalModerationActions proposal={proposal} onDone={() => { window.location.href = "/admin"; }} />
+            <ProposalModerationActions proposal={proposal} onDone={() => { window.location.href = "/admin/proposals"; }} />
           </div>
         )}
       </div>
