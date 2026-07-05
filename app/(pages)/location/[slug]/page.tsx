@@ -59,16 +59,18 @@ const getLocationData = cache(async (param: string) => {
       .order("name", { ascending: true });
     destinations = destRows ?? [];
   } else {
-    if (location.parent_id) {
-      const { data: prov } = await supabase.from("locations").select("id, type, name, slug, parent_id").eq("id", location.parent_id).maybeSingle();
-      province = prov as LocationRow | null;
-    }
-    const { data: destRows } = await supabase
-      .from("destinations")
-      .select("id, name, slug, kind")
-      .eq("location_id", location.id)
-      .order("name", { ascending: true });
-    destinations = destRows ?? [];
+    const [provResult, destResult] = await Promise.all([
+      location.parent_id
+        ? supabase.from("locations").select("id, type, name, slug, parent_id").eq("id", location.parent_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabase
+        .from("destinations")
+        .select("id, name, slug, kind")
+        .eq("location_id", location.id)
+        .order("name", { ascending: true }),
+    ]);
+    province = provResult.data as LocationRow | null;
+    destinations = destResult.data ?? [];
   }
 
   const hasContent = destinations.length > 0;

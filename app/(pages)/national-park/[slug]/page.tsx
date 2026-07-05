@@ -8,7 +8,7 @@ const BASE_PATH = "/national-park";
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
-  const { dest, hasContent } = await getDestinationData({ kind: "national_park", param: slug, basePath: BASE_PATH });
+  const { dest, hasContent } = await getDestinationData("national_park", slug, BASE_PATH);
   return buildEntityMetadata({
     title: `${dest.name} — VAKANSISME`,
     description: dest.description ?? `Explore ${dest.name} with Vakansisme.`,

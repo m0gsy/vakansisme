@@ -8,7 +8,7 @@ const BASE_PATH = "/trail";
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
-  const { dest, hasContent } = await getDestinationData({ kind: "trail", param: slug, basePath: BASE_PATH });
+  const { dest, hasContent } = await getDestinationData("trail", slug, BASE_PATH);
   return buildEntityMetadata({
     title: `${dest.name} — VAKANSISME`,
     description: dest.description ?? `Explore ${dest.name} with Vakansisme.`,

@@ -51,12 +51,11 @@ type LocationRow = { id: string; name: string; slug: string; type: "province" | 
 
 const FALLBACK = "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?auto=format&fit=crop&w=800&q=80";
 
-// ponytail: cache()-wrapped so generateMetadata and the page body both call this
-// with identical args and React dedupes the fetch within one request (mirrors
-// stories/[slug]'s getStory pattern).
+// ponytail: cache()-wrapped with positional args so React dedupes by value
+// (object literals always fail cache dedup). generateMetadata and the page body
+// call with the same values and share one fetch per request.
 export const getDestinationData = cache(
-  async (opts: { kind: DestKind; param: string; basePath: string }) => {
-    const { kind, param, basePath } = opts;
+  async (kind: DestKind, param: string, basePath: string) => {
     const supabase = await createClient();
 
     const dest = await resolveSlugOrRedirect<Destination>({
@@ -155,7 +154,7 @@ export default async function DestinationPage({
   param: string;
 }) {
   const { dest, expeditions, stories, parentMountain, childTrails, location, province, hasContent } =
-    await getDestinationData({ kind, param, basePath });
+    await getDestinationData(kind, param, basePath);
 
   const crumbs: { name: string; href?: string }[] = [{ name: "EXPLORE", href: "/explore" }];
   if (province) crumbs.push({ name: province.name, href: `/location/${province.slug}` });

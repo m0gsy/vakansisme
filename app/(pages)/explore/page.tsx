@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { absoluteUrl, buildEntityMetadata } from "@/lib/seo";
@@ -18,7 +19,7 @@ const KIND_HEADING: Record<DestRow["kind"], string> = {
   national_park: "NATIONAL PARKS",
 };
 
-async function getExploreData() {
+const getExploreData = cache(async () => {
   const supabase = await createClient();
   const [{ data: provinces }, { data: destinations }] = await Promise.all([
     supabase.from("locations").select("id, name, slug").eq("type", "province").order("name", { ascending: true }),
@@ -33,7 +34,7 @@ async function getExploreData() {
     byKind,
     hasContent: (destinations ?? []).length > 0,
   };
-}
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   const { hasContent } = await getExploreData();
