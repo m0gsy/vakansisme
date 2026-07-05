@@ -8,8 +8,8 @@ type SupabaseClientType = Awaited<ReturnType<typeof createClient>>;
 // generic helper — every row is cast to T at the boundary instead of threaded through.
 export async function resolveSlugOrRedirect<T extends { slug: string }>(opts: {
   supabase: SupabaseClientType;
-  table: "stories" | "expeditions" | "story_series";
-  entityType: "story" | "expedition" | "series";
+  table: "stories" | "expeditions" | "story_series" | "destinations" | "locations";
+  entityType: "story" | "expedition" | "series" | "destination" | "location";
   param: string;
   basePath: string; // e.g. "/stories"
   select: string; // must include "slug"

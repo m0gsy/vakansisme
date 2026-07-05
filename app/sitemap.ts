@@ -89,9 +89,26 @@ export default async function sitemap({
       }));
     }
 
-    // ponytail: destinations table arrives Task 7
-    case "destinations":
-      return [];
+    case "destinations": {
+      const supabase = await createClient();
+      const { data: destinations } = await supabase
+        .from("destinations")
+        .select("slug, kind, created_at, image_url")
+        .not("description", "is", null);
+
+      const basePathByKind: Record<string, string> = {
+        mountain: "/mountain",
+        trail: "/trail",
+        national_park: "/national-park",
+      };
+
+      return (destinations ?? []).map((d) => ({
+        url: absoluteUrl(`${basePathByKind[d.kind]}/${d.slug}`),
+        lastModified: new Date(d.created_at),
+        priority: 0.6,
+        ...(d.image_url ? { images: [d.image_url] } : {}),
+      }));
+    }
 
     // ponytail: hubs arrive Task 10
     case "hubs":
