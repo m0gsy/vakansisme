@@ -1,6 +1,11 @@
 -- SEO slugs: slugify(), slug columns + backfill, auto-slug trigger, slug_redirects (301 history)
 
-CREATE EXTENSION IF NOT EXISTS unaccent;
+-- WITH SCHEMA public: on Supabase, extensions default to the `extensions` schema, where an
+-- unqualified unaccent() call would not resolve for roles whose search_path lacks it (the
+-- set_slug trigger runs as authenticated/anon at INSERT time). If unaccent is ALREADY installed
+-- in `extensions` on this project, IF NOT EXISTS makes this a no-op — run
+-- `ALTER EXTENSION unaccent SET SCHEMA public;` first, or the backfill below fails.
+CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;
 
 -- Must match lib/seo.ts slugify() byte-for-byte for Latin input.
 -- TS: lowercase -> NFKD normalize -> strip combining marks -> non [a-z0-9] runs -> '-' -> trim '-'.
@@ -8,8 +13,9 @@ CREATE EXTENSION IF NOT EXISTS unaccent;
 -- decomposition) -> same non [a-z0-9] collapse -> trim. Diverges only for non-Latin scripts
 -- (e.g. Japanese/Korean/Cyrillic), which both sides reduce to '' the same way anyway since
 -- neither TS nor unaccent() touches those code points and the regexp strips them all.
-CREATE OR REPLACE FUNCTION public.slugify(input text) RETURNS text LANGUAGE sql STABLE AS $$
-  SELECT trim(BOTH '-' FROM regexp_replace(lower(unaccent(coalesce(input,''))), '[^a-z0-9]+', '-', 'g'))
+CREATE OR REPLACE FUNCTION public.slugify(input text) RETURNS text
+LANGUAGE sql STABLE SET search_path = public AS $$
+  SELECT trim(BOTH '-' FROM regexp_replace(lower(public.unaccent(coalesce(input,''))), '[^a-z0-9]+', '-', 'g'))
 $$;
 
 -- 1. Nullable slug columns
@@ -83,7 +89,8 @@ CREATE UNIQUE INDEX activities_slug_key ON activities (slug);
 -- 4. Auto-slug on insert. Generic over TG_ARGV[0] = source column name so one function
 -- serves all 4 tables. FOUND is not reliable after EXECUTE ... INTO, so collision checks
 -- use EXISTS(...) INTO a boolean explicitly instead.
-CREATE OR REPLACE FUNCTION public.set_slug() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION public.set_slug() RETURNS trigger
+LANGUAGE plpgsql SET search_path = public AS $$
 DECLARE
   src text;
   base text;
