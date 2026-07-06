@@ -89,7 +89,9 @@ export async function PATCH(req: Request) {
           results.push({ id, status: "unknown_action" });
       }
     } catch (err) {
-      results.push({ id, status: "error", error: err instanceof Error ? err.message : "Unknown error" });
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[admin/payments] PATCH error:", msg);
+      results.push({ id, status: "error", error: msg });
     }
   }
 

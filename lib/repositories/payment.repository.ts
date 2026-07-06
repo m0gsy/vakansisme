@@ -87,7 +87,7 @@ export class PaymentRepository {
 
     if (extra) {
       if (extra.verified_by) update.verified_by = extra.verified_by;
-      Object.assign(update, extra);
+      if (extra.metadata) update.metadata = extra.metadata;
     }
 
     const { error } = await this.db.from("expedition_payments").update(update).eq("id", id);
