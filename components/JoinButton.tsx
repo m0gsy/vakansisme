@@ -38,6 +38,7 @@ export default function JoinButton({
   const [count, setCount] = useState(initialCount);
   const [joined, setJoined] = useState(initialJoined);
   const [pending, setPending] = useState(initialPending);
+  const [pendingPayment, setPendingPayment] = useState(false);
   const [onWaitlist, setOnWaitlist] = useState(initialOnWaitlist ?? false);
   const [waitlistCount, setWaitlistCount] = useState(initialWaitlistCount ?? 0);
   const [loading, setLoading] = useState(false);
@@ -63,7 +64,7 @@ export default function JoinButton({
     const json = await res.json();
     if (res.ok) {
       if (json.member_status === "pending_payment") {
-        setPending(true);
+        setPendingPayment(true);
         setShowApp(false);
         toast(locale === "id" ? "Slot tereservasi! Segera lakukan pembayaran." : "Slot reserved! Complete payment now.");
       } else if (json.member_status === "pending") {
@@ -133,7 +134,15 @@ export default function JoinButton({
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "8px" }}>
-        {pending ? (
+        {pendingPayment ? (
+          <button
+            disabled
+            className="font-body font-semibold"
+            style={{ fontSize: "0.75rem", letterSpacing: "0.14em", padding: "14px 40px", border: "1px solid rgba(155,255,60,0.3)", background: "rgba(155,255,60,0.08)", color: "#9BFF3C" }}
+          >
+            {locale === "id" ? "MENUNGGU PEMBAYARAN" : "AWAITING PAYMENT"}
+          </button>
+        ) : pending ? (
           <button
             disabled
             className="font-body font-semibold"

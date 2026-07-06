@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   const supabase = await createClient();
+  const serviceSupabase = createServiceClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -66,8 +68,8 @@ export async function POST(req: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  // Auto-join the leader as an approved member
-  await supabase.from("expedition_members").upsert(
+  // Auto-join the leader as an approved member (use service client to bypass RLS — the "auth users can join" policy only allows inserting self)
+  await serviceSupabase.from("expedition_members").upsert(
     { expedition_id: data.id, user_id: leaderProfile.id, status: "approved" },
     { onConflict: "expedition_id,user_id" }
   );

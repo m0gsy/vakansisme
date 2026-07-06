@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextResponse } from "next/server";
 import { sendExpeditionStatusEmail } from "@/lib/email";
 
@@ -65,6 +66,7 @@ async function notifyMembers(
 export async function PATCH(req: Request, { params }: { params: Params }) {
   const { id } = await params;
   const supabase = await createClient();
+  const serviceSupabase = createServiceClient();
   if (!await getAdmin(supabase)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { name, location, difficulty, price, date_start, date_end, quota_max, leader_handle, image_url, description, status, requires_approval, application_prompt, featured, activity_category, destination_id, payment_policy, payment_deadline_policy, payment_deadline_value, seat_reservation_policy, seat_reservation_hours, refund_policy, cancellation_policy, payment_instructions, accepted_payment_methods } = await req.json();
@@ -127,7 +129,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // Ensure the (possibly newly assigned) leader is an approved member
-  await supabase.from("expedition_members").upsert(
+  await serviceSupabase.from("expedition_members").upsert(
     { expedition_id: id, user_id: leaderProfile.id, status: "approved" },
     { onConflict: "expedition_id,user_id", ignoreDuplicates: true }
   );
