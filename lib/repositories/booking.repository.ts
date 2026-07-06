@@ -58,7 +58,21 @@ export class BookingRepository {
   }
 
   async updateStatus(id: string, status: BookingStatus, extra?: Record<string, unknown>): Promise<void> {
-    const update: Record<string, unknown> = { booking_status: status };
+    const memberStatusMap: Record<string, string> = {
+      draft: "pending",
+      waiting_payment: "pending_payment",
+      confirmed: "approved",
+      checked_in: "checked_in",
+      completed: "approved",
+      cancelled: "rejected",
+      expired: "rejected",
+      rejected: "rejected",
+    };
+
+    const update: Record<string, unknown> = {
+      booking_status: status,
+      status: memberStatusMap[status] ?? "pending",
+    };
 
     if (status === "cancelled" || status === "expired") {
       update.cancelled_at = new Date().toISOString();
