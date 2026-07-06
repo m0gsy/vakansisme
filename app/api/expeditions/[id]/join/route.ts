@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { sendJoinConfirmationEmail, sendLeaderJoinEmail } from "@/lib/email";
 import { rateLimit } from "@/lib/ratelimit";
+import { createServiceClient } from "@/lib/supabase/service";
 
 type Params = Promise<{ id: string }>;
 
@@ -179,8 +180,9 @@ export async function DELETE(_req: Request, { params }: { params: Params }) {
 
   const { data: expInfo } = await supabase.from("expeditions").select("name, slug").eq("id", id).single();
 
-  // Check if user has a paid payment
-  const { data: paidPayment } = await supabase
+  // Check if user has a paid payment (use service client to bypass RLS)
+  const serviceSupabase = createServiceClient();
+  const { data: paidPayment } = await serviceSupabase
     .from("expedition_payments")
     .select("id")
     .eq("user_id", user.id)
@@ -203,7 +205,7 @@ export async function DELETE(_req: Request, { params }: { params: Params }) {
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
     // Set payment status to cancelled (admin will refund manually)
-    await supabase
+    await serviceSupabase
       .from("expedition_payments")
       .update({ payment_status: "cancelled" })
       .eq("id", paidPayment.id);
