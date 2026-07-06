@@ -18,27 +18,33 @@ ALTER TABLE expeditions ADD COLUMN IF NOT EXISTS payment_instructions text;
 ALTER TABLE expeditions ADD COLUMN IF NOT EXISTS accepted_payment_methods jsonb DEFAULT '["bank_transfer"]'::jsonb;
 
 -- 2. BOOKING STATUS ENUM
-CREATE TYPE booking_status AS ENUM (
-  'draft',
-  'waiting_payment',
-  'confirmed',
-  'checked_in',
-  'completed',
-  'cancelled',
-  'expired',
-  'rejected'
-);
+DO $$ BEGIN
+  CREATE TYPE booking_status AS ENUM (
+    'draft',
+    'waiting_payment',
+    'confirmed',
+    'checked_in',
+    'completed',
+    'cancelled',
+    'expired',
+    'rejected'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- 3. PAYMENT STATUS ENUM
-CREATE TYPE payment_status AS ENUM (
-  'pending',
-  'waiting_verification',
-  'paid',
-  'rejected',
-  'expired',
-  'refunded',
-  'cancelled'
-);
+DO $$ BEGIN
+  CREATE TYPE payment_status AS ENUM (
+    'pending',
+    'waiting_verification',
+    'paid',
+    'rejected',
+    'expired',
+    'refunded',
+    'cancelled'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- 4. UPDATE expedition_members for new booking lifecycle
 ALTER TABLE expedition_members
