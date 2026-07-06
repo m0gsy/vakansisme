@@ -119,14 +119,14 @@ export async function POST(req: Request) {
 
       // In-app notifications
       const notifTitle = template
-        .replace(/\{\{name\}\}/g, "Kamu")
+        .replace(/\{\{name\}\}/g, "You")
         .replace(/\{\{trip\}\}/g, exp.name)
         .replace(/\{\{deadline\}\}/g, "");
       void supabase.from("notifications").insert(
         members.map((m) => ({
           user_id: m.user_id,
           type: "payment_reminder",
-          title: `Pengingat pembayaran — ${exp.name}`,
+          title: `Payment reminder — ${exp.name}`,
           body: notifTitle,
           link: `/bookings/${m.booking_number}`,
         }))
