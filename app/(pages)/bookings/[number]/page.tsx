@@ -72,11 +72,11 @@ export default async function BookingDetailPage({ params }: { params: Params }) 
     <div className="min-h-screen bg-charcoal">
       <div className="max-w-3xl mx-auto px-6" style={{ paddingTop: "48px", paddingBottom: "80px" }}>
         <Link
-          href={isOwner ? "/trips" : "/admin/bookings"}
+          href="/dashboard"
           className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-200 inline-block mb-8"
           style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
         >
-          ← {isOwner ? "Kembali ke Trip Saya" : "Kembali ke Admin"}
+          ← Kembali ke Dashboard
         </Link>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
