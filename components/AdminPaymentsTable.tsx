@@ -43,7 +43,6 @@ function formatted(amount: number) {
 export default function AdminPaymentsTable() {
   const router = useRouter();
   const [data, setData] = useState<PageData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
@@ -56,7 +55,8 @@ export default function AdminPaymentsTable() {
   const [processing, setProcessing] = useState(false);
 
   async function fetchData() {
-    setLoading(true);
+    setData(null);
+    setError("");
     const params = new URLSearchParams();
     if (statusFilter) params.set("status", statusFilter);
     if (search) params.set("search", search);
@@ -69,11 +69,22 @@ export default function AdminPaymentsTable() {
     } catch {
       setError("Gagal memuat data pembayaran");
     }
-    setLoading(false);
   }
 
   useEffect(() => {
-    fetchData();
+    let cancelled = false;
+    const params = new URLSearchParams();
+    if (statusFilter) params.set("status", statusFilter);
+    if (search) params.set("search", search);
+    params.set("page", page.toString());
+    fetch(`/api/admin/payments?${params}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load");
+        return res.json();
+      })
+      .then((json) => { if (!cancelled) { setData(json); setError(""); } })
+      .catch(() => { if (!cancelled) setError("Gagal memuat data pembayaran"); });
+    return () => { cancelled = true; };
   }, [statusFilter, search, page]);
 
   async function handleAction(paymentId: string, action: string, extra?: Record<string, unknown>) {
@@ -124,6 +135,8 @@ export default function AdminPaymentsTable() {
     setProcessing(false);
   }
 
+  const loading = data === null && !error;
+
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -141,7 +154,7 @@ export default function AdminPaymentsTable() {
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "20px", alignItems: "center" }}>
         <select
           value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); setData(null); setError(""); }}
           className="font-body"
           style={{ fontSize: "0.72rem", padding: "8px 12px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", color: "#F0EDEA" }}
         >
@@ -157,7 +170,7 @@ export default function AdminPaymentsTable() {
         <input
           type="text"
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); setData(null); setError(""); }}
           placeholder="Cari order ID atau username..."
           className="font-body"
           style={{ fontSize: "0.72rem", padding: "8px 12px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", color: "#F0EDEA", flex: 1, minWidth: "200px" }}

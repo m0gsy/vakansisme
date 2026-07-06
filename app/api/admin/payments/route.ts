@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin";
 import { PaymentService } from "@/lib/services/payment.service";
 
@@ -31,7 +30,7 @@ export async function GET(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const userIds = [...new Set((data ?? []).map((p) => p.user_id).filter(Boolean))] as string[];
-  let profileMap: Record<string, string> = {};
+  const profileMap: Record<string, string> = {};
   if (userIds.length > 0) {
     const { data: profiles } = await supabase.from("profiles").select("id, username").in("id", userIds);
     if (profiles) {
