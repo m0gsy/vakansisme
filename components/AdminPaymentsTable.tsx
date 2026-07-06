@@ -165,6 +165,7 @@ export default function AdminPaymentsTable() {
           <option value="rejected">Ditolak</option>
           <option value="expired">Kedaluarsa</option>
           <option value="refunded">Refund</option>
+          <option value="cancelled">Dibatalkan</option>
         </select>
 
         <input
@@ -303,6 +304,16 @@ export default function AdminPaymentsTable() {
                           disabled={processing}
                           className="font-body font-semibold"
                           style={{ fontSize: "0.6rem", padding: "4px 10px", background: "transparent", border: "1px solid rgba(255,107,26,0.4)", color: "#FF6B1A", cursor: "pointer" }}
+                        >
+                          Refund
+                        </button>
+                      )}
+                      {payment.payment_status === "cancelled" && (
+                        <button
+                          onClick={() => handleAction(payment.id, "refund", { reason: "Refund admin" })}
+                          disabled={processing}
+                          className="font-body font-semibold"
+                          style={{ fontSize: "0.6rem", padding: "4px 10px", background: "#FF6B1A", color: "#111", border: "none", cursor: "pointer" }}
                         >
                           Refund
                         </button>

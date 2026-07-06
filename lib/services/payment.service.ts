@@ -134,13 +134,13 @@ export class PaymentService {
   async refundPayment(paymentId: string, adminId: string, reason: string, ip?: string): Promise<void> {
     const payment = await this.paymentRepo.findById(paymentId);
     if (!payment) throw new Error("Payment not found");
-    if (payment.payment_status !== "paid") {
-      throw new Error("Payment is not in paid status");
+    if (!["paid", "cancelled"].includes(payment.payment_status)) {
+      throw new Error("Payment must be paid or cancelled to refund");
     }
 
     await this.paymentRepo.updatePaymentStatus(paymentId, "refunded", { reason });
 
-    if (payment.booking_id) {
+    if (payment.booking_id && payment.payment_status === "paid") {
       await this.bookingService.expireBooking(payment.booking_id, `Refunded: ${reason}`);
     }
 
