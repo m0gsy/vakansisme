@@ -15,21 +15,37 @@ export async function GET(req: Request) {
   const supabase = createServiceClient();
   let query = supabase
     .from("expedition_payments")
-    .select("*, expedition:expeditions(name, slug), profile:profiles!inner(username)", { count: "exact" });
+    .select("*, expedition:expeditions(name, slug)", { count: "exact" });
 
   if (status) {
     query = query.eq("payment_status", status);
   }
   if (search) {
-    query = query.or(`payment_order_id.ilike.%${search}%,profiles.username.ilike.%${search}%`);
+    query = query.ilike("payment_order_id", `%${search}%`);
   }
 
   const from = (page - 1) * limit;
   const to = from + limit - 1;
-  const { data, count } = await query.order("created_at", { ascending: false }).range(from, to);
+  const { data, count, error } = await query.order("created_at", { ascending: false }).range(from, to);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  const userIds = [...new Set((data ?? []).map((p) => p.user_id).filter(Boolean))] as string[];
+  let profileMap: Record<string, string> = {};
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase.from("profiles").select("id, username").in("id", userIds);
+    if (profiles) {
+      for (const p of profiles) profileMap[p.id] = p.username;
+    }
+  }
+
+  const payments = (data ?? []).map((p) => ({
+    ...p,
+    profile: { username: profileMap[p.user_id] ?? null },
+  }));
 
   return NextResponse.json({
-    payments: data ?? [],
+    payments,
     total: count ?? 0,
     page,
     totalPages: Math.ceil((count ?? 0) / limit),

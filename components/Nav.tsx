@@ -214,6 +214,7 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
                         { href: "/dashboard", label: "DASHBOARD" },
                         { href: "/stories/mine", label: d.nav_my_stories },
                         { href: "/trips", label: d.nav_my_trips },
+                        { href: "/bookings", label: "BOOKINGS" },
                         { href: "/feed", label: d.nav_feed },
                         { href: "/bookmarks", label: d.nav_saved },
                         ...(isAdmin ? [{ href: "/admin", label: "ADMIN" }] : []),
@@ -342,6 +343,9 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
                   </Link>
                   <Link href="/trips" onClick={() => setMenuOpen(false)} className="font-body font-semibold text-off-white/60" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
                     {d.nav_my_trips}
+                  </Link>
+                  <Link href="/bookings" onClick={() => setMenuOpen(false)} className="font-body font-semibold text-off-white/60" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
+                    BOOKINGS
                   </Link>
                   <Link href="/feed" onClick={() => setMenuOpen(false)} className="font-body font-semibold text-off-white/60" style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}>
                     {d.nav_feed}
