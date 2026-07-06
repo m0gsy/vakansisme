@@ -1644,3 +1644,71 @@ export function AdminActivitiesSection() {
     </div>
   );
 }
+
+export function AdminReminderTemplate() {
+  const [template, setTemplate] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/admin/payment-settings")
+      .then((r) => r.json())
+      .then((s) => setTemplate(s.reminder_templates?.trip_reminder ?? ""))
+      .catch(() => setError("Gagal memuat template"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function save() {
+    setSaving(true);
+    setError("");
+    const res = await fetch("/api/admin/payment-settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reminder_templates: { trip_reminder: template },
+      }),
+    });
+    if (!res.ok) setError("Gagal menyimpan template");
+    setSaving(false);
+  }
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: "center", padding: "40px 0" }}>
+        <p className="font-body text-muted-ink" style={{ fontSize: "0.88rem" }}>Loading template...</p>
+      </div>
+    );
+  }
+
+  return (
+    <section style={{ marginBottom: "56px" }}>
+      <h2 className="font-display font-black uppercase text-off-white" style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)", letterSpacing: "-0.02em", marginBottom: "20px" }}>
+        REMINDER TEMPLATE
+      </h2>
+
+      <div style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.35)", padding: "24px" }}>
+        <p className="font-body text-muted-ink" style={{ fontSize: "0.72rem", marginBottom: "16px", lineHeight: 1.6 }}>
+          Available variables: <code style={{ color: "#9BFF3C", background: "rgba(155,255,60,0.08)", padding: "2px 6px" }}>{`{{name}}`}</code> — member name, <code style={{ color: "#9BFF3C", background: "rgba(155,255,60,0.08)", padding: "2px 6px" }}>{`{{trip}}`}</code> — trip name, <code style={{ color: "#9BFF3C", background: "rgba(155,255,60,0.08)", padding: "2px 6px" }}>{`{{days}}`}</code> — days until departure
+        </p>
+        <textarea
+          value={template}
+          onChange={(e) => setTemplate(e.target.value)}
+          placeholder="Halo {{name}}, persiapkan dirimu! {{trip}} akan berangkat {{days}} hari lagi."
+          rows={4}
+          style={{ ...fieldStyle, border: "2px solid #4A3B2A", padding: "8px", resize: "vertical", width: "100%", marginBottom: "16px" }}
+        />
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button
+            onClick={save}
+            disabled={saving}
+            style={{ ...BTN.base, background: "#9BFF3C", color: "#111111", padding: "10px 22px", opacity: saving ? 0.5 : 1 }}
+          >
+            {saving ? "..." : "SIMPAN TEMPLATE"}
+          </button>
+          {error && <span className="font-body text-chaos-orange" style={{ fontSize: "0.72rem", alignSelf: "center" }}>{error}</span>}
+        </div>
+      </div>
+    </section>
+  );
+}

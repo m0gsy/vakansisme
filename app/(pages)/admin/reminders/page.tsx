@@ -1,6 +1,6 @@
 import { requireAdmin } from "@/lib/admin";
 import AdminNav from "@/components/AdminNav";
-import { AdminRemindersButton } from "@/components/AdminActions";
+import { AdminRemindersButton, AdminReminderTemplate } from "@/components/AdminActions";
 
 export const metadata = { title: "Reminders — Admin — VAKANSISME" };
 
@@ -19,9 +19,11 @@ export default async function AdminRemindersPage() {
 
         <AdminNav active="reminders" />
 
+        <AdminReminderTemplate />
+
         <section style={{ marginBottom: "56px" }}>
           <h2 className="font-display font-black uppercase text-off-white" style={{ fontSize: "clamp(1.4rem, 3vw, 2rem)", letterSpacing: "-0.02em", marginBottom: "20px" }}>
-            TRIP REMINDERS
+            SEND REMINDERS
           </h2>
           <AdminRemindersButton />
         </section>

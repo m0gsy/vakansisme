@@ -99,7 +99,6 @@ export default function AdminPaymentSettings() {
   });
   const [receiptFooter, setReceiptFooter] = useState("");
   const [reminderPayment, setReminderPayment] = useState("");
-  const [reminderTrip, setReminderTrip] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -118,7 +117,6 @@ export default function AdminPaymentSettings() {
           if (s.business_hours) setBusinessHours(s.business_hours as typeof businessHours);
           setReceiptFooter(s.receipt_footer?.text ?? "");
           setReminderPayment(s.reminder_templates?.payment_reminder ?? "");
-          setReminderTrip(s.reminder_templates?.trip_reminder ?? "");
         }
       } catch {
         setError("Gagal memuat data");
@@ -195,7 +193,7 @@ export default function AdminPaymentSettings() {
         whatsapp_number: { number: whatsapp, label: "Admin" },
         business_hours: businessHours,
         receipt_footer: { text: receiptFooter },
-        reminder_templates: { payment_reminder: reminderPayment, trip_reminder: reminderTrip },
+        reminder_templates: { payment_reminder: reminderPayment },
       }),
     });
     if (res.ok) {
@@ -489,17 +487,6 @@ export default function AdminPaymentSettings() {
                 value={reminderPayment}
                 onChange={(e) => setReminderPayment(e.target.value)}
                 placeholder="Halo {{name}}, kamu masih punya tagihan untuk {{trip}}. Segera lakukan pembayaran sebelum {{deadline}}."
-                rows={3}
-                style={{ ...fieldStyle, border: "2px solid #4A3B2A", padding: "8px", resize: "vertical", width: "100%" }}
-              />
-            </div>
-
-            <div style={{ marginBottom: "24px" }}>
-              <label className="font-body text-muted-ink" style={{ fontSize: "0.72rem", display: "block", marginBottom: "6px" }}>Trip Reminder Template</label>
-              <textarea
-                value={reminderTrip}
-                onChange={(e) => setReminderTrip(e.target.value)}
-                placeholder="Halo {{name}}, persiapkan dirimu! {{trip}} akan berangkat {{days}} hari lagi."
                 rows={3}
                 style={{ ...fieldStyle, border: "2px solid #4A3B2A", padding: "8px", resize: "vertical", width: "100%" }}
               />
