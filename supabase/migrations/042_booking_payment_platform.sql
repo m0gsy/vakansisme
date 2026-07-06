@@ -228,7 +228,7 @@ CREATE INDEX IF NOT EXISTS idx_booking_audit_logs_created_at ON booking_audit_lo
 
 -- 13. BACKFILL booking_number for existing rows
 UPDATE expedition_members
-SET booking_number = 'BK-' || UPPER(SUBSTR(MD5(id::text), 1, 8)) || '-' || TO_CHAR(created_at, 'YYMMDD')
+SET booking_number = 'BK-' || UPPER(SUBSTR(MD5(id::text), 1, 8)) || '-' || TO_CHAR(joined_at, 'YYMMDD')
 WHERE booking_number IS NULL;
 
 -- 14. FUNCTION: generate booking number
