@@ -341,6 +341,72 @@ export async function sendReminderEmail(
   });
 }
 
+export async function sendPaymentVerifiedEmail(
+  to: string,
+  username: string,
+  paymentOrderId: string,
+  amount: number,
+  tripName: string,
+  bookingNumber: string
+) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
+  const formatted = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amount);
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Payment confirmed — ${tripName}`,
+    html: base(`
+      <tr><td>
+        <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.14em;color:#9BFF3C;text-transform:uppercase;">PAYMENT RECEIVED</p>
+        <h1 style="margin:0 0 16px;font-size:38px;font-weight:900;letter-spacing:-0.025em;line-height:0.9;color:#F0EDEA;text-transform:uppercase;">
+          ${tripName}
+        </h1>
+        <table style="border:1px solid rgba(74,59,42,0.35);background:#1a1a1a;padding:24px;width:100%;margin-bottom:28px;">
+          <tr><td style="font-size:10px;font-weight:700;letter-spacing:0.12em;color:#4A3B2A;text-transform:uppercase;padding-bottom:8px;">ORDER ID</td></tr>
+          <tr><td style="font-size:14px;font-weight:600;color:#F0EDEA;font-family:monospace;padding-bottom:16px;">${paymentOrderId}</td></tr>
+          <tr><td style="font-size:10px;font-weight:700;letter-spacing:0.12em;color:#4A3B2A;text-transform:uppercase;padding-bottom:8px;">AMOUNT</td></tr>
+          <tr><td style="font-size:24px;font-weight:900;color:#9BFF3C;">${formatted}</td></tr>
+        </table>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#8B7355;">
+          Hey @${username}, your payment for <strong style="color:#F0EDEA;">${tripName}</strong> has been confirmed. Your spot is secured.
+        </p>
+        <a href="${SITE_URL}/bookings/${bookingNumber}" style="display:inline-block;background:#9BFF3C;color:#111111;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:12px 28px;">
+          VIEW BOOKING →
+        </a>
+      </td></tr>
+    `),
+  });
+}
+
+export async function sendBookingConfirmedEmail(
+  to: string,
+  username: string,
+  tripName: string,
+  bookingNumber: string
+) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Booking confirmed — ${tripName}`,
+    html: base(`
+      <tr><td>
+        <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.14em;color:#9BFF3C;text-transform:uppercase;">BOOKING CONFIRMED</p>
+        <h1 style="margin:0 0 8px;font-size:42px;font-weight:900;letter-spacing:-0.025em;line-height:0.9;color:#F0EDEA;text-transform:uppercase;">
+          ${tripName}
+        </h1>
+        <p style="margin:0 0 24px;font-size:14px;color:#8B7355;">Booking #${bookingNumber}</p>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#8B7355;">
+          Hey @${username}, your booking for <strong style="color:#F0EDEA;">${tripName}</strong> is confirmed. Get ready for the adventure.
+        </p>
+        <a href="${SITE_URL}/bookings/${bookingNumber}" style="display:inline-block;background:#9BFF3C;color:#111111;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:12px 28px;">
+          VIEW BOOKING →
+        </a>
+      </td></tr>
+    `),
+  });
+}
+
 export async function sendNewsletterEmail(to: string[], subject: string, html: string) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return { sent: 0 };
   const batches = [];

@@ -3,6 +3,7 @@ import { PaymentRepository } from "@/lib/repositories/payment.repository";
 import { BookingRepository } from "@/lib/repositories/booking.repository";
 import { AuditRepository } from "@/lib/repositories/audit.repository";
 import { BookingService } from "./booking.service";
+import { sendPaymentVerifiedEmail, sendBookingConfirmedEmail } from "@/lib/email";
 import { getProviderForPayment } from "@/lib/payment/provider-registry";
 import type { CreatePaymentInput, Payment, PaymentProvider } from "@/types/payment";
 import type { ProviderPaymentResult } from "@/lib/payment/providers/types";
@@ -100,6 +101,15 @@ export class PaymentService {
       description: `Payment verified: ${payment.payment_order_id}`,
       metadata: { amount: payment.amount_idr },
     });
+
+    const db = this.serviceSupabase ?? this.supabase;
+    const { data: profile } = await db.from("profiles").select("email, username").eq("id", payment.user_id).single();
+    if (profile?.email && profile?.username) {
+      const booking = await this.bookingRepo.findById(payment.booking_id!);
+      const tripName = (booking?.expedition as Record<string, unknown> | null)?.name as string ?? "your trip";
+      sendPaymentVerifiedEmail(profile.email, profile.username, payment.payment_order_id, payment.amount_idr, tripName, booking?.booking_number ?? "").catch(() => {});
+      sendBookingConfirmedEmail(profile.email, profile.username, tripName, booking?.booking_number ?? "").catch(() => {});
+    }
   }
 
   async rejectPayment(paymentId: string, adminId: string, reason: string, ip?: string): Promise<void> {
