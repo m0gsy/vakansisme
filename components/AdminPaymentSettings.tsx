@@ -97,6 +97,9 @@ export default function AdminPaymentSettings() {
     end: "17:00",
     timezone: "Asia/Jakarta",
   });
+  const [receiptFooter, setReceiptFooter] = useState("");
+  const [reminderPayment, setReminderPayment] = useState("");
+  const [reminderTrip, setReminderTrip] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -113,6 +116,9 @@ export default function AdminPaymentSettings() {
           const s = await settingsRes.json();
           setWhatsapp(s.whatsapp_number?.number ?? "");
           if (s.business_hours) setBusinessHours(s.business_hours as typeof businessHours);
+          setReceiptFooter(s.receipt_footer?.text ?? "");
+          setReminderPayment(s.reminder_templates?.payment_reminder ?? "");
+          setReminderTrip(s.reminder_templates?.trip_reminder ?? "");
         }
       } catch {
         setError("Gagal memuat data");
@@ -188,6 +194,8 @@ export default function AdminPaymentSettings() {
       body: JSON.stringify({
         whatsapp_number: { number: whatsapp, label: "Admin" },
         business_hours: businessHours,
+        receipt_footer: { text: receiptFooter },
+        reminder_templates: { payment_reminder: reminderPayment, trip_reminder: reminderTrip },
       }),
     });
     if (res.ok) {
@@ -462,6 +470,39 @@ export default function AdminPaymentSettings() {
                   <input value={businessHours.timezone} onChange={(e) => setBusinessHours({ ...businessHours, timezone: e.target.value })} placeholder="Asia/Jakarta" style={fieldStyle} />
                 </div>
               </div>
+            </div>
+
+            <div style={{ marginBottom: "24px" }}>
+              <label className="font-body text-muted-ink" style={{ fontSize: "0.72rem", display: "block", marginBottom: "6px" }}>Receipt Footer</label>
+              <textarea
+                value={receiptFooter}
+                onChange={(e) => setReceiptFooter(e.target.value)}
+                placeholder="Terima kasih telah mempercayai VAKANSISME."
+                rows={3}
+                style={{ ...fieldStyle, border: "2px solid #4A3B2A", padding: "8px", resize: "vertical", width: "100%" }}
+              />
+            </div>
+
+            <div style={{ marginBottom: "24px" }}>
+              <label className="font-body text-muted-ink" style={{ fontSize: "0.72rem", display: "block", marginBottom: "6px" }}>Payment Reminder Template</label>
+              <textarea
+                value={reminderPayment}
+                onChange={(e) => setReminderPayment(e.target.value)}
+                placeholder="Halo {{name}}, kamu masih punya tagihan untuk {{trip}}. Segera lakukan pembayaran sebelum {{deadline}}."
+                rows={3}
+                style={{ ...fieldStyle, border: "2px solid #4A3B2A", padding: "8px", resize: "vertical", width: "100%" }}
+              />
+            </div>
+
+            <div style={{ marginBottom: "24px" }}>
+              <label className="font-body text-muted-ink" style={{ fontSize: "0.72rem", display: "block", marginBottom: "6px" }}>Trip Reminder Template</label>
+              <textarea
+                value={reminderTrip}
+                onChange={(e) => setReminderTrip(e.target.value)}
+                placeholder="Halo {{name}}, persiapkan dirimu! {{trip}} akan berangkat {{days}} hari lagi."
+                rows={3}
+                style={{ ...fieldStyle, border: "2px solid #4A3B2A", padding: "8px", resize: "vertical", width: "100%" }}
+              />
             </div>
 
             <button onClick={saveSettings} disabled={saving} style={{ ...BTN.base, ...BTN.primary, opacity: saving ? 0.5 : 1 }}>
