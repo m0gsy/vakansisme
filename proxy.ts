@@ -31,7 +31,7 @@ export default async function proxy(request: NextRequest) {
   const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
 
   // Gate auth-only pages at the edge (no content flash before client redirect)
-  const protectedPaths = ["/settings", "/stories/new", "/admin"];
+  const protectedPaths = ["/settings", "/stories/new", "/admin", "/dashboard", "/bookings"];
   if (!user && protectedPaths.some((p) => pathname.startsWith(p))) {
     return NextResponse.redirect(new URL("/login", request.url));
   }

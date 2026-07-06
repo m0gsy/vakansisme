@@ -9,11 +9,10 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://app.midtrans.com https://api.midtrans.com",
+      "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.midtrans.com https://app.midtrans.com https://nominatim.openstreetmap.org",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://nominatim.openstreetmap.org",
       "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://*.tile.openstreetmap.org https://cdnjs.cloudflare.com",
-      "frame-src https://app.midtrans.com https://api.midtrans.com",
       "font-src 'self' data:",
     ].join("; "),
   },

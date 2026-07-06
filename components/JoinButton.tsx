@@ -52,25 +52,32 @@ export default function JoinButton({
     if (!currentUserId) { router.push("/login"); return; }
     setError("");
     setLoading(true);
-    const res = await fetch(`/api/expeditions/${tripId}/join`, {
+    const res = await fetch(`/api/bookings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ notes: appNotes ?? undefined }),
+      body: JSON.stringify({
+        expedition_id: tripId,
+        notes: appNotes ?? undefined,
+      }),
     });
     const json = await res.json();
     if (res.ok) {
-      if (json.pending) {
+      if (json.member_status === "pending_payment") {
+        setPending(true);
+        setShowApp(false);
+        toast(locale === "id" ? "Slot tereservasi! Segera lakukan pembayaran." : "Slot reserved! Complete payment now.");
+      } else if (json.member_status === "pending") {
         setPending(true);
         setShowApp(false);
         toast(locale === "id" ? "Lamaran terkirim! Menunggu persetujuan pemimpin." : "Application sent! Awaiting leader approval.");
       } else {
         setJoined(true);
-        setCount(json.member_count);
+        setCount(json.member_count ?? count + 1);
         setShowApp(false);
         toast(locale === "id" ? "Berhasil bergabung! Sampai ketemu di perjalanan." : "Joined! See you on the trail.");
         router.refresh();
       }
-    } else if (res.status === 409 && json.error === "Already joined") {
+    } else if (res.status === 409 && (json.error === "Already joined" || json.error === "Already joined")) {
       setJoined(true);
       router.refresh();
     } else {
@@ -160,7 +167,6 @@ export default function JoinButton({
         <span className="font-body text-muted-ink" style={{ fontSize: "0.82rem" }}>{slotsLabel}</span>
       </div>
 
-      {/* Application form */}
       {showApp && !joined && !pending && (
         <div style={{ marginTop: "12px", padding: "18px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)" }}>
           <p className="font-body font-semibold text-off-white" style={{ fontSize: "0.82rem", marginBottom: "8px" }}>{applicationPrompt}</p>

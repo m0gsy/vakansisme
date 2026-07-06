@@ -15,7 +15,6 @@
     "framer-motion": "^12.42.0",
     "leaflet": "^1.9.4",
     "marked": "^18.0.5",
-    "midtrans-client": "^1.4.3",
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",

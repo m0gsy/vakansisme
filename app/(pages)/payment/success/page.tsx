@@ -25,11 +25,11 @@ export default function PaymentSuccessPage() {
             ALL EXPEDITIONS →
           </Link>
           <Link
-            href="/feed"
+            href="/dashboard"
             className="font-body font-semibold text-off-white hover:text-neon-green transition-colors duration-150"
             style={{ fontSize: "0.72rem", letterSpacing: "0.14em", padding: "12px 28px", border: "1px solid rgba(74,59,42,0.4)" }}
           >
-            YOUR FEED
+            MY BOOKINGS
           </Link>
         </div>
       </div>

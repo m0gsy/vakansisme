@@ -3,23 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-declare global {
-  interface Window {
-    snap?: {
-      pay: (token: string, options: {
-        onSuccess?: (result: unknown) => void;
-        onPending?: (result: unknown) => void;
-        onError?: (result: unknown) => void;
-        onClose?: () => void;
-      }) => void;
-    };
-  }
-}
-
-const SNAP_URL = process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true"
-  ? "https://app.midtrans.com/snap/snap.js"
-  : "https://app.sandbox.midtrans.com/snap/snap.js";
-
 function useDeadlineCountdown(dueAt: string | null) {
   const [timeLeft, setTimeLeft] = useState("");
 
@@ -41,12 +24,14 @@ function useDeadlineCountdown(dueAt: string | null) {
 }
 
 export default function PayButton({
+  bookingId,
   expeditionId,
   priceAmount,
   currentUserId,
   alreadyPaid = false,
   paymentDueAt = null,
 }: {
+  bookingId?: string;
   expeditionId: string;
   priceAmount: number;
   currentUserId: string | null;
@@ -56,17 +41,8 @@ export default function PayButton({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showMethods, setShowMethods] = useState(false);
   const deadline = useDeadlineCountdown(paymentDueAt);
-
-  useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY) return;
-    const existing = document.querySelector(`script[src="${SNAP_URL}"]`);
-    if (existing) return;
-    const script = document.createElement("script");
-    script.src = SNAP_URL;
-    script.setAttribute("data-client-key", process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY);
-    document.head.appendChild(script);
-  }, []);
 
   const formatted = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(priceAmount);
 
@@ -78,27 +54,28 @@ export default function PayButton({
     );
   }
 
-  async function handlePay() {
+  async function handlePay(method: string) {
     if (!currentUserId) { router.push("/login"); return; }
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/midtrans/snap", {
+      const res = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expeditionId }),
+        body: JSON.stringify({
+          booking_id: bookingId,
+          expedition_id: expeditionId,
+          payment_method: method,
+          provider: "manual_transfer",
+        }),
       });
       const json = await res.json();
-      if (!res.ok) { setError(json.error ?? "Gagal memproses pembayaran"); setLoading(false); return; }
-
-      if (!window.snap) { setError("Snap.js belum dimuat. Refresh halaman."); setLoading(false); return; }
-
-      window.snap.pay(json.token, {
-        onSuccess: () => { router.push("/payment/success"); },
-        onPending: () => { setError("Pembayaran tertunda — cek email kamu."); setLoading(false); },
-        onError: () => { setError("Pembayaran gagal. Coba lagi."); setLoading(false); },
-        onClose: () => { setLoading(false); },
-      });
+      if (!res.ok) {
+        setError(json.error ?? "Gagal memproses pembayaran");
+        setLoading(false);
+        return;
+      }
+      router.push(`/bookings/${json.payment?.payment_order_id ?? bookingId}/payment`);
     } catch {
       setError("Terjadi kesalahan.");
       setLoading(false);
@@ -123,14 +100,50 @@ export default function PayButton({
           </p>
         </div>
       )}
-      <button
-        onClick={handlePay}
-        disabled={loading}
-        className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed w-full"
-        style={{ fontSize: "0.72rem", letterSpacing: "0.14em", padding: "14px 28px", border: "none", cursor: "pointer" }}
-      >
-        {loading ? "MEMPROSES…" : `LUNASI PEMBAYARAN — ${formatted}`}
-      </button>
+
+      {!showMethods ? (
+        <button
+          onClick={() => {
+            if (!currentUserId) { router.push("/login"); return; }
+            setShowMethods(true);
+          }}
+          disabled={loading}
+          className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed w-full"
+          style={{ fontSize: "0.72rem", letterSpacing: "0.14em", padding: "14px 28px", border: "none", cursor: "pointer" }}
+        >
+          {loading ? "MEMPROSES…" : `LUNASI PEMBAYARAN — ${formatted}`}
+        </button>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <p className="font-body font-semibold text-off-white uppercase" style={{ fontSize: "0.65rem", letterSpacing: "0.12em", marginBottom: "4px" }}>
+            Pilih Metode Pembayaran
+          </p>
+          <button
+            onClick={() => handlePay("bank_transfer")}
+            disabled={loading}
+            className="font-body font-semibold text-left transition-colors duration-150 disabled:opacity-50"
+            style={{ fontSize: "0.78rem", padding: "12px 18px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", color: "#F0EDEA", cursor: "pointer" }}
+          >
+            Transfer Bank
+          </button>
+          <button
+            onClick={() => handlePay("qris")}
+            disabled={loading}
+            className="font-body font-semibold text-left transition-colors duration-150 disabled:opacity-50"
+            style={{ fontSize: "0.78rem", padding: "12px 18px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", color: "#F0EDEA", cursor: "pointer" }}
+          >
+            QRIS
+          </button>
+          <button
+            onClick={() => setShowMethods(false)}
+            className="font-body text-muted-ink hover:text-off-white transition-colors duration-150"
+            style={{ fontSize: "0.68rem", letterSpacing: "0.1em", background: "transparent", border: "none", cursor: "pointer", padding: "6px 0" }}
+          >
+            Kembali
+          </button>
+        </div>
+      )}
+
       {error && (
         <p className="font-body text-chaos-orange" style={{ fontSize: "0.72rem", marginTop: "8px" }}>{error}</p>
       )}

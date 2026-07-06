@@ -15,5 +15,5 @@ export async function GET(req: Request) {
   const paymentService = new PaymentService(supabase, serviceSupabase);
   const count = await paymentService.expireOverduePayments();
 
-  return NextResponse.json({ cancelled: count });
+  return NextResponse.json({ expired: count });
 }

@@ -124,7 +124,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
     supabase.from("expedition_members").select("user_id, status, profiles(username, avatar_url)").eq("expedition_id", id).neq("status", "rejected").limit(30),
     supabase.from("expedition_gallery").select("id, uploader_id, uploader_handle, image_url, caption, created_at").eq("expedition_id", id).order("created_at", { ascending: true }).limit(50),
     user
-      ? supabase.from("expedition_members").select("user_id, status, payment_due_at").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
+      ? supabase.from("expedition_members").select("id, user_id, status, payment_due_at, expires_at").eq("expedition_id", id).eq("user_id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.from("expedition_comments").select("id, author_id, author_handle, content, created_at").eq("expedition_id", id).order("created_at", { ascending: true }).limit(100),
     user
@@ -153,7 +153,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
       ? supabase.from("destinations").select("kind, name, slug").eq("id", trip.destination_id).maybeSingle()
       : Promise.resolve({ data: null }),
     user && priceAmount > 0
-      ? supabase.from("expedition_payments").select("status").eq("user_id", user.id).eq("expedition_id", id).eq("status", "paid").maybeSingle()
+      ? supabase.from("expedition_payments").select("status, payment_status").eq("user_id", user.id).eq("expedition_id", id).in("payment_status", ["paid"]).maybeSingle()
       : Promise.resolve({ data: null }),
     user
       ? supabase.from("profiles").select("username, is_admin").eq("id", user.id).single()
@@ -181,12 +181,13 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
   const isPaid = !!paidRow;
 
-  const membershipRow = membership as { status?: string; payment_due_at?: string | null } | null;
+  const membershipRow = membership as { id?: string; status?: string; payment_due_at?: string | null; expires_at?: string | null } | null;
   const membershipStatus = membershipRow?.status;
   const userJoined = membershipStatus === "approved";
   const userPending = membershipStatus === "pending";
   const userPendingPayment = membershipStatus === "pending_payment";
   const paymentDueAt = membershipRow?.payment_due_at ?? null;
+  const bookingId = membershipRow?.id ?? null;
   const onWaitlist = !!waitlistRow;
 
   // Leader sees pending members for approval
@@ -400,6 +401,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
               {priceAmount > 0 && userPendingPayment && !isActualLeader ? (
                 <>
                   <PayButton
+                    bookingId={bookingId ?? undefined}
                     expeditionId={trip.id}
                     priceAmount={priceAmount}
                     currentUserId={user?.id ?? null}

@@ -211,6 +211,7 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
                     >
                       {[
                         { href: `/u/${username}`, label: d.nav_profile },
+                        { href: "/dashboard", label: "DASHBOARD" },
                         { href: "/stories/mine", label: d.nav_my_stories },
                         { href: "/trips", label: d.nav_my_trips },
                         { href: "/feed", label: d.nav_feed },
