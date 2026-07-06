@@ -138,6 +138,13 @@ export class PaymentService {
       throw new Error("Payment must be paid or cancelled to refund");
     }
 
+    if (payment.payment_status === "paid" && payment.booking_id) {
+      const booking = await this.bookingRepo.findById(payment.booking_id);
+      if (booking && ["checked_in", "completed"].includes(booking.booking_status)) {
+        throw new Error("Cannot refund a payment for a trip that has already started or completed");
+      }
+    }
+
     await this.paymentRepo.updatePaymentStatus(paymentId, "refunded", { reason });
 
     if (payment.booking_id && payment.payment_status === "paid") {

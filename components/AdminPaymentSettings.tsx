@@ -119,7 +119,7 @@ export default function AdminPaymentSettings() {
           setReminderPayment(s.reminder_templates?.payment_reminder ?? "");
         }
       } catch {
-        setError("Gagal memuat data");
+        setError("Failed to load data");
       }
       setLoading(false);
     }
@@ -142,13 +142,13 @@ export default function AdminPaymentSettings() {
       if (data.ok) setBanks(await data.json());
     } else {
       const err = await res.json();
-      setError(err.error ?? "Gagal simpan bank");
+      setError(err.error ?? "Failed to save bank");
     }
     setSaving(false);
   }
 
   async function deleteBank(id: string) {
-    if (!confirm("Hapus rekening bank ini?")) return;
+    if (!confirm("Delete this bank account?")) return;
     const res = await fetch(`/api/admin/bank-accounts/${id}`, { method: "DELETE" });
     if (res.ok) {
       setBanks((prev) => prev.filter((b) => b.id !== id));
@@ -171,13 +171,13 @@ export default function AdminPaymentSettings() {
       if (data.ok) setQrisAccounts(await data.json());
     } else {
       const err = await res.json();
-      setError(err.error ?? "Gagal simpan QRIS");
+      setError(err.error ?? "Failed to save QRIS");
     }
     setSaving(false);
   }
 
   async function deleteQris(id: string) {
-    if (!confirm("Hapus QRIS ini?")) return;
+    if (!confirm("Delete this QRIS?")) return;
     const res = await fetch(`/api/admin/qris-accounts/${id}`, { method: "DELETE" });
     if (res.ok) {
       setQrisAccounts((prev) => prev.filter((q) => q.id !== id));
@@ -199,7 +199,7 @@ export default function AdminPaymentSettings() {
     if (res.ok) {
       router.refresh();
     } else {
-      setError("Gagal simpan settings");
+      setError("Failed to save settings");
     }
     setSaving(false);
   }
@@ -290,7 +290,7 @@ export default function AdminPaymentSettings() {
                             EDIT
                           </button>
                           <button onClick={() => deleteBank(bank.id)} style={{ ...BTN.base, ...BTN.danger }}>
-                            HAPUS
+                            DELETE
                           </button>
                         </div>
                       </td>
@@ -303,23 +303,23 @@ export default function AdminPaymentSettings() {
 
           <div style={cardStyle}>
             <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "20px" }}>
-              {editingBank ? "EDIT BANK" : "TAMBAH BANK"}
+              {editingBank ? "EDIT BANK" : "ADD BANK"}
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
               <div>
-                <label className="font-body text-muted-ink" style={{ fontSize: "0.68rem", display: "block", marginBottom: "4px" }}>Nama Bank</label>
+                <label className="font-body text-muted-ink" style={{ fontSize: "0.68rem", display: "block", marginBottom: "4px" }}>Bank Name</label>
                 <input value={bankForm.bank_name} onChange={(e) => setBankForm({ ...bankForm, bank_name: e.target.value })} placeholder="BCA, Mandiri, etc" style={fieldStyle} />
               </div>
               <div>
-                <label className="font-body text-muted-ink" style={{ fontSize: "0.68rem", display: "block", marginBottom: "4px" }}>No. Rekening</label>
+                <label className="font-body text-muted-ink" style={{ fontSize: "0.68rem", display: "block", marginBottom: "4px" }}>Account No.</label>
                 <input value={bankForm.account_number} onChange={(e) => setBankForm({ ...bankForm, account_number: e.target.value })} placeholder="1234567890" style={fieldStyle} />
               </div>
               <div>
-                <label className="font-body text-muted-ink" style={{ fontSize: "0.68rem", display: "block", marginBottom: "4px" }}>Atas Nama</label>
+                <label className="font-body text-muted-ink" style={{ fontSize: "0.68rem", display: "block", marginBottom: "4px" }}>Account Name</label>
                 <input value={bankForm.account_name} onChange={(e) => setBankForm({ ...bankForm, account_name: e.target.value })} placeholder="PT VAKANSISME" style={fieldStyle} />
               </div>
               <div>
-                <label className="font-body text-muted-ink" style={{ fontSize: "0.68rem", display: "block", marginBottom: "4px" }}>Cabang (opsional)</label>
+                <label className="font-body text-muted-ink" style={{ fontSize: "0.68rem", display: "block", marginBottom: "4px" }}>Branch (optional)</label>
                 <input value={bankForm.branch} onChange={(e) => setBankForm({ ...bankForm, branch: e.target.value })} placeholder="Jakarta" style={fieldStyle} />
               </div>
             </div>
@@ -329,14 +329,14 @@ export default function AdminPaymentSettings() {
                 disabled={saving || !bankForm.bank_name || !bankForm.account_name || !bankForm.account_number}
                 style={{ ...BTN.base, ...BTN.primary, opacity: saving || !bankForm.bank_name || !bankForm.account_name || !bankForm.account_number ? 0.5 : 1 }}
               >
-                {saving ? "..." : editingBank ? "UPDATE" : "SIMPAN"}
+                {saving ? "..." : editingBank ? "UPDATE" : "SAVE"}
               </button>
               {editingBank && (
                 <button
                   onClick={() => { setEditingBank(null); setBankForm({ bank_name: "", account_name: "", account_number: "", branch: "" }); }}
                   style={{ ...BTN.base, ...BTN.ghost }}
                 >
-                  BATAL
+                  CANCEL
                 </button>
               )}
             </div>
@@ -386,7 +386,7 @@ export default function AdminPaymentSettings() {
                             EDIT
                           </button>
                           <button onClick={() => deleteQris(qris.id)} style={{ ...BTN.base, ...BTN.danger }}>
-                            HAPUS
+                            DELETE
                           </button>
                         </div>
                       </td>
@@ -399,15 +399,15 @@ export default function AdminPaymentSettings() {
 
           <div style={cardStyle}>
             <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "20px" }}>
-              {editingQris ? "EDIT QRIS" : "TAMBAH QRIS"}
+              {editingQris ? "EDIT QRIS" : "ADD QRIS"}
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginBottom: "20px" }}>
               <div>
-                <label className="font-body text-muted-ink" style={{ fontSize: "0.68rem", display: "block", marginBottom: "4px" }}>Nama QRIS</label>
+                <label className="font-body text-muted-ink" style={{ fontSize: "0.68rem", display: "block", marginBottom: "4px" }}>QRIS Name</label>
                 <input value={qrisForm.name} onChange={(e) => setQrisForm({ ...qrisForm, name: e.target.value })} placeholder="QRIS VAKANSISME" style={fieldStyle} />
               </div>
               <div>
-                <label className="font-body text-muted-ink" style={{ fontSize: "0.68rem", display: "block", marginBottom: "4px" }}>URL Gambar</label>
+                <label className="font-body text-muted-ink" style={{ fontSize: "0.68rem", display: "block", marginBottom: "4px" }}>Image URL</label>
                 <input value={qrisForm.image_url} onChange={(e) => setQrisForm({ ...qrisForm, image_url: e.target.value })} placeholder="https://..." style={fieldStyle} />
               </div>
             </div>
@@ -417,14 +417,14 @@ export default function AdminPaymentSettings() {
                 disabled={saving || !qrisForm.name || !qrisForm.image_url}
                 style={{ ...BTN.base, ...BTN.primary, opacity: saving || !qrisForm.name || !qrisForm.image_url ? 0.5 : 1 }}
               >
-                {saving ? "..." : editingQris ? "UPDATE" : "SIMPAN"}
+                {saving ? "..." : editingQris ? "UPDATE" : "SAVE"}
               </button>
               {editingQris && (
                 <button
                   onClick={() => { setEditingQris(null); setQrisForm({ name: "", image_url: "" }); }}
                   style={{ ...BTN.base, ...BTN.ghost }}
                 >
-                  BATAL
+                  CANCEL
                 </button>
               )}
             </div>
@@ -475,7 +475,7 @@ export default function AdminPaymentSettings() {
               <textarea
                 value={receiptFooter}
                 onChange={(e) => setReceiptFooter(e.target.value)}
-                placeholder="Terima kasih telah mempercayai VAKANSISME."
+                placeholder="Thank you for choosing VAKANSISME."
                 rows={3}
                 style={{ ...fieldStyle, border: "2px solid #4A3B2A", padding: "8px", resize: "vertical", width: "100%" }}
               />
@@ -486,14 +486,14 @@ export default function AdminPaymentSettings() {
               <textarea
                 value={reminderPayment}
                 onChange={(e) => setReminderPayment(e.target.value)}
-                placeholder="Halo {{name}}, kamu masih punya tagihan untuk {{trip}}. Segera lakukan pembayaran sebelum {{deadline}}."
+                placeholder="Hi {{name}}, you still have a payment for {{trip}}. Please complete payment before {{deadline}}."
                 rows={3}
                 style={{ ...fieldStyle, border: "2px solid #4A3B2A", padding: "8px", resize: "vertical", width: "100%" }}
               />
             </div>
 
             <button onClick={saveSettings} disabled={saving} style={{ ...BTN.base, ...BTN.primary, opacity: saving ? 0.5 : 1 }}>
-              {saving ? "..." : "SIMPAN SETTINGS"}
+              {saving ? "..." : "SAVE SETTINGS"}
             </button>
           </div>
         </section>

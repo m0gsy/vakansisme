@@ -126,9 +126,9 @@ export async function POST(req: Request) {
           type: "payment_reminder",
           title: `Payment reminder — ${exp.name}`,
           body: template
-            .replace(/\{\{name\}\}/g, "You")
+            .replace(/\{\{name\}\}/g, profile.username)
             .replace(/\{\{trip\}\}/g, exp.name)
-            .replace(/\{\{deadline\}\}/g, ""),
+            .replace(/\{\{deadline\}\}/g, p.expires_at ? new Date(p.expires_at).toLocaleDateString("en", { day: "numeric", month: "long", year: "numeric" }) : ""),
           link: `/bookings/${m.booking_number}`,
         });
       }

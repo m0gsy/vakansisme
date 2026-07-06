@@ -138,7 +138,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
         type: "join",
         title: `@${profile.username} joined ${trip.name}`,
         link: `/expeditions/${trip.slug}`,
-      });
+        });
     }
   }
 
@@ -233,7 +233,7 @@ export async function DELETE(_req: Request, { params }: { params: Params }) {
           type: "waitlist_spot",
           title: `A spot opened on ${expInfo?.name ?? "your waitlisted trip"} — join now`,
           link: expInfo?.slug ? `/expeditions/${expInfo.slug}` : `/expeditions/${id}`,
-        });
+      });
       });
   }
 

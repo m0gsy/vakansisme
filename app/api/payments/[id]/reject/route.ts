@@ -15,7 +15,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
   if (!profile?.is_admin) return NextResponse.json({ error: "Admin required" }, { status: 403 });
 
   const body = await req.json().catch(() => ({}));
-  const reason = (body.reason as string) ?? "Bukti transfer tidak valid";
+  const reason = (body.reason as string) ?? "Invalid transfer proof";
   const ip = req.headers.get("x-forwarded-for") ?? undefined;
 
   const paymentService = new PaymentService(supabase, createServiceClient());

@@ -190,7 +190,7 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
   const [editRefundPolicy, setEditRefundPolicy] = useState(expedition.refund_policy ?? "");
   const [editCancellationPolicy, setEditCancellationPolicy] = useState(expedition.cancellation_policy ?? "");
   const [editPaymentInstructions, setEditPaymentInstructions] = useState(expedition.payment_instructions ?? "");
-  const [editAcceptedPaymentMethods, setEditAcceptedPaymentMethods] = useState<string[]>(expedition.accepted_payment_methods ?? ['"bank_transfer"']);
+  const [editAcceptedPaymentMethods, setEditAcceptedPaymentMethods] = useState<string[]>(expedition.accepted_payment_methods ?? ["bank_transfer"]);
   const [adminUsers, setAdminUsers] = useState<{ id: string; username: string }[]>([]);
   const [activities, setActivities] = useState<string[]>([]);
   const [destinations, setDestinations] = useState<{ id: string; name: string }[]>([]);
@@ -560,7 +560,7 @@ export function AdminExpeditionForm() {
   const [refundPolicy, setRefundPolicy] = useState("");
   const [cancellationPolicy, setCancellationPolicy] = useState("");
   const [paymentInstructions, setPaymentInstructions] = useState("");
-  const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState(['"bank_transfer"']);
+  const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState(["bank_transfer"]);
   const [fields, setFields] = useState({
     name: "",
     location: "",
@@ -616,7 +616,7 @@ export function AdminExpeditionForm() {
       setRefundPolicy("");
       setCancellationPolicy("");
       setPaymentInstructions("");
-      setAcceptedPaymentMethods(['"bank_transfer"']);
+      setAcceptedPaymentMethods(["bank_transfer"]);
       setOpen(false);
       router.refresh();
     } else {
@@ -1729,7 +1729,7 @@ export function AdminReminderTemplate() {
     fetch("/api/admin/payment-settings")
       .then((r) => r.json())
       .then((s) => setTemplate(s.reminder_templates?.trip_reminder ?? ""))
-      .catch(() => setError("Gagal memuat template"))
+      .catch(() => setError("Failed to load template"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -1743,7 +1743,7 @@ export function AdminReminderTemplate() {
         reminder_templates: { trip_reminder: template },
       }),
     });
-    if (!res.ok) setError("Gagal menyimpan template");
+    if (!res.ok) setError("Failed to save template");
     setSaving(false);
   }
 

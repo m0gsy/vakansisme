@@ -97,6 +97,8 @@ export default async function AdminPage() {
             <SectionCard label="Users" href="/admin/users" />
             <SectionCard label="Proposals" href="/admin/proposals" />
             <SectionCard label="Activities" href="/admin/activities" />
+            <SectionCard label="Payments" href="/admin/payments" />
+            <SectionCard label="Payment Settings" href="/admin/payment-settings" />
             <SectionCard label="Reminders" href="/admin/reminders" />
             <SectionCard label="Content Reports" href="/admin/reports" />
           </div>

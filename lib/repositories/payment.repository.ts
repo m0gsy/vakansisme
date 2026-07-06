@@ -71,7 +71,7 @@ export class PaymentRepository {
   async updatePaymentStatus(id: string, status: PaymentStatus, extra?: Record<string, unknown>): Promise<void> {
     const update: Record<string, unknown> = {
       payment_status: status,
-      status: status === "paid" ? "paid" : status === "refunded" ? "refunded" : status === "cancelled" ? "cancelled" : "pending",
+      status,
     };
 
     if (status === "paid") {

@@ -457,7 +457,7 @@ export async function sendPaymentReminderEmail(
   const formatted = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amountIdr);
   const deadlineDate = deadline ? new Date(deadline) : null;
   const deadlineStr = deadlineDate && !isNaN(deadlineDate.getTime())
-    ? deadlineDate.toLocaleDateString("id", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    ? deadlineDate.toLocaleDateString("en", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
     : "";
   await resend.emails.send({
     from: FROM,

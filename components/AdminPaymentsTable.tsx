@@ -67,7 +67,7 @@ export default function AdminPaymentsTable() {
       const json = await res.json();
       setData(json);
     } catch {
-      setError("Gagal memuat data pembayaran");
+      setError("Failed to load payment data");
     }
   }
 
@@ -83,7 +83,7 @@ export default function AdminPaymentsTable() {
         return res.json();
       })
       .then((json) => { if (!cancelled) { setData(json); setError(""); } })
-      .catch(() => { if (!cancelled) setError("Gagal memuat data pembayaran"); });
+      .catch(() => { if (!cancelled) setError("Failed to load payment data"); });
     return () => { cancelled = true; };
   }, [statusFilter, search, page]);
 
@@ -105,7 +105,7 @@ export default function AdminPaymentsTable() {
         setError(json.error ?? "Action failed");
       }
     } catch {
-      setError("Gagal memproses");
+      setError("Failed to process");
     }
     setProcessing(false);
   }
@@ -120,7 +120,7 @@ export default function AdminPaymentsTable() {
         body: JSON.stringify({
           action: bulkAction,
           payment_ids: Array.from(selectedIds),
-          reason: bulkAction === "reject" ? "Bukti tidak valid" : undefined,
+          reason: bulkAction === "reject" ? "Invalid proof" : undefined,
         }),
       });
       if (res.ok) {
@@ -148,7 +148,7 @@ export default function AdminPaymentsTable() {
 
   return (
     <>
-      <p className="font-body text-muted-ink" style={{ fontSize: "0.82rem", marginBottom: "24px" }}>Kelola pembayaran peserta</p>
+      <p className="font-body text-muted-ink" style={{ fontSize: "0.82rem", marginBottom: "24px" }}>Manage participant payments</p>
 
       {/* Filters */}
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "20px", alignItems: "center" }}>
@@ -158,21 +158,21 @@ export default function AdminPaymentsTable() {
           className="font-body"
           style={{ fontSize: "0.72rem", padding: "8px 12px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", color: "#F0EDEA" }}
         >
-          <option value="">Semua Status</option>
+          <option value="">All Statuses</option>
           <option value="pending">Pending</option>
-          <option value="waiting_verification">Menunggu Verifikasi</option>
-          <option value="paid">Terbayar</option>
-          <option value="rejected">Ditolak</option>
-          <option value="expired">Kedaluarsa</option>
-          <option value="refunded">Refund</option>
-          <option value="cancelled">Dibatalkan</option>
+          <option value="waiting_verification">Waiting Verification</option>
+          <option value="paid">Paid</option>
+          <option value="rejected">Rejected</option>
+          <option value="expired">Expired</option>
+          <option value="refunded">Refunded</option>
+          <option value="cancelled">Cancelled</option>
         </select>
 
         <input
           type="text"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); setData(null); setError(""); }}
-          placeholder="Cari order ID atau username..."
+          placeholder="Search order ID or username..."
           className="font-body"
           style={{ fontSize: "0.72rem", padding: "8px 12px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", color: "#F0EDEA", flex: 1, minWidth: "200px" }}
         />
@@ -197,7 +197,7 @@ export default function AdminPaymentsTable() {
               className="font-body font-semibold"
               style={{ fontSize: "0.68rem", padding: "8px 16px", background: "#FF6B1A", color: "#111", border: "none", cursor: "pointer", opacity: processing ? 0.5 : 1 }}
             >
-              {processing ? "..." : "PROSES"}
+              {processing ? "..." : "PROCESS"}
             </button>
           </div>
         )}
@@ -212,7 +212,7 @@ export default function AdminPaymentsTable() {
 
       {/* Table */}
       {loading ? (
-        <p className="font-body text-muted-ink" style={{ fontSize: "0.85rem" }}>Memuat...</p>
+        <p className="font-body text-muted-ink" style={{ fontSize: "0.85rem" }}>Loading...</p>
       ) : data && data.payments.length > 0 ? (
         <>
           <div style={{ overflowX: "auto" }}>
@@ -272,7 +272,7 @@ export default function AdminPaymentsTable() {
                           className="font-body text-neon-green hover:text-off-white transition-colors"
                           style={{ fontSize: "0.68rem", background: "none", border: "none", cursor: "pointer" }}
                         >
-                          Lihat
+                          View
                         </button>
                       ) : (
                         <span className="font-body text-muted-ink" style={{ fontSize: "0.6rem" }}>—</span>
@@ -294,7 +294,7 @@ export default function AdminPaymentsTable() {
                             className="font-body font-semibold"
                             style={{ fontSize: "0.6rem", padding: "4px 10px", background: "#7A2E12", color: "#F0EDEA", border: "none", cursor: "pointer" }}
                           >
-                            Tolak
+                            Reject
                           </button>
                         </div>
                       )}
@@ -350,7 +350,7 @@ export default function AdminPaymentsTable() {
         </>
       ) : (
         <div style={{ textAlign: "center", padding: "60px 0" }}>
-          <p className="font-body text-muted-ink" style={{ fontSize: "0.9rem" }}>Tidak ada data pembayaran.</p>
+          <p className="font-body text-muted-ink" style={{ fontSize: "0.9rem" }}>No payment data found.</p>
         </div>
       )}
 
@@ -358,30 +358,30 @@ export default function AdminPaymentsTable() {
       {actionTarget && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
           <div style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", padding: "32px", maxWidth: "400px", width: "90%" }}>
-            <h3 className="font-display font-bold uppercase text-off-white" style={{ fontSize: "1rem", marginBottom: "16px" }}>Tolak Pembayaran</h3>
+            <h3 className="font-display font-bold uppercase text-off-white" style={{ fontSize: "1rem", marginBottom: "16px" }}>Reject Payment</h3>
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Alasan penolakan..."
+              placeholder="Rejection reason..."
               rows={3}
               className="font-body text-off-white placeholder:text-muted-ink"
               style={{ width: "100%", background: "#111", border: "1px solid rgba(74,59,42,0.4)", padding: "10px", fontSize: "0.78rem", color: "#F0EDEA", resize: "none" }}
             />
             <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
               <button
-                onClick={() => handleAction(actionTarget, "reject", { reason: rejectReason || "Bukti tidak valid" })}
+                onClick={() => handleAction(actionTarget, "reject", { reason: rejectReason || "Invalid proof" })}
                 disabled={processing}
                 className="font-body font-semibold"
                 style={{ fontSize: "0.68rem", padding: "10px 20px", background: "#7A2E12", color: "#F0EDEA", border: "none", cursor: "pointer" }}
               >
-                {processing ? "..." : "TOLAK"}
+                {processing ? "..." : "REJECT"}
               </button>
               <button
                 onClick={() => { setActionTarget(null); setRejectReason(""); }}
                 className="font-body text-muted-ink hover:text-off-white transition-colors"
                 style={{ fontSize: "0.68rem", background: "none", border: "none", cursor: "pointer" }}
               >
-                Batal
+                Cancel
               </button>
             </div>
           </div>

@@ -61,7 +61,7 @@ export async function POST(req: Request) {
       refund_policy: refund_policy?.trim() || null,
       cancellation_policy: cancellation_policy?.trim() || null,
       payment_instructions: payment_instructions?.trim() || null,
-      accepted_payment_methods: accepted_payment_methods ?? ['"bank_transfer"'],
+      accepted_payment_methods: accepted_payment_methods ?? ["bank_transfer"],
     })
     .select("id")
     .single();
