@@ -152,6 +152,37 @@ export class PaymentService {
       description: `Payment refunded: ${reason}`,
       metadata: { amount: payment.amount_idr, reason },
     });
+
+    // In-app notification + email to user
+    const { sendRefundEmail } = await import("@/lib/email");
+    const db = this.serviceSupabase ?? this.supabase;
+    const { data: profile } = await db
+      .from("profiles")
+      .select("username, email")
+      .eq("id", payment.user_id)
+      .maybeSingle();
+
+    const booking = payment.booking_id
+      ? await this.bookingRepo.findById(payment.booking_id)
+      : null;
+    const tripName = booking?.expedition && typeof booking.expedition === "object" && "name" in (booking.expedition as Record<string, unknown>)
+      ? (booking.expedition as Record<string, unknown>).name as string
+      : "your trip";
+    const bookingNumber = (booking as Record<string, unknown> | null)?.booking_number as string ?? "";
+
+    if (profile?.username) {
+      void db.from("notifications").insert({
+        user_id: payment.user_id,
+        type: "payment_refunded",
+        title: `Refund telah diproses untuk ${tripName}`,
+        body: `Rp ${payment.amount_idr.toLocaleString("id")} akan dikembalikan`,
+        link: `/bookings/${bookingNumber}`,
+      });
+
+      if (profile.email) {
+        sendRefundEmail(profile.email, profile.username, tripName, payment.amount_idr, bookingNumber).catch(() => {});
+      }
+    }
   }
 
   async extendDeadline(paymentId: string, adminId: string, newExpiresAt: string): Promise<void> {

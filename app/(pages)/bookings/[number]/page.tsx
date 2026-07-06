@@ -100,6 +100,18 @@ export default async function BookingDetailPage({ params }: { params: Params }) 
             <p className="font-body text-muted-ink" style={{ fontSize: "0.78rem", marginTop: "2px" }}>
               {new Date(expedition.date_start).toLocaleDateString("id", { day: "numeric", month: "long", year: "numeric" })} — {new Date(expedition.date_end).toLocaleDateString("id", { day: "numeric", month: "long" })}
             </p>
+            {(expedition as Record<string, unknown>)?.cancellation_policy ? (
+              <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid rgba(74,59,42,0.3)" }}>
+                <p className="font-body text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.14em", marginBottom: "4px" }}>PEMBATALAN</p>
+                <p className="font-body text-off-white" style={{ fontSize: "0.78rem", lineHeight: 1.5 }}>{String((expedition as Record<string, unknown>).cancellation_policy)}</p>
+              </div>
+            ) : null}
+            {(expedition as Record<string, unknown>)?.refund_policy ? (
+              <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid rgba(74,59,42,0.3)" }}>
+                <p className="font-body text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.14em", marginBottom: "4px" }}>REFUND</p>
+                <p className="font-body text-off-white" style={{ fontSize: "0.78rem", lineHeight: 1.5 }}>{String((expedition as Record<string, unknown>).refund_policy)}</p>
+              </div>
+            ) : null}
           </div>
         )}
 

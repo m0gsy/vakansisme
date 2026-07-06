@@ -407,6 +407,83 @@ export async function sendBookingConfirmedEmail(
   });
 }
 
+export async function sendRefundEmail(
+  to: string,
+  username: string,
+  tripName: string,
+  amountIdr: number,
+  bookingNumber: string
+) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
+  const formatted = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amountIdr);
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Refund processed — ${tripName}`,
+    html: base(`
+      <tr><td>
+        <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.14em;color:#9BFF3C;text-transform:uppercase;">REFUND PROCESSED</p>
+        <h1 style="margin:0 0 8px;font-size:42px;font-weight:900;letter-spacing:-0.025em;line-height:0.9;color:#F0EDEA;text-transform:uppercase;">
+          ${tripName}
+        </h1>
+        <p style="margin:0 0 24px;font-size:14px;color:#8B7355;">Booking #${bookingNumber}</p>
+        <table style="border:1px solid rgba(74,59,42,0.35);background:#1a1a1a;padding:24px;width:100%;margin-bottom:28px;">
+          <tr><td style="font-size:10px;font-weight:700;letter-spacing:0.12em;color:#4A3B2A;text-transform:uppercase;padding-bottom:8px;">REFUND AMOUNT</td></tr>
+          <tr><td style="font-size:24px;font-weight:900;color:#9BFF3C;">${formatted}</td></tr>
+        </table>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#8B7355;">
+          Hey @${username}, the refund for <strong style="color:#F0EDEA;">${tripName}</strong> has been processed. The amount will be returned to your original payment method.
+        </p>
+        <p style="margin:0 0 24px;font-size:13px;line-height:1.7;color:#4A3B2A;">
+          If you have any questions, please contact our support team.
+        </p>
+        <a href="${SITE_URL}/bookings/${bookingNumber}" style="display:inline-block;background:#9BFF3C;color:#111111;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:12px 28px;">
+          VIEW BOOKING →
+        </a>
+      </td></tr>
+    `),
+  });
+}
+
+export async function sendPaymentReminderEmail(
+  to: string,
+  username: string,
+  tripName: string,
+  amountIdr: number,
+  bookingNumber: string,
+  deadline: string
+) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
+  const formatted = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amountIdr);
+  const deadlineStr = new Date(deadline).toLocaleDateString("id", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Payment reminder — ${tripName}`,
+    html: base(`
+      <tr><td>
+        <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.14em;color:#FF6B1A;text-transform:uppercase;">PAYMENT REMINDER</p>
+        <h1 style="margin:0 0 8px;font-size:42px;font-weight:900;letter-spacing:-0.025em;line-height:0.9;color:#F0EDEA;text-transform:uppercase;">
+          ${tripName}
+        </h1>
+        <p style="margin:0 0 24px;font-size:14px;color:#8B7355;">Booking #${bookingNumber}</p>
+        <table style="border:1px solid rgba(74,59,42,0.35);background:#1a1a1a;padding:24px;width:100%;margin-bottom:28px;">
+          <tr><td style="font-size:10px;font-weight:700;letter-spacing:0.12em;color:#4A3B2A;text-transform:uppercase;padding-bottom:8px;">AMOUNT DUE</td></tr>
+          <tr><td style="font-size:24px;font-weight:900;color:#FF6B1A;">${formatted}</td></tr>
+          <tr><td style="font-size:10px;font-weight:700;letter-spacing:0.12em;color:#4A3B2A;text-transform:uppercase;padding-bottom:8px;padding-top:16px;">DEADLINE</td></tr>
+          <tr><td style="font-size:14px;font-weight:600;color:#F0EDEA;">${deadlineStr}</td></tr>
+        </table>
+        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#8B7355;">
+          Hey @${username}, this is a reminder that your payment for <strong style="color:#F0EDEA;">${tripName}</strong> is still pending.
+        </p>
+        <a href="${SITE_URL}/bookings/${bookingNumber}" style="display:inline-block;background:#FF6B1A;color:#111111;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;padding:12px 28px;">
+          PAY NOW →
+        </a>
+      </td></tr>
+    `),
+  });
+}
+
 export async function sendNewsletterEmail(to: string[], subject: string, html: string) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return { sent: 0 };
   const batches = [];

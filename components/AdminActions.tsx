@@ -1155,6 +1155,80 @@ export function AdminRemindersButton() {
   );
 }
 
+export function AdminPaymentRemindersButton() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [days, setDays] = useState(7);
+  const [tripId, setTripId] = useState("");
+  const [trips, setTrips] = useState<{ id: string; name: string; date_start: string }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/admin/reminders")
+      .then((r) => r.json())
+      .then((json) => setTrips(json.expeditions ?? []))
+      .catch(() => {});
+  }, []);
+
+  async function run() {
+    setLoading(true);
+    setError("");
+    setResult(null);
+    const res = await fetch("/api/admin/reminders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "payment", ...(tripId ? { expeditionId: tripId } : { days }) }),
+    });
+    if (res.ok) {
+      const { sent, expeditions } = await res.json();
+      setResult(
+        tripId
+          ? `Sent ${sent} payment reminder(s) for the selected trip`
+          : `Sent ${sent} payment reminders across ${expeditions} expedition(s) departing in ${days}d`
+      );
+    } else {
+      const json = await res.json().catch(() => ({}));
+      setError(json.error ?? "Failed to send payment reminders");
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+      <select
+        value={days}
+        onChange={(e) => { setDays(Number(e.target.value)); setTripId(""); }}
+        disabled={!!tripId}
+        className="font-body text-off-white"
+        style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", padding: "8px 12px", fontSize: "0.72rem", color: "#F0EDEA", opacity: tripId ? 0.4 : 1 }}
+      >
+        {[1, 3, 7, 14].map((d) => <option key={d} value={d}>{d} day{d !== 1 ? "s" : ""} before</option>)}
+      </select>
+      <span className="font-body text-muted-ink" style={{ fontSize: "0.65rem" }}>OR</span>
+      <select
+        value={tripId}
+        onChange={(e) => setTripId(e.target.value)}
+        className="font-body text-off-white"
+        style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", padding: "8px 12px", fontSize: "0.72rem", color: "#F0EDEA", maxWidth: "260px" }}
+      >
+        <option value="">— Pick a specific trip —</option>
+        {trips.map((t) => (
+          <option key={t.id} value={t.id}>{t.name} ({new Date(t.date_start).toLocaleDateString("en", { day: "numeric", month: "short" })})</option>
+        ))}
+      </select>
+      <button
+        onClick={run}
+        disabled={loading}
+        style={{ ...BTN.base, background: loading ? "#1a1a1a" : "#FF6B1A", color: "#111111", padding: "10px 22px", opacity: loading ? 0.6 : 1 }}
+      >
+        {loading ? "SENDING..." : "SEND PAYMENT REMINDERS"}
+      </button>
+      {result && <span className="font-body text-muted-ink" style={{ fontSize: "0.72rem" }}>{result}</span>}
+      {error && <span className="font-body" style={{ fontSize: "0.72rem", color: "#FF6B1A" }}>{error}</span>}
+    </div>
+  );
+}
+
 export function AdminUsersSection() {
   const [users, setUsers] = useState<{ id: string; username: string; created_at: string; is_admin: boolean; is_banned: boolean }[]>([]);
   const [loading, setLoading] = useState(true);

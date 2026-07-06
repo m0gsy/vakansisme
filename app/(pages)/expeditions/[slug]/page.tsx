@@ -44,6 +44,8 @@ type Expedition = {
   requires_approval: boolean;
   activity_category: string;
   destination_id: string | null;
+  refund_policy: string | null;
+  cancellation_policy: string | null;
   profiles: { username: string; avatar_url: string | null } | { username: string; avatar_url: string | null }[] | null;
 };
 
@@ -520,6 +522,18 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
               initialCount={memberCount ?? 0}
               quotaMax={trip.quota_max}
             />
+            {(trip as Expedition).cancellation_policy && (
+              <div>
+                <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "4px" }}>PEMBATALAN</p>
+                <p className="font-body text-off-white" style={{ fontSize: "0.8rem", lineHeight: 1.5 }}>{(trip as Expedition).cancellation_policy}</p>
+              </div>
+            )}
+            {(trip as Expedition).refund_policy && (
+              <div>
+                <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "4px" }}>REFUND</p>
+                <p className="font-body text-off-white" style={{ fontSize: "0.8rem", lineHeight: 1.5 }}>{(trip as Expedition).refund_policy}</p>
+              </div>
+            )}
             <div>
               <p
                 className="font-body font-semibold text-muted-ink uppercase"
