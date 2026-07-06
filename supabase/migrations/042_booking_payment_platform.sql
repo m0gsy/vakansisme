@@ -231,7 +231,25 @@ UPDATE expedition_members
 SET booking_number = 'BK-' || UPPER(SUBSTR(MD5(id::text), 1, 8)) || '-' || TO_CHAR(joined_at, 'YYMMDD')
 WHERE booking_number IS NULL;
 
--- 14. FUNCTION: generate booking number
+-- 14. BACKFILL payment_policy & price_amount for existing expeditions
+UPDATE expeditions
+SET
+  payment_policy = CASE
+    WHEN price_amount > 0 THEN 'fixed_price'
+    WHEN price IS NOT NULL AND price <> '' AND price <> '0' THEN 'fixed_price'
+    ELSE 'free'
+  END,
+  price_amount = CASE
+    WHEN price_amount IS NULL OR price_amount = 0 THEN
+      COALESCE(
+        (regexp_replace(price, '\D', '', 'g'))::integer,
+        0
+      )
+    ELSE price_amount
+  END
+WHERE payment_policy IS NULL;
+
+-- 16. FUNCTION: generate booking number
 CREATE OR REPLACE FUNCTION generate_booking_number()
 RETURNS text AS $$
 DECLARE
@@ -247,7 +265,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 15. FUNCTION: auto-set booking_number on insert
+-- 17. FUNCTION: auto-set booking_number on insert
 CREATE OR REPLACE FUNCTION set_booking_number()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -264,7 +282,7 @@ CREATE TRIGGER trg_set_booking_number
   FOR EACH ROW
   EXECUTE FUNCTION set_booking_number();
 
--- 16. FUNCTION: sync status between old and new columns
+-- 18. FUNCTION: sync status between old and new columns
 CREATE OR REPLACE FUNCTION sync_member_status()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -299,7 +317,7 @@ CREATE TRIGGER trg_sync_member_status
   WHEN (OLD.booking_status IS DISTINCT FROM NEW.booking_status OR OLD.status IS DISTINCT FROM NEW.status)
   EXECUTE FUNCTION sync_member_status();
 
--- 17. AUDIT LOG FUNCTION
+-- 19. AUDIT LOG FUNCTION
 CREATE OR REPLACE FUNCTION log_booking_action(
   p_booking_id uuid,
   p_action text,
@@ -318,7 +336,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 18. UNIQUE CODE GENERATOR
+-- 20. UNIQUE CODE GENERATOR
 CREATE OR REPLACE FUNCTION generate_unique_code(amount_idr integer)
 RETURNS integer AS $$
 BEGIN
@@ -326,7 +344,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- 19. Update quota trigger to use booking_status instead of status
+-- 21. Update quota trigger to use booking_status instead of status
 DROP TRIGGER IF EXISTS enforce_expedition_quota ON expedition_members;
 CREATE TRIGGER enforce_expedition_quota
   BEFORE INSERT ON expedition_members
