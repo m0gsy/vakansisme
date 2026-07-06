@@ -11,7 +11,7 @@ export default async function AdminExpeditionsPage() {
 
   const { data: expeditions } = await supabase
     .from("expeditions")
-    .select("id, slug, name, location, difficulty, price, date_start, date_end, quota_max, leader_id, profiles!leader_id(username), image_url, description, requires_approval, application_prompt, featured, activity_category, destination_id, expedition_members(count)")
+    .select("id, slug, name, location, difficulty, price, price_amount, payment_policy, date_start, date_end, quota_max, leader_id, profiles!leader_id(username), image_url, description, requires_approval, application_prompt, featured, activity_category, destination_id, expedition_members(count)")
     .order("date_start", { ascending: true })
     .limit(50);
 
@@ -46,6 +46,7 @@ export default async function AdminExpeditionsPage() {
                     <TH>Location</TH>
                     <TH>Difficulty</TH>
                     <TH>Date</TH>
+                    <TH>Price</TH>
                     <TH>Members</TH>
                     <TH>Actions</TH>
                   </tr>
@@ -67,6 +68,13 @@ export default async function AdminExpeditionsPage() {
                         <Cell muted>{e.difficulty}</Cell>
                         <Cell muted>
                           {new Date(e.date_start).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
+                        </Cell>
+                        <Cell muted>
+                          {e.price_amount > 0 ? `Rp ${e.price_amount.toLocaleString("id")}` : (
+                            <span style={{ color: e.payment_policy === "free" ? "#9BFF3C" : "#8B7355" }}>
+                              {e.payment_policy === "free" ? "FREE" : "—"}
+                            </span>
+                          )}
                         </Cell>
                         <Cell muted>
                           {count} / {e.quota_max}

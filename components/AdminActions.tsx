@@ -162,6 +162,15 @@ type ExpeditionData = {
   featured?: boolean | null;
   activity_category?: string | null;
   destination_id?: string | null;
+  payment_policy?: string | null;
+  payment_deadline_policy?: string | null;
+  payment_deadline_value?: number | null;
+  seat_reservation_policy?: string | null;
+  seat_reservation_hours?: number | null;
+  refund_policy?: string | null;
+  cancellation_policy?: string | null;
+  payment_instructions?: string | null;
+  accepted_payment_methods?: string[] | null;
 };
 
 export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }) {
@@ -173,6 +182,15 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState(expedition.image_url ?? "");
   const [editRequiresApproval, setEditRequiresApproval] = useState(expedition.requires_approval ?? false);
+  const [editPaymentPolicy, setEditPaymentPolicy] = useState(expedition.payment_policy ?? "fixed_price");
+  const [editPaymentDeadlinePolicy, setEditPaymentDeadlinePolicy] = useState(expedition.payment_deadline_policy ?? "hours");
+  const [editPaymentDeadlineValue, setEditPaymentDeadlineValue] = useState(expedition.payment_deadline_value ?? 24);
+  const [editSeatReservationPolicy, setEditSeatReservationPolicy] = useState(expedition.seat_reservation_policy ?? "immediate");
+  const [editSeatReservationHours, setEditSeatReservationHours] = useState(expedition.seat_reservation_hours ?? 0);
+  const [editRefundPolicy, setEditRefundPolicy] = useState(expedition.refund_policy ?? "");
+  const [editCancellationPolicy, setEditCancellationPolicy] = useState(expedition.cancellation_policy ?? "");
+  const [editPaymentInstructions, setEditPaymentInstructions] = useState(expedition.payment_instructions ?? "");
+  const [editAcceptedPaymentMethods, setEditAcceptedPaymentMethods] = useState<string[]>(expedition.accepted_payment_methods ?? ['"bank_transfer"']);
   const [adminUsers, setAdminUsers] = useState<{ id: string; username: string }[]>([]);
   const [activities, setActivities] = useState<string[]>([]);
   const [destinations, setDestinations] = useState<{ id: string; name: string }[]>([]);
@@ -222,7 +240,7 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
     const res = await fetch(`/api/admin/expeditions/${expedition.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...fields, image_url: imageUrl, requires_approval: editRequiresApproval, destination_id: destinationId || null }),
+      body: JSON.stringify({ ...fields, image_url: imageUrl, requires_approval: editRequiresApproval, destination_id: destinationId || null, payment_policy: editPaymentPolicy, payment_deadline_policy: editPaymentDeadlinePolicy, payment_deadline_value: editPaymentDeadlineValue, seat_reservation_policy: editSeatReservationPolicy, seat_reservation_hours: editSeatReservationHours, refund_policy: editRefundPolicy, cancellation_policy: editCancellationPolicy, payment_instructions: editPaymentInstructions, accepted_payment_methods: editAcceptedPaymentMethods }),
     });
     const json = await res.json();
     if (res.ok) {
@@ -387,6 +405,70 @@ export function ExpeditionActions({ expedition }: { expedition: ExpeditionData }
               />
             </div>
           )}
+          <div style={{ margin: "20px 0 12px", borderTop: "1px solid rgba(74,59,42,0.4)", paddingTop: "12px" }}>
+            <p className="font-display font-bold uppercase text-off-white" style={{ fontSize: "0.65rem", letterSpacing: "0.08em", marginBottom: "10px" }}>Payment Policy</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
+              <div>
+                <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Policy Type</label>
+                <select value={editPaymentPolicy} onChange={(e) => setEditPaymentPolicy(e.target.value)} className="font-body text-off-white focus:outline-none" style={{ ...fieldStyle, cursor: "pointer" }}>
+                  <option value="free" style={{ background: "#111111" }}>Free</option>
+                  <option value="fixed_price" style={{ background: "#111111" }}>Fixed Price</option>
+                  <option value="donation" style={{ background: "#111111" }}>Donation</option>
+                </select>
+              </div>
+              <div>
+                <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Deadline</label>
+                <select value={editPaymentDeadlinePolicy} onChange={(e) => setEditPaymentDeadlinePolicy(e.target.value)} className="font-body text-off-white focus:outline-none" style={{ ...fieldStyle, cursor: "pointer" }}>
+                  <option value="none" style={{ background: "#111111" }}>No Deadline</option>
+                  <option value="hours" style={{ background: "#111111" }}>Hours After</option>
+                  <option value="days" style={{ background: "#111111" }}>Days After</option>
+                </select>
+              </div>
+              {editPaymentDeadlinePolicy !== "none" && (
+                <div>
+                  <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Deadline Value</label>
+                  <input type="number" value={editPaymentDeadlineValue} onChange={(e) => setEditPaymentDeadlineValue(Number(e.target.value))} min={1} className="font-body text-off-white focus:outline-none" style={fieldStyle} />
+                </div>
+              )}
+              <div>
+                <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Seat Reservation</label>
+                <select value={editSeatReservationPolicy} onChange={(e) => setEditSeatReservationPolicy(e.target.value)} className="font-body text-off-white focus:outline-none" style={{ ...fieldStyle, cursor: "pointer" }}>
+                  <option value="immediate" style={{ background: "#111111" }}>Immediate</option>
+                  <option value="after_payment" style={{ background: "#111111" }}>After Payment</option>
+                  <option value="temporary" style={{ background: "#111111" }}>Temporary Hold</option>
+                </select>
+              </div>
+              {editSeatReservationPolicy === "temporary" && (
+                <div>
+                  <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Hold Duration (hours)</label>
+                  <input type="number" value={editSeatReservationHours} onChange={(e) => setEditSeatReservationHours(Number(e.target.value))} min={1} className="font-body text-off-white focus:outline-none" style={fieldStyle} />
+                </div>
+              )}
+            </div>
+            <div style={{ marginTop: "10px" }}>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Accepted Payment Methods</label>
+              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                {["bank_transfer", "qris", "e_wallet"].map((m) => (
+                  <label key={m} style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "0.65rem", color: "#8B7355" }}>
+                    <input type="checkbox" checked={editAcceptedPaymentMethods.includes(m)} onChange={() => setEditAcceptedPaymentMethods((prev) => prev.includes(m) ? prev.filter((x: string) => x !== m) : [...prev, m])} style={{ accentColor: "#9BFF3C" }} />
+                    {m === "bank_transfer" ? "Bank Transfer" : m === "qris" ? "QRIS" : "E-Wallet"}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginTop: "10px" }}>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Payment Instructions</label>
+              <textarea value={editPaymentInstructions} onChange={(e) => setEditPaymentInstructions(e.target.value)} rows={2} placeholder="e.g. Transfer to BCA 123456 a.n. Vakansisme" className="font-body text-off-white placeholder:text-muted-ink focus:outline-none resize-none" style={{ ...fieldStyle, lineHeight: 1.6 }} />
+            </div>
+            <div style={{ marginTop: "10px" }}>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Refund Policy</label>
+              <input type="text" value={editRefundPolicy} onChange={(e) => setEditRefundPolicy(e.target.value)} placeholder="e.g. Full refund 7 days before departure" className="font-body text-off-white placeholder:text-muted-ink focus:outline-none" style={fieldStyle} />
+            </div>
+            <div style={{ marginTop: "10px" }}>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Cancellation Policy</label>
+              <input type="text" value={editCancellationPolicy} onChange={(e) => setEditCancellationPolicy(e.target.value)} placeholder="e.g. Free cancellation up to 48 hours before" className="font-body text-off-white placeholder:text-muted-ink focus:outline-none" style={fieldStyle} />
+            </div>
+          </div>
           {fields.location && (
             <div style={{ marginBottom: "12px" }}>
               <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "6px" }}>Map preview</label>
@@ -470,6 +552,15 @@ export function AdminExpeditionForm() {
   const [activities, setActivities] = useState<string[]>([]);
   const [destinations, setDestinations] = useState<{ id: string; name: string }[]>([]);
   const [destinationId, setDestinationId] = useState("");
+  const [paymentPolicy, setPaymentPolicy] = useState("fixed_price");
+  const [paymentDeadlinePolicy, setPaymentDeadlinePolicy] = useState("hours");
+  const [paymentDeadlineValue, setPaymentDeadlineValue] = useState(24);
+  const [seatReservationPolicy, setSeatReservationPolicy] = useState("immediate");
+  const [seatReservationHours, setSeatReservationHours] = useState(0);
+  const [refundPolicy, setRefundPolicy] = useState("");
+  const [cancellationPolicy, setCancellationPolicy] = useState("");
+  const [paymentInstructions, setPaymentInstructions] = useState("");
+  const [acceptedPaymentMethods, setAcceptedPaymentMethods] = useState(['"bank_transfer"']);
   const [fields, setFields] = useState({
     name: "",
     location: "",
@@ -508,7 +599,7 @@ export function AdminExpeditionForm() {
     const res = await fetch("/api/admin/expeditions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...fields, image_url: imageUrl, requires_approval: requiresApproval, destination_id: destinationId || null }),
+      body: JSON.stringify({ ...fields, image_url: imageUrl, requires_approval: requiresApproval, destination_id: destinationId || null, payment_policy: paymentPolicy, payment_deadline_policy: paymentDeadlinePolicy, payment_deadline_value: paymentDeadlineValue, seat_reservation_policy: seatReservationPolicy, seat_reservation_hours: seatReservationHours, refund_policy: refundPolicy, cancellation_policy: cancellationPolicy, payment_instructions: paymentInstructions, accepted_payment_methods: acceptedPaymentMethods }),
     });
     const json = await res.json();
 
@@ -517,6 +608,15 @@ export function AdminExpeditionForm() {
       setRequiresApproval(false);
       setImageUrl("");
       setDestinationId("");
+      setPaymentPolicy("fixed_price");
+      setPaymentDeadlinePolicy("hours");
+      setPaymentDeadlineValue(24);
+      setSeatReservationPolicy("immediate");
+      setSeatReservationHours(0);
+      setRefundPolicy("");
+      setCancellationPolicy("");
+      setPaymentInstructions("");
+      setAcceptedPaymentMethods(['"bank_transfer"']);
       setOpen(false);
       router.refresh();
     } else {
@@ -730,6 +830,71 @@ export function AdminExpeditionForm() {
             />
           </div>
         )}
+
+        <div style={{ margin: "24px 0 12px", borderTop: "1px solid rgba(74,59,42,0.4)", paddingTop: "16px" }}>
+          <p className="font-display font-bold uppercase text-off-white" style={{ fontSize: "0.7rem", letterSpacing: "0.08em", marginBottom: "12px" }}>Payment Policy</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+            <div>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Policy Type</label>
+              <select value={paymentPolicy} onChange={(e) => setPaymentPolicy(e.target.value)} className="font-body text-off-white focus:outline-none" style={{ ...fieldStyle, cursor: "pointer" }}>
+                <option value="free" style={{ background: "#111111" }}>Free</option>
+                <option value="fixed_price" style={{ background: "#111111" }}>Fixed Price</option>
+                <option value="donation" style={{ background: "#111111" }}>Donation</option>
+              </select>
+            </div>
+            <div>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Deadline</label>
+              <select value={paymentDeadlinePolicy} onChange={(e) => setPaymentDeadlinePolicy(e.target.value)} className="font-body text-off-white focus:outline-none" style={{ ...fieldStyle, cursor: "pointer" }}>
+                <option value="none" style={{ background: "#111111" }}>No Deadline</option>
+                <option value="hours" style={{ background: "#111111" }}>Hours After</option>
+                <option value="days" style={{ background: "#111111" }}>Days After</option>
+              </select>
+            </div>
+            {paymentDeadlinePolicy !== "none" && (
+              <div>
+                <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Deadline Value</label>
+                <input type="number" value={paymentDeadlineValue} onChange={(e) => setPaymentDeadlineValue(Number(e.target.value))} min={1} className="font-body text-off-white focus:outline-none" style={fieldStyle} />
+              </div>
+            )}
+            <div>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Seat Reservation</label>
+              <select value={seatReservationPolicy} onChange={(e) => setSeatReservationPolicy(e.target.value)} className="font-body text-off-white focus:outline-none" style={{ ...fieldStyle, cursor: "pointer" }}>
+                <option value="immediate" style={{ background: "#111111" }}>Immediate</option>
+                <option value="after_payment" style={{ background: "#111111" }}>After Payment</option>
+                <option value="temporary" style={{ background: "#111111" }}>Temporary Hold</option>
+              </select>
+            </div>
+            {seatReservationPolicy === "temporary" && (
+              <div>
+                <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Hold Duration (hours)</label>
+                <input type="number" value={seatReservationHours} onChange={(e) => setSeatReservationHours(Number(e.target.value))} min={1} className="font-body text-off-white focus:outline-none" style={fieldStyle} />
+              </div>
+            )}
+          </div>
+          <div style={{ marginTop: "12px" }}>
+            <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Accepted Payment Methods</label>
+            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+              {["bank_transfer", "qris", "e_wallet"].map((m) => (
+                <label key={m} style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", fontSize: "0.7rem", color: "#8B7355" }}>
+                  <input type="checkbox" checked={acceptedPaymentMethods.includes(m)} onChange={() => setAcceptedPaymentMethods((prev) => prev.includes(m) ? prev.filter((x: string) => x !== m) : [...prev, m])} style={{ accentColor: "#9BFF3C" }} />
+                  {m === "bank_transfer" ? "Bank Transfer" : m === "qris" ? "QRIS" : "E-Wallet"}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div style={{ marginTop: "12px" }}>
+            <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Payment Instructions (shown to users)</label>
+            <textarea value={paymentInstructions} onChange={(e) => setPaymentInstructions(e.target.value)} rows={2} placeholder="e.g. Transfer to BCA 123456 a.n. Vakansisme" className="font-body text-off-white placeholder:text-muted-ink focus:outline-none resize-none" style={{ ...fieldStyle, lineHeight: 1.6 }} />
+          </div>
+          <div style={{ marginTop: "12px" }}>
+            <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Refund Policy</label>
+            <input type="text" value={refundPolicy} onChange={(e) => setRefundPolicy(e.target.value)} placeholder="e.g. Full refund 7 days before departure" className="font-body text-off-white placeholder:text-muted-ink focus:outline-none" style={fieldStyle} />
+          </div>
+          <div style={{ marginTop: "12px" }}>
+            <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.58rem", letterSpacing: "0.12em", marginBottom: "4px" }}>Cancellation Policy</label>
+            <input type="text" value={cancellationPolicy} onChange={(e) => setCancellationPolicy(e.target.value)} placeholder="e.g. Free cancellation up to 48 hours before" className="font-body text-off-white placeholder:text-muted-ink focus:outline-none" style={fieldStyle} />
+          </div>
+        </div>
 
         <div style={{ marginBottom: "16px" }}>
           <label

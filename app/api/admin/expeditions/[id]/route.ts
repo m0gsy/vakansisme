@@ -67,7 +67,7 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
   const supabase = await createClient();
   if (!await getAdmin(supabase)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { name, location, difficulty, price, date_start, date_end, quota_max, leader_handle, image_url, description, status, requires_approval, application_prompt, featured, activity_category, destination_id } = await req.json();
+  const { name, location, difficulty, price, date_start, date_end, quota_max, leader_handle, image_url, description, status, requires_approval, application_prompt, featured, activity_category, destination_id, payment_policy, payment_deadline_policy, payment_deadline_value, seat_reservation_policy, seat_reservation_hours, refund_policy, cancellation_policy, payment_instructions, accepted_payment_methods } = await req.json();
 
   if (!name || !location || !difficulty || !price || !date_start || !date_end || !quota_max || !leader_handle) {
     return NextResponse.json({ error: "All fields required except image and description" }, { status: 400 });
@@ -92,11 +92,15 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
   const prevStatus = current?.status ?? "upcoming";
   const tripName = name.trim();
 
+  // Parse price_amount from price string
+  const priceAmount = parseInt(price.replace(/[^0-9]/g, ""), 10) || 0;
+
   const { error } = await supabase.from("expeditions").update({
     name: tripName,
     location: location.trim(),
     difficulty,
     price: price.trim(),
+    price_amount: priceAmount,
     date_start,
     date_end,
     quota_max: Number(quota_max),
@@ -109,6 +113,15 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     ...(featured !== undefined ? { featured: !!featured } : {}),
     ...(activity_category ? { activity_category } : {}),
     ...(destination_id !== undefined ? { destination_id: destination_id || null } : {}),
+    ...(payment_policy !== undefined ? { payment_policy } : {}),
+    ...(payment_deadline_policy !== undefined ? { payment_deadline_policy } : {}),
+    ...(payment_deadline_value !== undefined ? { payment_deadline_value } : {}),
+    ...(seat_reservation_policy !== undefined ? { seat_reservation_policy } : {}),
+    ...(seat_reservation_hours !== undefined ? { seat_reservation_hours } : {}),
+    ...(refund_policy !== undefined ? { refund_policy: refund_policy?.trim() || null } : {}),
+    ...(cancellation_policy !== undefined ? { cancellation_policy: cancellation_policy?.trim() || null } : {}),
+    ...(payment_instructions !== undefined ? { payment_instructions: payment_instructions?.trim() || null } : {}),
+    ...(accepted_payment_methods !== undefined ? { accepted_payment_methods } : {}),
   }).eq("id", id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
