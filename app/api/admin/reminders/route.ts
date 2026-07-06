@@ -66,15 +66,25 @@ export async function POST(req: Request) {
     const expDays = daysByExpedition.get(exp.id) ?? days;
     const { data: members } = await supabase
       .from("expedition_members")
-      .select("user_id, profiles(username, email)")
+      .select("user_id")
       .eq("expedition_id", exp.id)
       .eq("status", "approved");
 
-    for (const m of members ?? []) {
-      const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles as { username?: string; email?: string } | null;
+    if (!members?.length) continue;
+
+    // Fetch profiles separately — no direct FK between expedition_members and profiles
+    // (both reference auth.users, but PostgREST can't resolve that join)
+    const userIds = members.map((m) => m.user_id);
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, username, email")
+      .in("id", userIds);
+
+    const profileByUser = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+    for (const m of members) {
+      const p = profileByUser.get(m.user_id);
       if (!p?.username) continue;
-      // profiles.email is only backfilled on first login confirmation, so older
-      // accounts often have it null — fall back to the authoritative auth email.
       let email = p.email;
       if (!email) {
         const service = createServiceClient();
@@ -87,16 +97,14 @@ export async function POST(req: Request) {
     }
 
     // Also insert in-app notifications
-    if (members?.length) {
-      void supabase.from("notifications").insert(
-        members.map((m) => ({
-          user_id: m.user_id,
-          type: "reminder",
-          title: `${exp.name} starts in ${expDays} day${expDays !== 1 ? "s" : ""}`,
-          link: `/expeditions/${exp.slug}`,
-        }))
-      );
-    }
+    void supabase.from("notifications").insert(
+      members.map((m) => ({
+        user_id: m.user_id,
+        type: "reminder",
+        title: `${exp.name} starts in ${expDays} day${expDays !== 1 ? "s" : ""}`,
+        link: `/expeditions/${exp.slug}`,
+      }))
+    );
   }
 
   return NextResponse.json({ sent, expeditions: expeditions.length });
