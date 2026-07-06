@@ -40,6 +40,7 @@ export default function PaymentPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [uploadError, setUploadError] = useState("");
   const [payment, setPayment] = useState<PaymentDetail | null>(null);
   const [banks, setBanks] = useState<BankAccount[]>([]);
   const [qrisAccounts, setQrisAccounts] = useState<QrisAccount[]>([]);
@@ -83,21 +84,25 @@ export default function PaymentPage() {
   async function handleUploadProof() {
     if (!proofFile || !payment) return;
     setUploading(true);
-    setError("");
+    setUploadError("");
 
     const formData = new FormData();
     formData.append("proof", proofFile);
 
-    const res = await fetch(`/api/payments/${payment.id}/upload-proof`, {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const res = await fetch(`/api/payments/${payment.id}/upload-proof`, {
+        method: "POST",
+        body: formData,
+      });
 
-    const json = await res.json();
-    if (res.ok) {
-      router.refresh();
-    } else {
-      setError(json.error ?? "Gagal upload bukti transfer");
+      const json = await res.json();
+      if (res.ok) {
+        router.refresh();
+      } else {
+        setUploadError(json.error ?? "Gagal upload bukti transfer");
+      }
+    } catch {
+      setUploadError("Gagal upload bukti transfer");
     }
     setUploading(false);
   }
@@ -268,7 +273,7 @@ export default function PaymentPage() {
               {uploading ? "MENGUNGGAH..." : payment.proof_image_url ? "GANTI BUKTI TRANSFER" : "UPLOAD BUKTI TRANSFER"}
             </button>
 
-            {error && <p className="font-body text-chaos-orange" style={{ fontSize: "0.72rem", marginTop: "8px" }}>{error}</p>}
+            {uploadError && <p className="font-body text-chaos-orange" style={{ fontSize: "0.72rem", marginTop: "8px" }}>{uploadError}</p>}
           </div>
         )}
 

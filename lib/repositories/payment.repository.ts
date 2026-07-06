@@ -10,7 +10,7 @@ export class PaymentRepository {
   }
 
   async findById(id: string): Promise<Payment | null> {
-    const { data } = await this.supabase
+    const { data } = await this.db
       .from("expedition_payments")
       .select("*")
       .eq("id", id)
