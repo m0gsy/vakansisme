@@ -53,6 +53,20 @@ export default async function BookingsPage() {
   const cancelledBookings = bookings.filter((b) => b.booking_status === "cancelled" || b.booking_status === "expired" || b.booking_status === "rejected");
   const drafts = bookings.filter((b) => b.booking_status === "draft");
 
+  // Fetch payment statuses for cancelled bookings (to show refund indicator)
+  const cancelledIds = cancelledBookings.map((b) => b.id);
+  const { data: cancelledPayments } = cancelledIds.length
+    ? await supabase
+        .from("expedition_payments")
+        .select("booking_id, payment_status")
+        .in("booking_id", cancelledIds)
+    : { data: [] };
+  const refundedBookings = new Set(
+    (cancelledPayments ?? [])
+      .filter((p) => p.payment_status === "refunded")
+      .map((p) => p.booking_id)
+  );
+
   return (
     <div className="min-h-screen bg-charcoal">
       <div className="max-w-5xl mx-auto px-6" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
@@ -201,7 +215,9 @@ export default async function BookingsPage() {
                     </div>
                     <div style={{ textAlign: "right" }}>
                       {statusBadge(booking.booking_status)}
-                      {booking.cancel_reason && (
+                      {refundedBookings.has(booking.id) ? (
+                        <p className="font-body" style={{ fontSize: "0.65rem", marginTop: "4px", color: "#9BFF3C" }}>Refund telah diproses</p>
+                      ) : booking.cancel_reason && (
                         <p className="font-body text-muted-ink" style={{ fontSize: "0.65rem", marginTop: "4px" }}>{booking.cancel_reason}</p>
                       )}
                     </div>

@@ -77,7 +77,7 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
 
   let query = supabase
     .from("expeditions")
-    .select("id, slug, name, location, difficulty, price, date_start, date_end, quota_max, image_url, status, featured, activity_category, expedition_members(count)", { count: "exact" })
+    .select("id, slug, name, location, difficulty, price, date_start, date_end, quota_max, image_url, status, featured, activity_category", { count: "exact" })
     .order("featured", { ascending: false })
     .order("date_start", { ascending: true });
 
@@ -86,6 +86,20 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
   if (activity) query = query.eq("activity_category", activity);
 
   const { data: expeditions, count } = await query.range(from, to);
+
+  // Count approved + pending_payment members per expedition (active bookings)
+  const expIds = expeditions?.map((e) => e.id) ?? [];
+  const { data: memberRows } = expIds.length
+    ? await supabase
+        .from("expedition_members")
+        .select("expedition_id, status")
+        .in("expedition_id", expIds)
+        .in("status", ["approved", "pending_payment"])
+    : { data: [] };
+  const countMap: Record<string, number> = {};
+  for (const m of memberRows ?? []) {
+    countMap[m.expedition_id] = (countMap[m.expedition_id] ?? 0) + 1;
+  }
 
   // Avg ratings for cards on this page
   const ids = expeditions?.map((e) => e.id) ?? [];
@@ -237,7 +251,7 @@ export default async function ExpeditionsPage({ searchParams }: { searchParams: 
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
             {expeditions.map((e) => {
-              const memberCount = (e.expedition_members as { count: number }[])[0]?.count ?? 0;
+              const memberCount = countMap[e.id] ?? 0;
               const full = memberCount >= e.quota_max;
               const diff = getDifficulty(e.difficulty);
               const rating = ratingMap.get(e.id);

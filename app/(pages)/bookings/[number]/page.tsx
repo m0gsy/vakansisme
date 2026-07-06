@@ -6,6 +6,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import PayButton from "@/components/PayButton";
 
+export const dynamic = "force-dynamic";
+
 type Params = Promise<{ number: string }>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
