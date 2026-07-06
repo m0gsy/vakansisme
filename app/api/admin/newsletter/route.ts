@@ -10,12 +10,11 @@ export async function POST(req: Request) {
   const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
   if (!profile?.is_admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { subject, html } = await req.json();
+  const body = await req.json();
+  const { subject, html, segment = "all" } = body as { subject?: string; html?: string; segment?: string };
   if (!subject?.trim() || !html?.trim()) {
     return NextResponse.json({ error: "subject and html required" }, { status: 400 });
   }
-
-  const { segment } = await req.clone().json().catch(() => ({ segment: "all" })) as { segment?: string };
 
   const emailsQuery = supabase.from("newsletter_subscribers").select("email");
   const { data: subscribers } = await emailsQuery;
