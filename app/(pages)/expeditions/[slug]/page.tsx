@@ -424,6 +424,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                   tripStatus={trip.status}
                   applicationPrompt={trip.application_prompt ?? null}
                   initialPending={userPending}
+                  alreadyPaid={isPaid}
                   locale={locale}
                   isLeader={isActualLeader}
                 />

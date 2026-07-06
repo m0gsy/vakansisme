@@ -19,6 +19,7 @@ export default function JoinButton({
   initialPending = false,
   locale = "id",
   isLeader = false,
+  alreadyPaid = false,
 }: {
   tripId: string;
   initialCount: number;
@@ -32,6 +33,7 @@ export default function JoinButton({
   initialPending?: boolean;
   locale?: Locale;
   isLeader?: boolean;
+  alreadyPaid?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -89,7 +91,13 @@ export default function JoinButton({
   }
 
   async function handleLeave() {
-    const msg = locale === "id" ? "Keluar dari trip ini?" : "Leave this trip?";
+    const msg = alreadyPaid
+      ? locale === "id"
+        ? "Kamu sudah melakukan pembayaran untuk trip ini. Booking akan dibatalkan dan admin akan memproses refund. Lanjutkan?"
+        : "You've already paid for this trip. Booking will be cancelled and admin will process a refund. Continue?"
+      : locale === "id"
+        ? "Keluar dari trip ini?"
+        : "Leave this trip?";
     if (!confirm(msg)) return;
     setLoading(true);
     const res = await fetch(`/api/expeditions/${tripId}/join`, { method: "DELETE" });

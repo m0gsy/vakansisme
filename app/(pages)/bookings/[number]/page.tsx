@@ -30,10 +30,12 @@ function statusBadge(status: string) {
     cancelled: "#7A2E12",
     expired: "#7A2E12",
     rejected: "#7A2E12",
+    refunded: "#9BFF3C",
   };
   const fg: Record<string, string> = {
     confirmed: "#111",
     checked_in: "#111",
+    refunded: "#111",
   };
   return (
     <span className="font-body font-semibold inline-block" style={{ fontSize: "0.65rem", letterSpacing: "0.1em", padding: "4px 10px", background: bg[status] ?? "#4A3B2A", color: fg[status] ?? "#F0EDEA" }}>
@@ -139,6 +141,46 @@ export default async function BookingDetailPage({ params }: { params: Params }) 
                 alreadyPaid={isPaid}
                 paymentDueAt={booking.expires_at ?? booking.payment_due_at}
               />
+            )}
+          </div>
+        )}
+
+        {/* Payment info for cancelled bookings */}
+        {["cancelled", "expired", "rejected"].includes(booking.booking_status) && payments.length > 0 && (
+          <div style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.35)", padding: "24px", marginBottom: "24px" }}>
+            <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "16px" }}>PEMBAYARAN</p>
+            {payments.map((p) => (
+              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <div>
+                  <p className="font-body text-off-white" style={{ fontSize: "0.82rem" }}>
+                    Rp {p.amount_idr.toLocaleString("id")} — {p.provider === "manual_transfer" ? "Transfer Bank" : p.provider}
+                  </p>
+                  <p className="font-body text-muted-ink" style={{ fontSize: "0.72rem", marginTop: "2px" }}>Via {p.payment_method ?? "-"}</p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  {p.payment_status === "cancelled" ? (
+                    <span className="font-body font-semibold" style={{ fontSize: "0.6rem", letterSpacing: "0.1em", padding: "3px 8px", background: "#7A2E12", color: "#F0EDEA" }}>
+                      DIBATALKAN
+                    </span>
+                  ) : p.payment_status === "refunded" ? (
+                    <span className="font-body font-semibold" style={{ fontSize: "0.6rem", letterSpacing: "0.1em", padding: "3px 8px", background: "#9BFF3C", color: "#111" }}>
+                      REFUNDED
+                    </span>
+                  ) : (
+                    <span className="font-body text-muted-ink" style={{ fontSize: "0.65rem" }}>{p.payment_status.replace("_", " ").toUpperCase()}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+            {payments.some((p) => p.payment_status === "cancelled") && !payments.some((p) => p.payment_status === "refunded") && (
+              <p className="font-body text-chaos-orange" style={{ fontSize: "0.72rem", marginTop: "8px" }}>
+                Pembayaran dibatalkan. Admin akan memproses refund secara manual.
+              </p>
+            )}
+            {payments.some((p) => p.payment_status === "refunded") && (
+              <p className="font-body text-neon-green" style={{ fontSize: "0.72rem", marginTop: "8px" }}>
+                Refund telah diproses.
+              </p>
             )}
           </div>
         )}

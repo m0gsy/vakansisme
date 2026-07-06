@@ -179,35 +179,66 @@ export async function DELETE(_req: Request, { params }: { params: Params }) {
 
   const { data: expInfo } = await supabase.from("expeditions").select("name, slug").eq("id", id).single();
 
-  const { error } = await supabase
-    .from("expedition_members")
-    .delete()
+  // Check if user has a paid payment
+  const { data: paidPayment } = await supabase
+    .from("expedition_payments")
+    .select("id")
+    .eq("user_id", user.id)
     .eq("expedition_id", id)
-    .eq("user_id", user.id);
+    .eq("payment_status", "paid")
+    .maybeSingle();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (paidPayment) {
+    // Paid user: cancel booking instead of deleting
+    const { error } = await supabase
+      .from("expedition_members")
+      .update({
+        booking_status: "cancelled",
+        cancelled_at: new Date().toISOString(),
+        cancel_reason: "User leave trip",
+      })
+      .eq("expedition_id", id)
+      .eq("user_id", user.id);
 
-  // Notify first person on waitlist that a spot opened
-  supabase
-    .from("expedition_waitlist")
-    .select("user_id")
-    .eq("expedition_id", id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .then(({ data: waitlist }) => {
-      if (!waitlist?.[0]) return;
-      void supabase.from("notifications").insert({
-        user_id: waitlist[0].user_id,
-        type: "waitlist_spot",
-        title: `A spot opened on ${expInfo?.name ?? "your waitlisted trip"} — join now`,
-        link: expInfo?.slug ? `/expeditions/${expInfo.slug}` : `/expeditions/${id}`,
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    // Set payment status to cancelled (admin will refund manually)
+    await supabase
+      .from("expedition_payments")
+      .update({ payment_status: "cancelled" })
+      .eq("id", paidPayment.id);
+  } else {
+    // Not paid: delete membership row
+    const { error } = await supabase
+      .from("expedition_members")
+      .delete()
+      .eq("expedition_id", id)
+      .eq("user_id", user.id);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    // Notify first person on waitlist that a spot opened
+    supabase
+      .from("expedition_waitlist")
+      .select("user_id")
+      .eq("expedition_id", id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .then(({ data: waitlist }) => {
+        if (!waitlist?.[0]) return;
+        void supabase.from("notifications").insert({
+          user_id: waitlist[0].user_id,
+          type: "waitlist_spot",
+          title: `A spot opened on ${expInfo?.name ?? "your waitlisted trip"} — join now`,
+          link: expInfo?.slug ? `/expeditions/${expInfo.slug}` : `/expeditions/${id}`,
+        });
       });
-    });
+  }
 
   const { count: memberCount } = await supabase
     .from("expedition_members")
     .select("*", { count: "exact", head: true })
     .eq("expedition_id", id);
 
-  return NextResponse.json({ success: true, member_count: memberCount ?? 0 });
+  return NextResponse.json({ success: true, member_count: memberCount ?? 0, was_cancelled: !!paidPayment });
 }
