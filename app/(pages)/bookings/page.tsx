@@ -55,7 +55,7 @@ export default async function BookingsPage() {
 
   return (
     <div className="min-h-screen bg-charcoal">
-      <div className="max-w-5xl mx-auto px-6" style={{ paddingTop: "48px", paddingBottom: "80px" }}>
+      <div className="max-w-5xl mx-auto px-6" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: "16px", marginBottom: "8px" }}>
           <h1 className="font-display font-black uppercase text-off-white" style={{ fontSize: "clamp(1.8rem, 5vw, 3rem)", letterSpacing: "-0.025em", lineHeight: 0.9 }}>
             BOOKINGS
