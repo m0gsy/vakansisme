@@ -216,7 +216,7 @@ export default async function BookingsPage() {
                     <div style={{ textAlign: "right" }}>
                       {statusBadge(booking.booking_status)}
                       {refundedBookings.has(booking.id) ? (
-                        <p className="font-body" style={{ fontSize: "0.65rem", marginTop: "4px", color: "#9BFF3C" }}>Refund telah diproses</p>
+                        <p className="font-body" style={{ fontSize: "0.65rem", marginTop: "4px", color: "#9BFF3C" }}>Refund processed</p>
                       ) : booking.cancel_reason && (
                         <p className="font-body text-muted-ink" style={{ fontSize: "0.65rem", marginTop: "4px" }}>{booking.cancel_reason}</p>
                       )}

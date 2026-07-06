@@ -63,33 +63,35 @@ export async function POST(req: Request) {
   let sent = 0;
 
   if (type === "payment") {
-    // Payment reminders: find members with waiting_payment
+    // Payment reminders: only for members with pending (not yet uploaded) payments
     for (const exp of expeditions) {
-      const { data: members } = await supabase
-        .from("expedition_members")
-        .select("id, user_id, booking_number, payment_due_at, expires_at")
-        .eq("expedition_id", exp.id)
-        .eq("booking_status", "waiting_payment");
-
-      if (!members?.length) continue;
-
-      const userIds = members.map((m) => m.user_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, username, email")
-        .in("id", userIds);
-
-      const profileByUser = new Map((profiles ?? []).map((p) => [p.id, p]));
-
-      // Get payment amount
       const { data: payments } = await supabase
         .from("expedition_payments")
         .select("user_id, amount_idr, expires_at")
         .eq("expedition_id", exp.id)
-        .in("payment_status", ["pending"]);
+        .eq("payment_status", "pending");
 
-      const amountByUser = new Map((payments ?? []).map((p) => [p.user_id, p.amount_idr]));
-      const deadlineByUser = new Map((payments ?? []).map((p) => [p.user_id, p.expires_at]));
+      if (!payments?.length) continue;
+
+      const pendingUserIds = payments.map((p) => p.user_id);
+
+      const { data: members } = await supabase
+        .from("expedition_members")
+        .select("id, user_id, booking_number")
+        .eq("expedition_id", exp.id)
+        .eq("booking_status", "waiting_payment")
+        .in("user_id", pendingUserIds);
+
+      if (!members?.length) continue;
+
+      const memberByUser = new Map(members.map((m) => [m.user_id, m]));
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, username, email")
+        .in("id", pendingUserIds);
+
+      const profileByUser = new Map((profiles ?? []).map((p) => [p.id, p]));
 
       // Read template from payment_settings
       const { data: settings } = await supabase
@@ -100,37 +102,40 @@ export async function POST(req: Request) {
       const templates = (settings?.value as Record<string, unknown> | null) ?? {};
       const template = (templates.payment_reminder as string) ?? "Halo {{name}}, kamu masih punya tagihan untuk {{trip}}. Segera lakukan pembayaran sebelum {{deadline}}.";
 
-      for (const m of members) {
-        const p = profileByUser.get(m.user_id);
-        if (!p?.username) continue;
-        let email = p.email;
+      const notifRows: { user_id: string; type: string; title: string; body: string; link: string }[] = [];
+
+      for (const p of payments) {
+        const m = memberByUser.get(p.user_id);
+        if (!m) continue;
+
+        const profile = profileByUser.get(p.user_id);
+        if (!profile?.username) continue;
+        let email = profile.email;
         if (!email) {
           const service = createServiceClient();
-          const { data } = await service.auth.admin.getUserById(m.user_id);
+          const { data } = await service.auth.admin.getUserById(p.user_id);
           email = data.user?.email ?? null;
         }
         if (!email) continue;
 
-        const amount = amountByUser.get(m.user_id) ?? 0;
-        const deadline = (deadlineByUser.get(m.user_id) ?? m.payment_due_at ?? m.expires_at);
-        await sendPaymentReminderEmail(email, p.username, exp.name, amount, m.booking_number ?? "", deadline ?? "").catch(() => {});
+        await sendPaymentReminderEmail(email, profile.username, exp.name, p.amount_idr, m.booking_number ?? "", p.expires_at ?? "").catch(() => {});
         sent++;
-      }
 
-      // In-app notifications
-      const notifTitle = template
-        .replace(/\{\{name\}\}/g, "You")
-        .replace(/\{\{trip\}\}/g, exp.name)
-        .replace(/\{\{deadline\}\}/g, "");
-      void supabase.from("notifications").insert(
-        members.map((m) => ({
-          user_id: m.user_id,
+        notifRows.push({
+          user_id: p.user_id,
           type: "payment_reminder",
           title: `Payment reminder — ${exp.name}`,
-          body: notifTitle,
+          body: template
+            .replace(/\{\{name\}\}/g, "You")
+            .replace(/\{\{trip\}\}/g, exp.name)
+            .replace(/\{\{deadline\}\}/g, ""),
           link: `/bookings/${m.booking_number}`,
-        }))
-      );
+        });
+      }
+
+      if (notifRows.length) {
+        void supabase.from("notifications").insert(notifRows);
+      }
     }
   } else {
     // Trip departure reminders (existing)

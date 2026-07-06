@@ -455,7 +455,10 @@ export async function sendPaymentReminderEmail(
 ) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith("re_placeholder")) return;
   const formatted = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(amountIdr);
-  const deadlineStr = new Date(deadline).toLocaleDateString("id", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const deadlineDate = deadline ? new Date(deadline) : null;
+  const deadlineStr = deadlineDate && !isNaN(deadlineDate.getTime())
+    ? deadlineDate.toLocaleDateString("id", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    : "";
   await resend.emails.send({
     from: FROM,
     to,
@@ -470,8 +473,8 @@ export async function sendPaymentReminderEmail(
         <table style="border:1px solid rgba(74,59,42,0.35);background:#1a1a1a;padding:24px;width:100%;margin-bottom:28px;">
           <tr><td style="font-size:10px;font-weight:700;letter-spacing:0.12em;color:#4A3B2A;text-transform:uppercase;padding-bottom:8px;">AMOUNT DUE</td></tr>
           <tr><td style="font-size:24px;font-weight:900;color:#FF6B1A;">${formatted}</td></tr>
-          <tr><td style="font-size:10px;font-weight:700;letter-spacing:0.12em;color:#4A3B2A;text-transform:uppercase;padding-bottom:8px;padding-top:16px;">DEADLINE</td></tr>
-          <tr><td style="font-size:14px;font-weight:600;color:#F0EDEA;">${deadlineStr}</td></tr>
+          ${deadlineStr ? `<tr><td style="font-size:10px;font-weight:700;letter-spacing:0.12em;color:#4A3B2A;text-transform:uppercase;padding-bottom:8px;padding-top:16px;">DEADLINE</td></tr>
+          <tr><td style="font-size:14px;font-weight:600;color:#F0EDEA;">${deadlineStr}</td></tr>` : ""}
         </table>
         <p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#8B7355;">
           Hey @${username}, this is a reminder that your payment for <strong style="color:#F0EDEA;">${tripName}</strong> is still pending.

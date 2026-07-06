@@ -174,8 +174,8 @@ export class PaymentService {
       void db.from("notifications").insert({
         user_id: payment.user_id,
         type: "payment_refunded",
-        title: `Refund telah diproses untuk ${tripName}`,
-        body: `Rp ${payment.amount_idr.toLocaleString("id")} akan dikembalikan`,
+        title: `Refund processed for ${tripName}`,
+        body: `Rp ${payment.amount_idr.toLocaleString("id")} will be returned to your account`,
         link: `/bookings/${bookingNumber}`,
       });
 

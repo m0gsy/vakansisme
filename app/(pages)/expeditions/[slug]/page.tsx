@@ -524,7 +524,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
             />
             {(trip as Expedition).cancellation_policy && (
               <div>
-                <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "4px" }}>PEMBATALAN</p>
+                <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "4px" }}>CANCELLATION POLICY</p>
                 <p className="font-body text-off-white" style={{ fontSize: "0.8rem", lineHeight: 1.5 }}>{(trip as Expedition).cancellation_policy}</p>
               </div>
             )}

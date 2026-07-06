@@ -102,7 +102,7 @@ export default async function BookingDetailPage({ params }: { params: Params }) 
             </p>
             {(expedition as Record<string, unknown>)?.cancellation_policy ? (
               <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid rgba(74,59,42,0.3)" }}>
-                <p className="font-body text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.14em", marginBottom: "4px" }}>PEMBATALAN</p>
+                <p className="font-body text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.14em", marginBottom: "4px" }}>CANCELLATION POLICY</p>
                 <p className="font-body text-off-white" style={{ fontSize: "0.78rem", lineHeight: 1.5 }}>{String((expedition as Record<string, unknown>).cancellation_policy)}</p>
               </div>
             ) : null}
@@ -174,7 +174,7 @@ export default async function BookingDetailPage({ params }: { params: Params }) 
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   {p.payment_status === "cancelled" ? (
                     <span className="font-body font-semibold" style={{ fontSize: "0.6rem", letterSpacing: "0.1em", padding: "3px 8px", background: "#7A2E12", color: "#F0EDEA" }}>
-                      DIBATALKAN
+                      CANCELLED
                     </span>
                   ) : p.payment_status === "refunded" ? (
                     <span className="font-body font-semibold" style={{ fontSize: "0.6rem", letterSpacing: "0.1em", padding: "3px 8px", background: "#9BFF3C", color: "#111" }}>
@@ -188,12 +188,12 @@ export default async function BookingDetailPage({ params }: { params: Params }) 
             ))}
             {payments.some((p) => p.payment_status === "cancelled") && !payments.some((p) => p.payment_status === "refunded") && (
               <p className="font-body text-chaos-orange" style={{ fontSize: "0.72rem", marginTop: "8px" }}>
-                Pembayaran dibatalkan. Admin akan memproses refund secara manual.
+                Payment cancelled. Admin will process the refund manually.
               </p>
             )}
             {payments.some((p) => p.payment_status === "refunded") && (
               <p className="font-body text-neon-green" style={{ fontSize: "0.72rem", marginTop: "8px" }}>
-                Refund telah diproses.
+                Refund processed.
               </p>
             )}
           </div>
