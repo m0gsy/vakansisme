@@ -20,6 +20,19 @@ async function getTrips(): Promise<Trip[]> {
 
   if (!data) return [];
 
+  const expIds = data.map((row) => row.id);
+  const { data: memberRows } = expIds.length
+    ? await supabase
+        .from("expedition_members")
+        .select("expedition_id, status")
+        .in("expedition_id", expIds)
+        .in("status", ["approved", "pending_payment"])
+    : { data: [] };
+  const countMap: Record<string, number> = {};
+  for (const m of memberRows ?? []) {
+    countMap[m.expedition_id] = (countMap[m.expedition_id] ?? 0) + 1;
+  }
+
   const statusOrder: Record<string, number> = { ongoing: 0, upcoming: 1, completed: 2 };
 
   return data
@@ -36,7 +49,7 @@ async function getTrips(): Promise<Trip[]> {
       leader_id: row.leader_id,
       quota_max: row.quota_max,
       image_url: row.image_url ?? "",
-      member_count: (row.expedition_members as { count: number }[])[0]?.count ?? 0,
+      member_count: countMap[row.id] ?? 0,
       featured: row.featured ?? false,
       status: row.status ?? "upcoming",
     }))
@@ -85,7 +98,8 @@ export default async function Home() {
     const { data } = await supabase
       .from("expedition_members")
       .select("expedition_id")
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .in("status", ["approved", "pending_payment"]);
     joinedIds = data?.map((m) => m.expedition_id) ?? [];
   }
 
