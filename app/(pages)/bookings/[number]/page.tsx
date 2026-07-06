@@ -73,10 +73,10 @@ export default async function BookingDetailPage({ params }: { params: Params }) 
       <div className="max-w-3xl mx-auto px-6" style={{ paddingTop: "48px", paddingBottom: "80px" }}>
         <Link
           href="/dashboard"
-          className="font-body font-semibold text-muted-ink hover:text-off-white transition-colors duration-200 inline-block mb-8"
-          style={{ fontSize: "0.7rem", letterSpacing: "0.1em" }}
+          className="font-body font-semibold hover:text-off-white transition-colors duration-200 inline-block mb-8"
+          style={{ fontSize: "0.7rem", letterSpacing: "0.1em", padding: "8px 14px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", color: "#F0EDEA", textDecoration: "none" }}
         >
-          ← Kembali ke Dashboard
+          ← DASHBOARD
         </Link>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
