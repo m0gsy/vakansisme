@@ -18,7 +18,7 @@ export class PaymentService {
     private serviceSupabase?: SupabaseClient
   ) {
     this.paymentRepo = new PaymentRepository(this.supabase, this.serviceSupabase);
-    this.bookingRepo = new BookingRepository(this.supabase);
+    this.bookingRepo = new BookingRepository(this.serviceSupabase ?? this.supabase);
     this.bookingService = new BookingService(this.supabase, this.serviceSupabase);
     this.auditRepo = new AuditRepository(this.serviceSupabase ?? this.supabase);
   }
@@ -31,8 +31,9 @@ export class PaymentService {
     }
 
     const existingPayments = await this.paymentRepo.findByBooking(input.booking_id);
-    if (existingPayments.some((p) => p.payment_status === "pending" || p.payment_status === "waiting_verification")) {
-      throw new Error("There is already an active payment for this booking");
+    const activePayment = existingPayments.find((p) => p.payment_status === "pending" || p.payment_status === "waiting_verification");
+    if (activePayment) {
+      return { payment: activePayment, instructions: undefined };
     }
 
     const payment = await this.paymentRepo.create({

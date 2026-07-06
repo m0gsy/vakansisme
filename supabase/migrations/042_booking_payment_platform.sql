@@ -291,25 +291,48 @@ CREATE TRIGGER trg_set_booking_number
 CREATE OR REPLACE FUNCTION sync_member_status()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NEW.booking_status IS DISTINCT FROM OLD.booking_status THEN
-    NEW.status := CASE NEW.booking_status
-      WHEN 'draft' THEN 'pending'
-      WHEN 'waiting_payment' THEN 'pending_payment'
-      WHEN 'confirmed' THEN 'approved'
-      WHEN 'checked_in' THEN 'approved'
-      WHEN 'completed' THEN 'approved'
-      WHEN 'cancelled' THEN 'rejected'
-      WHEN 'expired' THEN 'rejected'
-      WHEN 'rejected' THEN 'rejected'
-    END;
-  END IF;
-  IF NEW.status IS DISTINCT FROM OLD.status THEN
-    NEW.booking_status := CASE NEW.status
-      WHEN 'pending' THEN 'draft'
-      WHEN 'pending_payment' THEN 'waiting_payment'
-      WHEN 'approved' THEN 'confirmed'
-      WHEN 'rejected' THEN 'cancelled'
-    END;
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.booking_status IS NOT NULL AND NEW.status IS NULL THEN
+      NEW.status := CASE NEW.booking_status
+        WHEN 'draft' THEN 'pending'
+        WHEN 'waiting_payment' THEN 'pending_payment'
+        WHEN 'confirmed' THEN 'approved'
+        WHEN 'checked_in' THEN 'approved'
+        WHEN 'completed' THEN 'approved'
+        WHEN 'cancelled' THEN 'rejected'
+        WHEN 'expired' THEN 'rejected'
+        WHEN 'rejected' THEN 'rejected'
+      END;
+    END IF;
+    IF NEW.status IS NOT NULL AND NEW.booking_status IS NULL THEN
+      NEW.booking_status := CASE NEW.status
+        WHEN 'pending' THEN 'draft'
+        WHEN 'pending_payment' THEN 'waiting_payment'
+        WHEN 'approved' THEN 'confirmed'
+        WHEN 'rejected' THEN 'cancelled'
+      END;
+    END IF;
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF NEW.booking_status IS DISTINCT FROM OLD.booking_status THEN
+      NEW.status := CASE NEW.booking_status
+        WHEN 'draft' THEN 'pending'
+        WHEN 'waiting_payment' THEN 'pending_payment'
+        WHEN 'confirmed' THEN 'approved'
+        WHEN 'checked_in' THEN 'approved'
+        WHEN 'completed' THEN 'approved'
+        WHEN 'cancelled' THEN 'rejected'
+        WHEN 'expired' THEN 'rejected'
+        WHEN 'rejected' THEN 'rejected'
+      END;
+    END IF;
+    IF NEW.status IS DISTINCT FROM OLD.status THEN
+      NEW.booking_status := CASE NEW.status
+        WHEN 'pending' THEN 'draft'
+        WHEN 'pending_payment' THEN 'waiting_payment'
+        WHEN 'approved' THEN 'confirmed'
+        WHEN 'rejected' THEN 'cancelled'
+      END;
+    END IF;
   END IF;
   RETURN NEW;
 END;
@@ -317,9 +340,9 @@ $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_sync_member_status ON expedition_members;
 CREATE TRIGGER trg_sync_member_status
-  BEFORE UPDATE ON expedition_members
+  BEFORE INSERT OR UPDATE ON expedition_members
   FOR EACH ROW
-  WHEN (OLD.booking_status IS DISTINCT FROM NEW.booking_status OR OLD.status IS DISTINCT FROM NEW.status)
+  WHEN (TG_OP = 'INSERT' OR OLD.booking_status IS DISTINCT FROM NEW.booking_status OR OLD.status IS DISTINCT FROM NEW.status)
   EXECUTE FUNCTION sync_member_status();
 
 -- 19. AUDIT LOG FUNCTION

@@ -107,6 +107,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
 
   const priceAmount = parseInt(((trip as { price?: string }).price ?? "").replace(/\D/g, ""), 10) || 0;
   const tripLeaderId = (trip as { leader_id?: string }).leader_id;
+  const acceptedPaymentMethods = ((trip as Record<string, unknown>).accepted_payment_methods as string[]) ?? ["bank_transfer", "qris"];
 
   const similarSelect = "id, slug, name, location, date_start, status, difficulty";
   const storySelect = "id, slug, title, image_url, author_handle, created_at";
@@ -407,6 +408,7 @@ export default async function ExpeditionPage({ params }: { params: Params }) {
                     currentUserId={user?.id ?? null}
                     alreadyPaid={isPaid}
                     paymentDueAt={paymentDueAt}
+                    acceptedPaymentMethods={acceptedPaymentMethods}
                   />
                   <CancelReservationButton tripId={trip.id} />
                 </>

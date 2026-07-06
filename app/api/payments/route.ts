@@ -17,7 +17,8 @@ export async function POST(req: Request) {
   if (!bookingId) return NextResponse.json({ error: "booking_id required" }, { status: 400 });
   if (!paymentMethod) return NextResponse.json({ error: "payment_method required" }, { status: 400 });
 
-  const bookingRepo = new BookingRepository(supabase);
+  const serviceSupabase = createServiceClient();
+  const bookingRepo = new BookingRepository(serviceSupabase);
   const booking = await bookingRepo.findById(bookingId);
   if (!booking) return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   if (booking.user_id !== user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -28,7 +29,6 @@ export async function POST(req: Request) {
   const amountIdr = expedition.price_amount ?? (parseInt((expedition.price ?? "0").replace(/\D/g, ""), 10) || 0);
   if (amountIdr <= 0) return NextResponse.json({ error: "Free expedition" }, { status: 400 });
 
-  const serviceSupabase = createServiceClient();
   const paymentService = new PaymentService(supabase, serviceSupabase);
   try {
     const result = await paymentService.createPayment({
@@ -44,6 +44,7 @@ export async function POST(req: Request) {
       success: true,
       payment: result.payment,
       instructions: result.instructions,
+      booking_number: (booking as Record<string, unknown>).booking_number as string,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Something went wrong";

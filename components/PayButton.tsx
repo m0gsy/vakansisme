@@ -30,6 +30,7 @@ export default function PayButton({
   currentUserId,
   alreadyPaid = false,
   paymentDueAt = null,
+  acceptedPaymentMethods = ["bank_transfer", "qris"],
 }: {
   bookingId?: string;
   expeditionId: string;
@@ -37,6 +38,7 @@ export default function PayButton({
   currentUserId: string | null;
   alreadyPaid?: boolean;
   paymentDueAt?: string | null;
+  acceptedPaymentMethods?: string[];
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -75,7 +77,7 @@ export default function PayButton({
         setLoading(false);
         return;
       }
-      router.push(`/bookings/${json.payment?.payment_order_id ?? bookingId}/payment`);
+      router.push(`/bookings/${json.booking_number ?? json.payment?.payment_order_id ?? bookingId}/payment`);
     } catch {
       setError("Terjadi kesalahan.");
       setLoading(false);
@@ -118,22 +120,26 @@ export default function PayButton({
           <p className="font-body font-semibold text-off-white uppercase" style={{ fontSize: "0.65rem", letterSpacing: "0.12em", marginBottom: "4px" }}>
             Pilih Metode Pembayaran
           </p>
-          <button
-            onClick={() => handlePay("bank_transfer")}
-            disabled={loading}
-            className="font-body font-semibold text-left transition-colors duration-150 disabled:opacity-50"
-            style={{ fontSize: "0.78rem", padding: "12px 18px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", color: "#F0EDEA", cursor: "pointer" }}
-          >
-            Transfer Bank
-          </button>
-          <button
-            onClick={() => handlePay("qris")}
-            disabled={loading}
-            className="font-body font-semibold text-left transition-colors duration-150 disabled:opacity-50"
-            style={{ fontSize: "0.78rem", padding: "12px 18px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", color: "#F0EDEA", cursor: "pointer" }}
-          >
-            QRIS
-          </button>
+          {acceptedPaymentMethods.includes("bank_transfer") && (
+            <button
+              onClick={() => handlePay("bank_transfer")}
+              disabled={loading}
+              className="font-body font-semibold text-left transition-colors duration-150 disabled:opacity-50"
+              style={{ fontSize: "0.78rem", padding: "12px 18px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", color: "#F0EDEA", cursor: "pointer" }}
+            >
+              Transfer Bank
+            </button>
+          )}
+          {acceptedPaymentMethods.includes("qris") && (
+            <button
+              onClick={() => handlePay("qris")}
+              disabled={loading}
+              className="font-body font-semibold text-left transition-colors duration-150 disabled:opacity-50"
+              style={{ fontSize: "0.78rem", padding: "12px 18px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.4)", color: "#F0EDEA", cursor: "pointer" }}
+            >
+              QRIS
+            </button>
+          )}
           <button
             onClick={() => setShowMethods(false)}
             className="font-body text-muted-ink hover:text-off-white transition-colors duration-150"

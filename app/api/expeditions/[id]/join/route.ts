@@ -39,7 +39,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
   // Check quota (approved members only) before inserting
   const { data: expedition } = await supabase
     .from("expeditions")
-    .select("quota_max, requires_approval, price_amount, status")
+    .select("quota_max, requires_approval, price_amount, status, payment_deadline_policy, payment_deadline_value")
     .eq("id", id)
     .single();
 
@@ -65,11 +65,22 @@ export async function POST(req: Request, { params }: { params: Params }) {
     return NextResponse.json({ error: "Trip is full" }, { status: 409 });
   }
 
-  // Paid expeditions: reserve slot with 3-day payment deadline
+  // Paid expeditions: reserve slot with deadline from expedition config
   const memberStatus = isPaid ? "pending_payment" : (expedition.requires_approval ? "pending" : "approved");
-  const paymentDueAt = isPaid
-    ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
-    : null;
+
+  let paymentDueAt: string | null = null;
+  if (isPaid) {
+    const deadlinePolicy = expedition.payment_deadline_policy ?? "hours";
+    const deadlineValue = expedition.payment_deadline_value ?? 24;
+    if (deadlinePolicy === "none" || deadlinePolicy === "no_deadline") {
+      paymentDueAt = null;
+    } else {
+      const multiplier = deadlinePolicy === "days" ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000;
+      paymentDueAt = new Date(Date.now() + deadlineValue * multiplier).toISOString();
+    }
+  }
+
+  const bookingStatus = isPaid ? "waiting_payment" : (expedition.requires_approval ? "draft" : "confirmed");
 
   const { error } = await supabase
     .from("expedition_members")
@@ -77,6 +88,7 @@ export async function POST(req: Request, { params }: { params: Params }) {
       expedition_id: id,
       user_id: user.id,
       status: memberStatus,
+      booking_status: bookingStatus,
       ...(notes ? { notes } : {}),
       ...(paymentDueAt ? { payment_due_at: paymentDueAt } : {}),
     });
