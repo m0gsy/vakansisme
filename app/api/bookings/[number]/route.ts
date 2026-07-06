@@ -21,7 +21,12 @@ export async function GET(_req: Request, { params }: { params: Params }) {
     if (!profile?.is_admin) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
-  const payments = await paymentRepo.findByBooking(booking.id);
+  const [payments, banks, qrisAccounts, settings] = await Promise.all([
+    paymentRepo.findByBooking(booking.id),
+    paymentRepo.getActiveBankAccounts(),
+    paymentRepo.getActiveQrisAccounts(),
+    paymentRepo.getSettings(),
+  ]);
 
-  return NextResponse.json({ booking, payments });
+  return NextResponse.json({ booking, payments, banks, qris_accounts: qrisAccounts, settings });
 }

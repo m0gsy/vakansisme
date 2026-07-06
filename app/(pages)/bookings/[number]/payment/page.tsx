@@ -52,12 +52,7 @@ export default function PaymentPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [bookingRes, banksRes, qrisRes, settingsRes] = await Promise.all([
-          fetch(`/api/bookings/${number}`),
-          fetch("/api/admin/bank-accounts"),
-          fetch("/api/admin/qris-accounts"),
-          fetch("/api/admin/payment-settings"),
-        ]);
+        const bookingRes = await fetch(`/api/bookings/${number}`);
 
         if (!bookingRes.ok) { setError("Booking not found"); setLoading(false); return; }
 
@@ -69,20 +64,14 @@ export default function PaymentPage() {
           setPayment(paymentList[paymentList.length - 1]);
         }
 
-        if (banksRes.ok) {
-          const banksData = await banksRes.json();
-          setBanks(Array.isArray(banksData) ? banksData.filter((b: BankAccount) => b.is_active !== false) : []);
-        }
+        const banksData = bookingJson.banks ?? [];
+        setBanks(Array.isArray(banksData) ? banksData.filter((b: BankAccount) => b.is_active !== false) : []);
 
-        if (qrisRes.ok) {
-          const qrisData = await qrisRes.json();
-          setQrisAccounts(Array.isArray(qrisData) ? qrisData.filter((q: QrisAccount) => q.is_active !== false) : []);
-        }
+        const qrisData = bookingJson.qris_accounts ?? [];
+        setQrisAccounts(Array.isArray(qrisData) ? qrisData.filter((q: QrisAccount) => q.is_active !== false) : []);
 
-        if (settingsRes.ok) {
-          const settings = await settingsRes.json();
-          setWhatsappNumber(settings.whatsapp_number?.number ?? "");
-        }
+        const settings = bookingJson.settings ?? {};
+        setWhatsappNumber(settings.whatsapp_number?.number ?? "");
       } catch {
         setError("Gagal memuat data pembayaran");
       }
