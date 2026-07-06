@@ -70,7 +70,7 @@ export default async function BookingDetailPage({ params }: { params: Params }) 
 
   return (
     <div className="min-h-screen bg-charcoal">
-      <div className="max-w-3xl mx-auto px-6" style={{ paddingTop: "48px", paddingBottom: "80px" }}>
+      <div className="max-w-3xl mx-auto px-6" style={{ paddingTop: "100px", paddingBottom: "80px" }}>
         <Link
           href="/dashboard"
           className="font-body font-semibold hover:text-off-white transition-colors duration-200 inline-block mb-8"
