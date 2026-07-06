@@ -10,7 +10,7 @@ export class BookingService {
   ) {}
 
   private get bookingRepo() {
-    return new BookingRepository(this.supabase);
+    return new BookingRepository(this.serviceSupabase ?? this.supabase);
   }
 
   private get auditRepo() {
