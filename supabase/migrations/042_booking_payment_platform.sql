@@ -237,23 +237,22 @@ UPDATE expedition_members
 SET booking_number = 'BK-' || UPPER(SUBSTR(MD5(id::text), 1, 8)) || '-' || TO_CHAR(joined_at, 'YYMMDD')
 WHERE booking_number IS NULL;
 
--- 14. BACKFILL payment_policy & price_amount for existing expeditions
+-- 14. BACKFILL price_amount & payment_policy for existing expeditions
 UPDATE expeditions
 SET
-  payment_policy = CASE
-    WHEN price_amount > 0 THEN 'fixed_price'
-    WHEN price IS NOT NULL AND price <> '' AND price <> '0' THEN 'fixed_price'
-    ELSE 'free'
-  END,
   price_amount = CASE
     WHEN price_amount IS NULL OR price_amount = 0 THEN
       COALESCE(
-        (regexp_replace(price, '\D', '', 'g'))::integer,
+        (regexp_replace(price, '[^0-9]', '', 'g'))::integer,
         0
       )
     ELSE price_amount
-  END
-WHERE payment_policy IS NULL;
+  END;
+
+UPDATE expeditions
+SET payment_policy = 'free'
+WHERE price_amount = 0
+  AND (price IS NULL OR price = '' OR price = '0' OR price = 'Gratis');
 
 -- 16. FUNCTION: generate booking number
 CREATE OR REPLACE FUNCTION generate_booking_number()
