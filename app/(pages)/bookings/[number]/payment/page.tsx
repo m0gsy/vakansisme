@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -35,7 +35,6 @@ type PaymentDetail = {
 
 export default function PaymentPage() {
   const params = useParams();
-  const router = useRouter();
   const number = params.number as string;
 
   const [loading, setLoading] = useState(true);
@@ -50,35 +49,36 @@ export default function PaymentPage() {
   const [proofPreview, setProofPreview] = useState<string | null>(null);
   const [whatsappNumber, setWhatsappNumber] = useState("");
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const bookingRes = await fetch(`/api/bookings/${number}`);
+  async function loadData() {
+    try {
+      const bookingRes = await fetch(`/api/bookings/${number}`);
 
-        if (!bookingRes.ok) { setError("Booking not found"); setLoading(false); return; }
+      if (!bookingRes.ok) { setError("Booking not found"); setLoading(false); return; }
 
-        const bookingJson = await bookingRes.json();
-        const paymentList = bookingJson.payments ?? [];
-        setBookingStatus(bookingJson.booking?.booking_status ?? "");
+      const bookingJson = await bookingRes.json();
+      const paymentList = bookingJson.payments ?? [];
+      setBookingStatus(bookingJson.booking?.booking_status ?? "");
 
-        if (paymentList.length > 0) {
-          setPayment(paymentList[paymentList.length - 1]);
-        }
-
-        const banksData = bookingJson.banks ?? [];
-        setBanks(Array.isArray(banksData) ? banksData.filter((b: BankAccount) => b.is_active !== false) : []);
-
-        const qrisData = bookingJson.qris_accounts ?? [];
-        setQrisAccounts(Array.isArray(qrisData) ? qrisData.filter((q: QrisAccount) => q.is_active !== false) : []);
-
-        const settings = bookingJson.settings ?? {};
-        setWhatsappNumber(settings.whatsapp_number?.number ?? "");
-      } catch {
-        setError("Gagal memuat data pembayaran");
+      if (paymentList.length > 0) {
+        setPayment(paymentList[paymentList.length - 1]);
       }
-      setLoading(false);
+
+      const banksData = bookingJson.banks ?? [];
+      setBanks(Array.isArray(banksData) ? banksData.filter((b: BankAccount) => b.is_active !== false) : []);
+
+      const qrisData = bookingJson.qris_accounts ?? [];
+      setQrisAccounts(Array.isArray(qrisData) ? qrisData.filter((q: QrisAccount) => q.is_active !== false) : []);
+
+      const settings = bookingJson.settings ?? {};
+      setWhatsappNumber(settings.whatsapp_number?.number ?? "");
+    } catch {
+      setError("Gagal memuat data pembayaran");
     }
-    load();
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadData();
   }, [number]);
 
   async function handleUploadProof() {
@@ -97,7 +97,9 @@ export default function PaymentPage() {
 
       const json = await res.json();
       if (res.ok) {
-        router.refresh();
+        setProofFile(null);
+        setProofPreview(null);
+        await loadData();
       } else {
         setUploadError(json.error ?? "Gagal upload bukti transfer");
       }
@@ -270,7 +272,7 @@ export default function PaymentPage() {
               className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed w-full"
               style={{ fontSize: "0.72rem", letterSpacing: "0.14em", padding: "14px 28px", border: "none", cursor: "pointer" }}
             >
-              {uploading ? "MENGUNGGAH..." : payment.proof_image_url ? "GANTI BUKTI TRANSFER" : "UPLOAD BUKTI TRANSFER"}
+              {uploading ? "MENGIRIM..." : "KIRIM PEMBAYARAN"}
             </button>
 
             {uploadError && <p className="font-body text-chaos-orange" style={{ fontSize: "0.72rem", marginTop: "8px" }}>{uploadError}</p>}

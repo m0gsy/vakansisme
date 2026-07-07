@@ -66,9 +66,14 @@ export default function JoinButton({
     const json = await res.json();
     if (res.ok) {
       if (json.member_status === "pending_payment") {
-        setPendingPayment(true);
+        const bookingNumber = json.booking?.booking_number;
+        if (bookingNumber) {
+          router.push(`/bookings/${bookingNumber}/payment`);
+        } else {
+          setPendingPayment(true);
+          toast(locale === "id" ? "Slot tereservasi! Segera lakukan pembayaran." : "Slot reserved! Complete payment now.");
+        }
         setShowApp(false);
-        toast(locale === "id" ? "Slot tereservasi! Segera lakukan pembayaran." : "Slot reserved! Complete payment now.");
       } else if (json.member_status === "pending") {
         setPending(true);
         setShowApp(false);
