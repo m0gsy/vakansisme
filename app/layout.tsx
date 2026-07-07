@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import "./globals.css";
 import { ToastProvider } from "@/components/Toast";
 import OnboardingBanner from "@/components/OnboardingBanner";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const barlowCondensed = Barlow_Condensed({
   weight: ["700", "800"],
@@ -106,6 +107,7 @@ export default async function RootLayout({
       <body>
         <a href="#main-content" className="skip-link">Skip to main content</a>
         <ToastProvider>{children}<OnboardingBanner /></ToastProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
