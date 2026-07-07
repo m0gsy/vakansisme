@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, useInView } from "framer-motion";
 
 const navLinks = [
@@ -166,12 +167,9 @@ export default function FooterCTA() {
           gap: "20px",
         }}
       >
-        <span
-          className="font-display font-black uppercase text-off-white"
-          style={{ fontSize: "0.95rem", letterSpacing: "0.18em" }}
-        >
-          VAKANSISME
-        </span>
+        <Link href="/" style={{ display: "block", lineHeight: 0 }}>
+          <Image src="/logo.png" alt="VAKANSISME" width={1376} height={446} style={{ height: "26px", width: "auto" }} />
+        </Link>
 
         <nav aria-label="Footer navigation">
           <ul

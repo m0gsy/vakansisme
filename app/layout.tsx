@@ -29,6 +29,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  icons: { icon: "/logo.png" },
   title: {
     default: "Vakansisme — Summit to Story.",
     template: "%s | Vakansisme",
