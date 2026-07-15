@@ -66,39 +66,42 @@ export default function StoryComments({
       {/* Comment list */}
       {comments.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "40px" }}>
-          {comments.map((c) => (
-            <div
-              key={c.id}
-              style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.3)", padding: "16px 20px" }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
-                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                  <Link
-                    href={`/u/${c.author_handle}`}
-                    className="font-body font-semibold text-neon-green hover:text-chaos-orange transition-colors duration-150"
-                    style={{ fontSize: "0.72rem", letterSpacing: "0.08em" }}
-                  >
-                    @{c.author_handle}
-                  </Link>
-                  <span className="font-body text-muted-ink" style={{ fontSize: "0.65rem" }}>
-                    {new Date(c.created_at).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
-                  </span>
+          {comments.map((c) => {
+            const cleanUsername = c.author_handle.startsWith("@") ? c.author_handle.slice(1) : c.author_handle;
+            return (
+              <div
+                key={c.id}
+                style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.3)", padding: "16px 20px" }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+                  <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                    <Link
+                      href={`/u/${cleanUsername}`}
+                      className="font-body font-semibold text-neon-green hover:text-chaos-orange transition-colors duration-150"
+                      style={{ fontSize: "0.72rem", letterSpacing: "0.08em" }}
+                    >
+                      @{cleanUsername}
+                    </Link>
+                    <span className="font-body text-muted-ink" style={{ fontSize: "0.65rem" }}>
+                      {new Date(c.created_at).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
+                    </span>
+                  </div>
+                  {currentUserId === c.author_id && (
+                    <button
+                      onClick={() => handleDelete(c.id)}
+                      className="font-body text-muted-ink hover:text-chaos-orange transition-colors duration-150"
+                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.62rem", letterSpacing: "0.08em" }}
+                    >
+                      DELETE
+                    </button>
+                  )}
                 </div>
-                {currentUserId === c.author_id && (
-                  <button
-                    onClick={() => handleDelete(c.id)}
-                    className="font-body text-muted-ink hover:text-chaos-orange transition-colors duration-150"
-                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.62rem", letterSpacing: "0.08em" }}
-                  >
-                    DELETE
-                  </button>
-                )}
+                <p className="font-body text-off-white/80" style={{ fontSize: "0.88rem", lineHeight: 1.65, whiteSpace: "pre-wrap" }}>
+                  {c.content}
+                </p>
               </div>
-              <p className="font-body text-off-white/80" style={{ fontSize: "0.88rem", lineHeight: 1.65, whiteSpace: "pre-wrap" }}>
-                {c.content}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

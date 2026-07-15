@@ -9,9 +9,10 @@ export default function ExpeditionMap({ location }: { location: string }) {
 
   useEffect(() => {
     if (!mapRef.current || instanceRef.current) return;
+    let active = true;
 
     import("leaflet").then((L) => {
-      if (!mapRef.current || instanceRef.current) return;
+      if (!mapRef.current || instanceRef.current || !active) return;
 
       // Fix default marker icons for Next.js
       // @ts-expect-error leaflet internal
@@ -33,6 +34,7 @@ export default function ExpeditionMap({ location }: { location: string }) {
       fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`)
         .then((r) => r.json())
         .then((results: { lat: string; lon: string }[]) => {
+          if (!active) return;
           if (!results.length) {
             map.setView([0, 0], 2);
             return;
@@ -45,10 +47,13 @@ export default function ExpeditionMap({ location }: { location: string }) {
             .bindPopup(`<b>${location}</b>`)
             .openPopup();
         })
-        .catch(() => map.setView([0, 0], 2));
+        .catch(() => {
+          if (active) map.setView([0, 0], 2);
+        });
     });
 
     return () => {
+      active = false;
       if (instanceRef.current) {
         (instanceRef.current as { remove: () => void }).remove();
         instanceRef.current = null;
