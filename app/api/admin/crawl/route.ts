@@ -283,6 +283,39 @@ function generateBeautifulDefaults(mountainName: string, elevation: number) {
   };
 }
 
+// Extract actual, individual mountains listed as links in a Wikipedia index/list article
+async function extractMountainsFromList(listTitle: string): Promise<string[]> {
+  try {
+    const res = await safeFetchJson(
+      `https://id.wikipedia.org/w/api.php?action=query&prop=revisions&titles=${encodeURIComponent(
+        listTitle
+      )}&rvslots=*&rvprop=content&format=json`
+    );
+    const pages = res?.query?.pages;
+    const pageId = Object.keys(pages ?? {})[0];
+    if (!pageId || pageId === "-1") return [];
+    
+    const wikitext = pages[pageId].revisions?.[0]?.slots?.["*"]?.content || "";
+    
+    // Scan wikitext for patterns like [[Gunung X]] or [[X]]
+    const matches = wikitext.matchAll(/\[\[([^|\]#]+)(?:\|[^\]]+)?\]\]/g);
+    const titles: string[] = [];
+    
+    for (const match of matches) {
+      const title = match[1].trim();
+      // Keep only valid mountain titles (skip lists/categories inside lists)
+      if (isValidMountainTitle(title) && (title.toLowerCase().startsWith("gunung ") || title.toLowerCase().startsWith("mount "))) {
+        titles.push(title);
+      }
+    }
+    
+    // De-duplicate
+    return Array.from(new Set(titles));
+  } catch {
+    return [];
+  }
+}
+
 // Safe fetch utility setting custom User-Agent to avoid Wikipedia/OSM HTML 403 blocks
 async function safeFetchJson(url: string) {
   const res = await fetch(url, {
@@ -499,15 +532,48 @@ async function handleCrawler(req: Request) {
     offset = parseInt(searchParams.get("offset") || "0") || offset;
   }
 
-  // A. Single mountain crawling mode
+  // A. Single mountain/list crawling mode
   if (mountainName?.trim()) {
-    // Block single requests trying to fetch a list/index title
-    if (!isValidMountainTitle(mountainName)) {
+    const clean = mountainName.trim();
+
+    // Check if the query is a List Page (e.g. "Daftar gunung di Kalimantan Selatan")
+    if (clean.toLowerCase().includes("daftar")) {
+      try {
+        const mountainTitles = await extractMountainsFromList(clean);
+        if (!mountainTitles.length) {
+          return NextResponse.json({ success: true, count: 0, message: "No actual mountains found in this list page" });
+        }
+
+        // Crawl all extracted actual mountains in parallel
+        const promises = mountainTitles.map(async (name) => {
+          try {
+            const dest = await crawlSingleMountain(name);
+            return { name, success: true, destination: dest };
+          } catch (err: any) {
+            return { name, success: false, error: err.message || "Failed to crawl" };
+          }
+        });
+
+        const results = await Promise.all(promises);
+        return NextResponse.json({
+          success: true,
+          mode: "list-extraction",
+          listTitle: clean,
+          extractedCount: mountainTitles.length,
+          crawled: results
+        });
+      } catch (e: any) {
+        return NextResponse.json({ error: e.message || "Failed to extract from list page" }, { status: 500 });
+      }
+    }
+
+    // Single actual mountain query
+    if (!isValidMountainTitle(clean)) {
       return NextResponse.json({ error: "Invalid mountain name. Lists and meta-articles are blocked." }, { status: 400 });
     }
 
     try {
-      const result = await crawlSingleMountain(mountainName);
+      const result = await crawlSingleMountain(clean);
       return NextResponse.json({ success: true, mode: "single", destination: result });
     } catch (e: any) {
       return NextResponse.json({ error: e.message || "Failed to crawl mountain" }, { status: 500 });
