@@ -231,28 +231,26 @@ const POPULAR_MOUNTAINS_FALLBACK: Record<string, any> = {
   }
 };
 
-// Filter function to ensure only actual, specific mountains are processed (excluding index lists, legends, categories)
-function isValidMountainTitle(title: string): boolean {
+// Filter out Wikipedia meta, list templates, indexes, and folklore/legend articles
+function isMetaOrFolklore(title: string): boolean {
   const t = title.toLowerCase().trim();
   
-  // Exclude Wikipedia meta, list templates, indexes, and folklore/legend articles
-  if (t.includes("daftar")) return false;
-  if (t.includes("legenda")) return false;
-  if (t.includes("mitos")) return false;
-  if (t.includes("sejarah")) return false;
-  if (t.includes("cerita")) return false;
-  if (t.includes("dongeng")) return false;
-  if (t.includes("kategori:")) return false;
-  if (t.includes("templat:")) return false;
-  if (t.includes("wikipedia:")) return false;
-  if (t.includes("berkas:")) return false;
+  if (t.includes("legenda")) return true;
+  if (t.includes("mitos")) return true;
+  if (t.includes("sejarah")) return true;
+  if (t.includes("cerita")) return true;
+  if (t.includes("dongeng")) return true;
+  if (t.includes("kategori:")) return true;
+  if (t.includes("templat:")) return true;
+  if (t.includes("wikipedia:")) return true;
+  if (t.includes("berkas:")) return true;
   
   // Exclude general articles or classifications
-  if (t === "gunung" || t === "gunung ribu" || t === "gunung berapi" || t === "gunung api") return false;
-  if (t.includes("gunung-gunung")) return false;
-  if (t.includes("gunung berapi di") || t.includes("gunung api di")) return false;
+  if (t === "gunung" || t === "gunung ribu" || t === "gunung berapi" || t === "gunung api") return true;
+  if (t.includes("gunung-gunung")) return true;
+  if (t.includes("gunung berapi di") || t.includes("gunung api di")) return true;
   
-  return true;
+  return false;
 }
 
 // Clean Wikipedia descriptions of raw citations, markup coordinates, and extra formatting
@@ -304,7 +302,8 @@ async function extractMountainsFromList(listTitle: string): Promise<string[]> {
     for (const match of matches) {
       const title = match[1].trim();
       // Keep only valid mountain titles (skip lists/categories inside lists)
-      if (isValidMountainTitle(title) && (title.toLowerCase().startsWith("gunung ") || title.toLowerCase().startsWith("mount "))) {
+      if (!isMetaOrFolklore(title) && !title.toLowerCase().includes("daftar") && 
+          (title.toLowerCase().startsWith("gunung ") || title.toLowerCase().startsWith("mount "))) {
         titles.push(title);
       }
     }
@@ -568,7 +567,7 @@ async function handleCrawler(req: Request) {
     }
 
     // Single actual mountain query
-    if (!isValidMountainTitle(clean)) {
+    if (isMetaOrFolklore(clean)) {
       return NextResponse.json({ error: "Invalid mountain name. Lists and meta-articles are blocked." }, { status: 400 });
     }
 
@@ -587,42 +586,59 @@ async function handleCrawler(req: Request) {
     );
 
     const members = catRes?.query?.categorymembers ?? [];
-    // Strict filter for actual mountains (removing lists, indexes, legends, etc.)
-    const allMountains = members
-      .filter((m: any) => m.ns === 0 && isValidMountainTitle(m.title))
+    // Allow regional lists (e.g. "Daftar gunung di Sumatera") to be processed inside the loop
+    // but filter out unrelated meta/folklore files
+    const allMembers = members
+      .filter((m: any) => m.ns === 0 && !isMetaOrFolklore(m.title))
       .map((m: any) => m.title);
 
-    if (!allMountains.length) {
-      return NextResponse.json({ success: true, count: 0, message: "No valid mountains found in category" });
+    if (!allMembers.length) {
+      return NextResponse.json({ success: true, count: 0, message: "No valid category members found" });
     }
 
-    const slice = allMountains.slice(offset, offset + limit);
+    const slice = allMembers.slice(offset, offset + limit);
 
-    // Crawl each mountain in this chunk in parallel
+    // Process chunk in parallel: normal mountains get crawled directly, list pages get expanded
     const promises = slice.map(async (name: string) => {
       try {
-        const dest = await crawlSingleMountain(name);
-        return { name, success: true, destination: dest };
+        if (name.toLowerCase().includes("daftar")) {
+          // Dynamically extract and import all actual mountains in this list page (Java, Sumatra, etc.)
+          const subTitles = await extractMountainsFromList(name);
+          const subPromises = subTitles.map(async (subName) => {
+            try {
+              const dest = await crawlSingleMountain(subName);
+              return { name: subName, success: true, destination: dest };
+            } catch (err: any) {
+              return { name: subName, success: false, error: err.message || "Failed to crawl" };
+            }
+          });
+          const subResults = await Promise.all(subPromises);
+          return { name, success: true, isList: true, extractedCount: subTitles.length, subResults };
+        } else {
+          // Normal single mountain crawling
+          const dest = await crawlSingleMountain(name);
+          return { name, success: true, isList: false, destination: dest };
+        }
       } catch (err: any) {
-        return { name, success: false, error: err.message || "Failed to crawl" };
+        return { name, success: false, error: err.message || "Failed to process" };
       }
     });
 
     const finished = await Promise.all(promises);
 
-    const nextOffset = offset + limit < allMountains.length ? offset + limit : null;
+    const nextOffset = offset + limit < allMembers.length ? offset + limit : null;
 
     return NextResponse.json({
       success: true,
       mode: "batch",
-      totalInCompiledCategory: allMountains.length,
+      totalInCompiledCategory: allMembers.length,
       limit,
       offset,
       crawled: finished,
       nextOffset
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || "Failed to fetch category list" }, { status: 500 });
+    return NextResponse.json({ error: e.message || "Failed to fetch category members" }, { status: 500 });
   }
 }
 
