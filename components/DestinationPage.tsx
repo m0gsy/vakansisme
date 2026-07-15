@@ -11,6 +11,20 @@ import { kindLabel } from "@/lib/related";
 // generically via the /destination/[slug] route.
 export type DestKind = string;
 
+type DestinationMetadata = {
+  water_sources?: string[];
+  camps?: string[];
+  basecamps?: string[];
+  simaksi_link?: string | null;
+  pvmbg_status?: string;
+  best_season?: string;
+  difficulty?: string;
+  flora_fauna?: string[];
+  emergency_contacts?: string[];
+  latitude?: number;
+  longitude?: number;
+};
+
 type Destination = {
   id: string;
   kind: DestKind;
@@ -21,6 +35,7 @@ type Destination = {
   elevation_m: number | null;
   description: string | null;
   image_url: string | null;
+  metadata?: DestinationMetadata | null;
 };
 
 type ExpeditionRow = {
@@ -62,7 +77,7 @@ export const getDestinationData = cache(
       entityType: "destination",
       param,
       basePath,
-      select: "id, kind, name, slug, parent_id, location_id, elevation_m, description, image_url",
+      select: "id, kind, name, slug, parent_id, location_id, elevation_m, description, image_url, metadata",
       filter: kind ? [{ column: "kind", value: kind }] : [],
     });
 
@@ -261,13 +276,119 @@ export default async function DestinationPage({
         </h1>
 
         {dest.description ? (
-          <p className="font-story text-off-white/80" style={{ fontSize: "1rem", lineHeight: 1.7, maxWidth: "70ch", marginBottom: "48px" }}>
+          <p className="font-story text-off-white/80" style={{ fontSize: "1rem", lineHeight: 1.7, maxWidth: "70ch", marginBottom: "32px" }}>
             {dest.description}
           </p>
         ) : (
-          <p className="font-body text-muted-ink" style={{ fontSize: "0.9rem", marginBottom: "48px" }}>
+          <p className="font-body text-muted-ink" style={{ fontSize: "0.9rem", marginBottom: "32px" }}>
             No description yet.
           </p>
+        )}
+
+        {/* Mountain Details Grid */}
+        {dest.metadata && (
+          <section style={{ marginBottom: "48px", display: "flex", flexDirection: "column", gap: "24px" }}>
+            {/* Status & SIMAKSI buttons */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
+              {dest.metadata.pvmbg_status && (
+                <div
+                  style={{
+                    padding: "8px 16px",
+                    background: dest.metadata.pvmbg_status.includes("Level I") ? "rgba(155,255,60,0.08)" : "rgba(255,107,26,0.08)",
+                    border: `1px solid ${dest.metadata.pvmbg_status.includes("Level I") ? "rgba(155,255,60,0.3)" : "rgba(255,107,26,0.3)"}`,
+                    color: dest.metadata.pvmbg_status.includes("Level I") ? "#9BFF3C" : "#FF6B1A",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  AKTIVITAS: {dest.metadata.pvmbg_status.toUpperCase()}
+                </div>
+              )}
+              {dest.metadata.simaksi_link && (
+                <a
+                  href={dest.metadata.simaksi_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-body font-semibold text-charcoal bg-neon-green hover:bg-chaos-orange transition-colors duration-150"
+                  style={{ fontSize: "0.72rem", letterSpacing: "0.1em", padding: "10px 22px", textDecoration: "none" }}
+                >
+                  BOOKING SIMAKSI ONLINE ↗
+                </a>
+              )}
+            </div>
+
+            {/* Spec Cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "14px" }}>
+              {dest.metadata.difficulty && (
+                <div style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.35)", padding: "16px 20px" }}>
+                  <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.14em", marginBottom: "6px" }}>TINGKAT KESULITAN</p>
+                  <p className="font-display font-bold text-off-white uppercase" style={{ fontSize: "1.1rem" }}>{dest.metadata.difficulty}</p>
+                </div>
+              )}
+              {dest.metadata.best_season && (
+                <div style={{ background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.35)", padding: "16px 20px" }}>
+                  <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.55rem", letterSpacing: "0.14em", marginBottom: "6px" }}>MUSIM TERBAIK</p>
+                  <p className="font-display font-bold text-off-white uppercase" style={{ fontSize: "1.1rem" }}>{dest.metadata.best_season}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Campsites */}
+            {dest.metadata.camps && dest.metadata.camps.length > 0 && (
+              <div>
+                <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "10px" }}>POS PERKEMAHAN / CAMPSITES</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {dest.metadata.camps.map((c, i) => (
+                    <span key={i} style={{ fontSize: "0.72rem", background: "rgba(74,59,42,0.2)", border: "1px solid rgba(74,59,42,0.4)", color: "#F0EDEA", padding: "6px 12px" }}>
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Water Sources */}
+            {dest.metadata.water_sources && dest.metadata.water_sources.length > 0 && (
+              <div>
+                <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "10px" }}>SUMBER AIR BERSIH</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {dest.metadata.water_sources.map((w, i) => (
+                    <span key={i} style={{ fontSize: "0.72rem", background: "rgba(155,255,60,0.05)", border: "1px solid rgba(155,255,60,0.2)", color: "#9BFF3C", padding: "6px 12px" }}>
+                      💧 {w}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Basecamps */}
+            {dest.metadata.basecamps && dest.metadata.basecamps.length > 0 && (
+              <div>
+                <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "10px" }}>BASECAMP REGISTRASI / JALUR</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {dest.metadata.basecamps.map((b, i) => (
+                    <span key={i} style={{ fontSize: "0.72rem", background: "rgba(74,59,42,0.2)", border: "1px solid rgba(74,59,42,0.4)", color: "#F0EDEA", padding: "6px 12px" }}>
+                      📍 via {b}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Flora & Fauna */}
+            {dest.metadata.flora_fauna && dest.metadata.flora_fauna.length > 0 && (
+              <div>
+                <p className="font-body font-semibold text-muted-ink uppercase" style={{ fontSize: "0.6rem", letterSpacing: "0.14em", marginBottom: "10px" }}>FLORA & FAUNA KHAS</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {dest.metadata.flora_fauna.map((f, i) => (
+                    <span key={i} style={{ fontSize: "0.72rem", background: "rgba(74,59,42,0.1)", border: "1px solid rgba(74,59,42,0.2)", color: "#8B7355", padding: "6px 12px" }}>
+                      🌿 {f}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
         )}
 
         {/* Child trails */}
