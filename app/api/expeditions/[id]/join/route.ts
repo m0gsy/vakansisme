@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { sendJoinConfirmationEmail, sendLeaderJoinEmail } from "@/lib/email";
 import { rateLimit } from "@/lib/ratelimit";
 import { createServiceClient } from "@/lib/supabase/service";
+import { createNotification } from "@/lib/notify";
 
 type Params = Promise<{ id: string }>;
 
@@ -133,12 +134,12 @@ export async function POST(req: Request, { params }: { params: Params }) {
       if (leader.email) {
         sendLeaderJoinEmail(leader.email, leader.username, profile.username, trip.name, trip.slug).catch(() => {});
       }
-      void supabase.from("notifications").insert({
-        user_id: leader.id,
+      void createNotification({
+        userId: leader.id,
         type: "join",
         title: `@${profile.username} joined ${trip.name}`,
         link: `/expeditions/${trip.slug}`,
-        });
+      });
     }
   }
 
@@ -228,12 +229,12 @@ export async function DELETE(_req: Request, { params }: { params: Params }) {
       .limit(1)
       .then(({ data: waitlist }) => {
         if (!waitlist?.[0]) return;
-        void supabase.from("notifications").insert({
-          user_id: waitlist[0].user_id,
+        void createNotification({
+          userId: waitlist[0].user_id,
           type: "waitlist_spot",
           title: `A spot opened on ${expInfo?.name ?? "your waitlisted trip"} — join now`,
           link: expInfo?.slug ? `/expeditions/${expInfo.slug}` : `/expeditions/${id}`,
-      });
+        });
       });
   }
 

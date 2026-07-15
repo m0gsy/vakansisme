@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { createNotification } from "@/lib/notify";
 
 export async function POST(req: Request) {
   const { following_id } = await req.json();
@@ -55,8 +56,8 @@ export async function POST(req: Request) {
 
   // In-app notification (fire-and-forget)
   supabase.from("profiles").select("username").eq("id", user.id).single().then(({ data: followerProfile }) => {
-    void supabase.from("notifications").insert({
-      user_id: following_id,
+    void createNotification({
+      userId: following_id,
       type: "new_follower",
       title: `@${followerProfile?.username ?? "someone"} followed you`,
       link: `/u/${followerProfile?.username ?? ""}`,

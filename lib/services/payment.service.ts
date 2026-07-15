@@ -7,6 +7,7 @@ import { sendPaymentVerifiedEmail, sendBookingConfirmedEmail } from "@/lib/email
 import { getProviderForPayment } from "@/lib/payment/provider-registry";
 import type { CreatePaymentInput, Payment, PaymentProvider } from "@/types/payment";
 import type { ProviderPaymentResult } from "@/lib/payment/providers/types";
+import { createNotification } from "@/lib/notify";
 
 export class PaymentService {
   private paymentRepo: PaymentRepository;
@@ -178,8 +179,8 @@ export class PaymentService {
     const bookingNumber = (booking as Record<string, unknown> | null)?.booking_number as string ?? "";
 
     if (profile?.username) {
-      void db.from("notifications").insert({
-        user_id: payment.user_id,
+      void createNotification({
+        userId: payment.user_id,
         type: "payment_refunded",
         title: `Refund processed for ${tripName}`,
         body: `Rp ${payment.amount_idr.toLocaleString("id")} will be returned to your account`,

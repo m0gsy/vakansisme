@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { createNotification } from "@/lib/notify";
 
 type Params = Promise<{ id: string; memberId: string }>;
 
@@ -40,8 +41,8 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
     await supabase.from("expedition_members").delete().eq("expedition_id", id).eq("user_id", memberId);
     // ponytail: link stays UUID here — resolving to slug would cost an extra query on a
     // fire-and-forget notification insert; the [slug] route 301s UUIDs so this still works.
-    void supabase.from("notifications").insert({
-      user_id: memberId,
+    void createNotification({
+      userId: memberId,
       type: "join_rejected",
       title: "Lamaran ekspedisimu tidak diterima.",
       link: `/expeditions/${id}`,
@@ -63,8 +64,8 @@ export async function PATCH(req: Request, { params }: { params: Params }) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  void supabase.from("notifications").insert({
-    user_id: memberId,
+  void createNotification({
+    userId: memberId,
     type: "join_approved",
     title: "Lamaranmu diterima — kamu masuk!",
     link: `/expeditions/${id}`,
