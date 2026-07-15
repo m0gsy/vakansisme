@@ -1,11 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { createNotification } from "@/lib/notify";
 import { NextResponse } from "next/server";
 
 async function runAutoStatus(req: Request) {
   const cronSecret = process.env.CRON_SECRET;
   const isCron = cronSecret && req.headers.get("authorization") === `Bearer ${cronSecret}`;
 
-  const supabase = await createClient();
+  let supabase = isCron ? createServiceClient() : await createClient();
 
   if (!isCron) {
     const { data: { user } } = await supabase.auth.getUser();
@@ -44,14 +46,14 @@ async function runAutoStatus(req: Request) {
         ? `${exp.name} is now underway`
         : `${exp.name} is complete — rate your trip`;
 
-      void supabase.from("notifications").insert(
-        members.map((m) => ({
-          user_id: m.user_id,
-          type: `expedition_${newStatus}`,
+      for (const m of members) {
+        void createNotification({
+          userId: m.user_id,
+          type: "leader_update",
           title,
           link: `/expeditions/${exp.slug}`,
-        }))
-      );
+        });
+      }
     }
   }
 

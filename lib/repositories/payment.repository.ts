@@ -19,7 +19,7 @@ export class PaymentRepository {
   }
 
   async findByOrderId(orderId: string): Promise<Payment | null> {
-    const { data } = await this.supabase
+    const { data } = await this.db
       .from("expedition_payments")
       .select("*")
       .eq("payment_order_id", orderId)
@@ -28,7 +28,7 @@ export class PaymentRepository {
   }
 
   async findByBooking(bookingId: string): Promise<Payment[]> {
-    const { data } = await this.supabase
+    const { data } = await this.db
       .from("expedition_payments")
       .select("*")
       .eq("booking_id", bookingId)
@@ -37,7 +37,7 @@ export class PaymentRepository {
   }
 
   async findByUser(userId: string): Promise<Payment[]> {
-    const { data } = await this.supabase
+    const { data } = await this.db
       .from("expedition_payments")
       .select("*")
       .eq("user_id", userId)
