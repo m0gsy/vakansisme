@@ -66,6 +66,28 @@ const POPULAR_MOUNTAINS_FALLBACK: Record<string, any> = {
   }
 };
 
+// Safe fetch utility setting custom User-Agent to avoid Wikipedia/OSM HTML 403 blocks
+async function safeFetchJson(url: string) {
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "VakansismeCrawler/1.0 (contact@vakansisme.club; user-audit)"
+    }
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    throw new Error(`HTTP error ${res.status}: ${errorText.slice(0, 150) || "Empty response"}`);
+  }
+
+  const contentType = res.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    const errorText = await res.text().catch(() => "");
+    throw new Error(`Expected JSON but received ${contentType}: ${errorText.slice(0, 150)}`);
+  }
+
+  return res.json();
+}
+
 async function crawlSingleMountain(mountainName: string) {
   const cleanName = mountainName.trim();
   const searchKey = cleanName.toLowerCase();
@@ -93,19 +115,19 @@ async function crawlSingleMountain(mountainName: string) {
   } else {
     // 2. Perform live crawling on Wikipedia Search & Info APIs
     try {
-      const searchRes = await fetch(
+      const searchRes = await safeFetchJson(
         `https://id.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
           cleanName
         )}&format=json`
-      ).then((r) => r.json());
+      );
 
       const pageTitle = searchRes?.query?.search?.[0]?.title;
       if (pageTitle) {
-        const detailRes = await fetch(
+        const detailRes = await safeFetchJson(
           `https://id.wikipedia.org/w/api.php?action=query&prop=extracts|revisions&titles=${encodeURIComponent(
             pageTitle
           )}&exintro=1&explaintext=1&rvslots=*&rvprop=content&format=json`
-        ).then((r) => r.json());
+        );
 
         const pages = detailRes?.query?.pages;
         const pageId = Object.keys(pages ?? {})[0];
@@ -146,9 +168,9 @@ async function crawlSingleMountain(mountainName: string) {
 
             try {
               const query = `[out:json][timeout:5];(node["tourism"="camp_site"](around:5000,${lat},${lon});node["natural"="spring"](around:5000,${lat},${lon}););out body;`;
-              const osmRes = await fetch(
+              const osmRes = await safeFetchJson(
                 `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`
-              ).then((r) => r.json());
+              );
 
               const elements = osmRes?.elements ?? [];
               const campsSet = new Set<string>();
@@ -263,9 +285,9 @@ async function handleCrawler(req: Request) {
 
   // B. Auto-discovery batch crawling mode via Wikipedia Category members
   try {
-    const catRes = await fetch(
+    const catRes = await safeFetchJson(
       "https://id.wikipedia.org/w/api.php?action=query&list=categorymembers&cmtitle=Kategori:Gunung_di_Indonesia&cmlimit=500&format=json"
-    ).then((r) => r.json());
+    );
 
     const members = catRes?.query?.categorymembers ?? [];
     // Filter out subcategories (ns === 14) or other namespace pages; keep only article pages (ns === 0)
