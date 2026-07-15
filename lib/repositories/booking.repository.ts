@@ -112,8 +112,9 @@ export class BookingRepository {
     for (const row of data) {
       await serviceClient
         .from("expedition_members")
-        .update({ booking_status: "expired", cancelled_at: now, cancel_reason: "Payment deadline passed" })
-        .eq("id", row.id);
+        .update({ booking_status: "expired", status: "rejected", cancelled_at: now, cancel_reason: "Payment deadline passed" })
+        .eq("id", row.id)
+        .in("booking_status", ["waiting_payment", "draft"]);
     }
 
     return data.map((r) => ({ id: r.id, userId: r.user_id, expeditionId: r.expedition_id }));

@@ -32,6 +32,9 @@ export default function ImageUpload({ folder, onUpload, currentUrl }: Props) {
       return;
     }
 
+    if (preview && preview.startsWith("blob:")) {
+      URL.revokeObjectURL(preview);
+    }
     setPreview(URL.createObjectURL(file));
     setUploading(true);
 

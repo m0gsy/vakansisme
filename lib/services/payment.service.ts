@@ -73,7 +73,7 @@ export class PaymentService {
     await this.paymentRepo.uploadProof(paymentId, imageUrl);
 
     await this.auditRepo.log("payment.proof_uploaded", {
-      bookingId: payment.booking_id!,
+      bookingId: payment.booking_id ?? "",
       paymentId,
       actorId: userId,
       description: "Payment proof uploaded",
@@ -94,7 +94,7 @@ export class PaymentService {
     }
 
     await this.auditRepo.log("payment.verified", {
-      bookingId: payment.booking_id!,
+      bookingId: payment.booking_id ?? "",
       paymentId,
       actorId: adminId,
       actorIp: ip ?? null,
@@ -122,7 +122,7 @@ export class PaymentService {
     await this.paymentRepo.updatePaymentStatus(paymentId, "rejected", { reason, verified_by: adminId });
 
     await this.auditRepo.log("payment.rejected", {
-      bookingId: payment.booking_id!,
+      bookingId: payment.booking_id ?? "",
       paymentId,
       actorId: adminId,
       actorIp: ip ?? null,
@@ -152,7 +152,7 @@ export class PaymentService {
     }
 
     await this.auditRepo.log("payment.refunded", {
-      bookingId: payment.booking_id!,
+      bookingId: payment.booking_id ?? "",
       paymentId,
       actorId: adminId,
       actorIp: ip ?? null,
@@ -201,7 +201,7 @@ export class PaymentService {
     }
 
     await this.auditRepo.log("deadline.extended", {
-      bookingId: payment.booking_id!,
+      bookingId: payment.booking_id ?? "",
       paymentId,
       actorId: adminId,
       description: "Payment deadline extended",

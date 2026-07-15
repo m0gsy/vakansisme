@@ -31,7 +31,8 @@ export default function RealtimeQuota({
           const { count: fresh } = await supabase
             .from("expedition_members")
             .select("*", { count: "exact", head: true })
-            .eq("expedition_id", expeditionId);
+            .eq("expedition_id", expeditionId)
+            .in("status", ["approved", "pending_payment"]);
           if (fresh !== null) setCount(fresh);
         }
       )

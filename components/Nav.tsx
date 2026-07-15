@@ -48,6 +48,8 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
 
   useEffect(() => {
     const supabase = createClient();
+    let dmChannel: ReturnType<typeof supabase.channel> | null = null;
+
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
       if (!data.user) return;
@@ -59,7 +61,7 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
         .then((d: Array<{ unread: number }>) => setDmUnread(Array.isArray(d) ? d.reduce((s, c) => s + c.unread, 0) : 0))
         .catch(() => {});
       // Realtime DM unread badge
-      const channel = supabase
+      dmChannel = supabase
         .channel("nav-dm")
         .on(
           "postgres_changes",
@@ -67,13 +69,15 @@ export default function Nav({ initialLocale = "id" }: { initialLocale?: Locale }
           () => setDmUnread((n) => n + 1)
         )
         .subscribe();
-      return () => { supabase.removeChannel(channel); };
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (!session?.user) setIsAdmin(false);
     });
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (dmChannel) supabase.removeChannel(dmChannel);
+    };
   }, []);
 
   // Close profile dropdown on outside click or Escape

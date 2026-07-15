@@ -1,6 +1,12 @@
 import { Resend } from "resend";
 
-const client = new Resend(process.env.RESEND_API_KEY);
+let _client: Resend | null = null;
+function getClient(): Resend {
+  if (!_client) {
+    _client = new Resend(process.env.RESEND_API_KEY ?? "");
+  }
+  return _client;
+}
 const FROM = process.env.RESEND_FROM ?? "VAKANSISME <noreply@vakansisme.club>";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
 
@@ -9,8 +15,8 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vakansisme.club";
 // every send below would silently no-op while callers think it succeeded.
 const resend = {
   emails: {
-    async send(payload: Parameters<typeof client.emails.send>[0]) {
-      const { data, error } = await client.emails.send(payload);
+    async send(payload: Parameters<Resend["emails"]["send"]>[0]) {
+      const { data, error } = await getClient().emails.send(payload);
       if (error) {
         console.error("[resend] email send failed:", error);
         throw new Error(error.message);
@@ -19,8 +25,8 @@ const resend = {
     },
   },
   batch: {
-    async send(payload: Parameters<typeof client.batch.send>[0]) {
-      const { data, error } = await client.batch.send(payload);
+    async send(payload: Parameters<Resend["batch"]["send"]>[0]) {
+      const { data, error } = await getClient().batch.send(payload);
       if (error) {
         console.error("[resend] batch send failed:", error);
         throw new Error(error.message);

@@ -1,5 +1,5 @@
 import webpush from "web-push";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export async function sendPushToUser(userId: string, payload: { title: string; body?: string; url?: string }) {
   if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return;
@@ -9,7 +9,7 @@ export async function sendPushToUser(userId: string, payload: { title: string; b
     process.env.VAPID_PRIVATE_KEY
   );
   try {
-    const supabase = await createClient();
+    const supabase = createServiceClient();
     const { data: subs } = await supabase
       .from("push_subscriptions")
       .select("endpoint, p256dh, auth_key")

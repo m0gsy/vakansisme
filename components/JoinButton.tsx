@@ -85,7 +85,7 @@ export default function JoinButton({
         toast(locale === "id" ? "Berhasil bergabung! Sampai ketemu di perjalanan." : "Joined! See you on the trail.");
         router.refresh();
       }
-    } else if (res.status === 409 && (json.error === "Already joined" || json.error === "Already joined")) {
+    } else if (res.status === 409 && (json.error === "Already joined" || json.error === "Sudah bergabung")) {
       setJoined(true);
       router.refresh();
     } else {

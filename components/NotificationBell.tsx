@@ -49,12 +49,13 @@ export default function NotificationBell() {
   }, []);
 
   useEffect(() => {
+    if (!open) return;
     function onOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
     document.addEventListener("mousedown", onOutside);
     return () => document.removeEventListener("mousedown", onOutside);
-  }, []);
+  }, [open]);
 
   const unread = notifs.filter((n) => !n.read).length;
 

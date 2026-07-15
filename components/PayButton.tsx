@@ -13,7 +13,7 @@ function useDeadlineCountdown(dueAt: string | null) {
       if (diff <= 0) { setTimeLeft("Expired"); return; }
       const h = Math.floor(diff / 3_600_000);
       const m = Math.floor((diff % 3_600_000) / 60_000);
-      setTimeLeft(h >= 24 ? `${Math.floor(h / 24)}h ${h % 24}j lagi` : `${h}j ${m}m lagi`);
+      setTimeLeft(h >= 24 ? `${Math.floor(h / 24)} hari ${h % 24}j lagi` : `${h}j ${m}m lagi`);
     }
     update();
     const id = setInterval(update, 60_000);
