@@ -231,6 +231,30 @@ const POPULAR_MOUNTAINS_FALLBACK: Record<string, any> = {
   }
 };
 
+// Filter function to ensure only actual, specific mountains are processed (excluding index lists, legends, categories)
+function isValidMountainTitle(title: string): boolean {
+  const t = title.toLowerCase().trim();
+  
+  // Exclude Wikipedia meta, list templates, indexes, and folklore/legend articles
+  if (t.includes("daftar")) return false;
+  if (t.includes("legenda")) return false;
+  if (t.includes("mitos")) return false;
+  if (t.includes("sejarah")) return false;
+  if (t.includes("cerita")) return false;
+  if (t.includes("dongeng")) return false;
+  if (t.includes("kategori:")) return false;
+  if (t.includes("templat:")) return false;
+  if (t.includes("wikipedia:")) return false;
+  if (t.includes("berkas:")) return false;
+  
+  // Exclude general articles or classifications
+  if (t === "gunung" || t === "gunung ribu" || t === "gunung berapi" || t === "gunung api") return false;
+  if (t.includes("gunung-gunung")) return false;
+  if (t.includes("gunung berapi di") || t.includes("gunung api di")) return false;
+  
+  return true;
+}
+
 // Clean Wikipedia descriptions of raw citations, markup coordinates, and extra formatting
 function cleanWikipediaDescription(text: string): string {
   if (!text) return "";
@@ -451,6 +475,13 @@ async function handleCrawler(req: Request) {
   const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
   if (!profile?.is_admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  // 0. Auto-clean bad legacy index/list/myth records that were previously imported (keeping Explore page clean!)
+  const serviceClient = createServiceClient();
+  await serviceClient
+    .from("destinations")
+    .delete()
+    .or("slug.ilike.daftar-%,slug.ilike.legenda-%,slug.ilike.mitos-%,slug.ilike.sejarah-%,slug.eq.gunung-ribu,slug.ilike.%daftar-gunung%");
+
   // Read params from URL search params (GET) or JSON body (POST)
   let mountainName: string | undefined;
   let limit = 5;
@@ -470,6 +501,11 @@ async function handleCrawler(req: Request) {
 
   // A. Single mountain crawling mode
   if (mountainName?.trim()) {
+    // Block single requests trying to fetch a list/index title
+    if (!isValidMountainTitle(mountainName)) {
+      return NextResponse.json({ error: "Invalid mountain name. Lists and meta-articles are blocked." }, { status: 400 });
+    }
+
     try {
       const result = await crawlSingleMountain(mountainName);
       return NextResponse.json({ success: true, mode: "single", destination: result });
@@ -485,17 +521,16 @@ async function handleCrawler(req: Request) {
     );
 
     const members = catRes?.query?.categorymembers ?? [];
-    // Filter out subcategories (ns === 14) or other namespace pages; keep only article pages (ns === 0)
+    // Strict filter for actual mountains (removing lists, indexes, legends, etc.)
     const allMountains = members
-      .filter((m: any) => m.ns === 0)
+      .filter((m: any) => m.ns === 0 && isValidMountainTitle(m.title))
       .map((m: any) => m.title);
 
     if (!allMountains.length) {
-      return NextResponse.json({ success: true, count: 0, message: "No mountains found in category" });
+      return NextResponse.json({ success: true, count: 0, message: "No valid mountains found in category" });
     }
 
     const slice = allMountains.slice(offset, offset + limit);
-    const results = [];
 
     // Crawl each mountain in this chunk in parallel
     const promises = slice.map(async (name: string) => {
