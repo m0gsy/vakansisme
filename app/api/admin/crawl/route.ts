@@ -231,7 +231,7 @@ const POPULAR_MOUNTAINS_FALLBACK: Record<string, any> = {
   }
 };
 
-// Filter out Wikipedia meta, list templates, indexes, and folklore/legend articles
+// Filter function to exclude metadata, list templates, indexes, and folklore/legend articles
 function isMetaOrFolklore(title: string): boolean {
   const t = title.toLowerCase().trim();
   
@@ -261,24 +261,6 @@ function cleanWikipediaDescription(text: string): string {
     .replace(/\s+/g, " ") // normalize whitespace
     .replace(/\([^)]*\b(koordinat|coord|geografis|bujur|lintang)[^)]*\)/gi, "") // remove coordinate details inside brackets
     .trim();
-}
-
-// Generate beautiful, realistic, fallback hiking specs for other mountains (avoiding blank lists)
-function generateBeautifulDefaults(mountainName: string, elevation: number) {
-  const clean = mountainName.replace(/gunung/gi, "").trim();
-  const difficulty = elevation > 3000 ? "Hard" : elevation > 1500 ? "Medium" : "Easy";
-  
-  return {
-    simaksi_link: null,
-    pvmbg_status: "Level I (Normal)",
-    best_season: "Mei - Oktober",
-    difficulty,
-    flora_fauna: ["Edelweiss Jawa", "Elang Jawa", "Monyet Ekor Panjang", "Cemara Gunung"],
-    emergency_contacts: [`Ranger Basecamp ${clean}: +628123456789`],
-    camps: ["Basecamp Registrasi", "Pos I (Peristirahatan)", "Pos II (Mata Air)", "Pos III (Campsite Utama)", "Pos IV (Batas Vegetasi)", `Puncak ${clean}`],
-    water_sources: ["Pos II (Mata Air Alami)"],
-    basecamps: ["Jalur Utama Setempat"]
-  };
 }
 
 // Extract actual, individual mountains listed as links in a Wikipedia index/list article
@@ -348,7 +330,7 @@ async function crawlSingleMountain(mountainName: string) {
     pvmbg_status: "Level I (Normal)",
     best_season: "Mei - Oktober",
     difficulty: "Medium",
-    flora_fauna: [],
+    flora_fauna: ["Edelweiss Jawa", "Elang Jawa", "Cemara Gunung"],
     emergency_contacts: [],
     camps: [],
     water_sources: [],
@@ -364,16 +346,21 @@ async function crawlSingleMountain(mountainName: string) {
   } else {
     // 2. Perform live crawling on Wikipedia Search & Info APIs
     try {
+      // Find search result page title, ensuring we pick the first match that is NOT an index list page!
       const searchRes = await safeFetchJson(
         `https://id.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
           cleanName
         )}&format=json`
       );
 
-      const pageTitle = searchRes?.query?.search?.[0]?.title;
+      const searchResults = searchRes?.query?.search ?? [];
+      const matchedPage = searchResults.find((s: any) => !s.title.toLowerCase().includes("daftar") && !isMetaOrFolklore(s.title));
+      const pageTitle = matchedPage ? matchedPage.title : searchResults[0]?.title;
+
       if (pageTitle) {
+        // Query Wikipedia with 'coordinates' property to get exact real GPS coords reliably!
         const detailRes = await safeFetchJson(
-          `https://id.wikipedia.org/w/api.php?action=query&prop=extracts|revisions&titles=${encodeURIComponent(
+          `https://id.wikipedia.org/w/api.php?action=query&prop=extracts|coordinates|revisions&titles=${encodeURIComponent(
             pageTitle
           )}&exintro=1&explaintext=1&rvslots=*&rvprop=content&format=json`
         );
@@ -392,18 +379,19 @@ async function crawlSingleMountain(mountainName: string) {
             finalElevation = parseInt(elevMatch[1].replace(/[^0-9]/g, "")) || finalElevation;
           }
 
-          // Build robust default details for the mountain based on height (rather than leaving it empty/ugly)
-          const beautyDefaults = generateBeautifulDefaults(cleanName, finalElevation || 2000);
-          finalMetadata = { ...finalMetadata, ...beautyDefaults };
-
-          // Parse latitude/longitude coord from wikitext
-          let lat = 0;
-          let lon = 0;
-          const coordMatch = wikitext.match(/coord\s*\|\s*([0-9.-]+)\s*\|\s*([0-9.-]+)\s*\|/i);
-          if (coordMatch) {
-            lat = parseFloat(coordMatch[1]);
-            lon = parseFloat(coordMatch[2]);
+          // Dynamic difficulty and season estimation
+          if (finalElevation > 3000) {
+            finalMetadata.difficulty = "Hard";
+          } else if (finalElevation > 1500) {
+            finalMetadata.difficulty = "Medium";
+          } else {
+            finalMetadata.difficulty = "Easy";
           }
+
+          // Get coordinates directly from the Wikipedia coordinates array
+          const coords = page.coordinates?.[0];
+          const lat = coords?.lat;
+          const lon = coords?.lon;
 
           // 3. Query OpenStreetMap Overpass API for campsites & water sources if coordinates found
           if (lat && lon) {
@@ -441,7 +429,7 @@ async function crawlSingleMountain(mountainName: string) {
                 finalMetadata.water_sources = Array.from(waterSet);
               }
             } catch {
-              // Fail-safe: OSM fetch down (falls back to beautyDefaults)
+              // Fail-safe: OSM fetch down
             }
           }
         }

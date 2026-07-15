@@ -378,7 +378,7 @@ export default async function DestinationPage({
             </div>
 
             {/* Path & Camp Timeline Section */}
-            {dest.metadata.camps && dest.metadata.camps.length > 0 && (
+            {dest.metadata.camps && dest.metadata.camps.length > 0 ? (
               <div style={{ background: "rgba(10,10,10,0.3)", border: "1px solid rgba(74,59,42,0.2)", borderRadius: "10px", padding: "24px" }}>
                 <p className="font-body text-muted-ink" style={{ fontSize: "0.6rem", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "20px" }}>
                   ⛺ JALUR PENDAKIAN & ESTIMASI POS CAMP
@@ -410,7 +410,7 @@ export default async function DestinationPage({
                                 height: "40px",
                                 background: "linear-gradient(to bottom, rgba(155,255,60,0.5), rgba(155,255,60,0.15))",
                                 zIndex: 1,
-                              }}
+                                }}
                             />
                           )}
                         </div>
@@ -440,6 +440,12 @@ export default async function DestinationPage({
                     );
                   })}
                 </div>
+              </div>
+            ) : (
+              <div style={{ background: "rgba(10,10,10,0.2)", border: "1px dashed rgba(74,59,42,0.25)", borderRadius: "10px", padding: "32px 24px", textAlign: "center" }}>
+                <p className="font-body text-muted-ink" style={{ fontSize: "0.82rem", margin: 0 }}>
+                  📍 Detail pos jalur pendakian belum tersedia untuk gunung ini.
+                </p>
               </div>
             )}
 
