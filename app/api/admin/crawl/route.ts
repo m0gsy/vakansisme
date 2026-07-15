@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { NextResponse } from "next/server";
 
-// Comprehensive Indonesian mountains dataset to guarantee flawless, rich, and high-quality data
+// Curated 15+ Popular Indonesian Mountains with fully verified, rich, and high-quality data
 const POPULAR_MOUNTAINS_FALLBACK: Record<string, any> = {
   "gunung merbabu": {
     elevation_m: 3142,
@@ -263,6 +263,108 @@ function cleanWikipediaDescription(text: string): string {
     .trim();
 }
 
+// Robust numeric parser for Wikipedia mountain elevations
+function parseRealElevation(wikitext: string): number {
+  const convertMatch = wikitext.match(/ketinggian\s*=\s*\{\{convert\|(\d+)/i);
+  if (convertMatch) {
+    return parseInt(convertMatch[1]) || 0;
+  }
+
+  const elevMatch = wikitext.match(/ketinggian\s*=\s*(?:\[\[)?([0-9.,\s]+)/i);
+  if (elevMatch) {
+    const cleaned = elevMatch[1].replace(/[^0-9]/g, "");
+    const parsed = parseInt(cleaned);
+    if (parsed > 100 && parsed < 6000) return parsed;
+    if (parsed > 6000) {
+      const firstFour = parseInt(cleaned.slice(0, 4));
+      if (firstFour < 6000) return firstFour;
+    }
+  }
+  return 0;
+}
+
+// Advanced NLP/Regex parser to extract REAL campsites, trails, basecamps, and water sources from Wikipedia wikitext body
+function parseRealDetailsFromWikitext(wikitext: string, mountainName: string) {
+  const cleanMt = mountainName.replace(/gunung/gi, "").trim();
+  
+  const campsSet = new Set<string>();
+  const waterSet = new Set<string>();
+  const basecampsSet = new Set<string>();
+  const floraFaunaSet = new Set<string>();
+  const emergencySet = new Set<string>();
+
+  // 1. Parse real basecamps / hiking routes
+  const basecampRegexes = [
+    /(?:jalur|rute)\s+(?:pendakian|resmi)?\s*(?:melalui|lewat|via)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g,
+    /(?:basecamp|pos pendakian)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/gi
+  ];
+  for (const regex of basecampRegexes) {
+    const matches = wikitext.matchAll(regex);
+    for (const match of matches) {
+      const name = match[1].trim();
+      if (name && name.length > 2 && !name.toLowerCase().includes("gunung") && !name.toLowerCase().includes("pos")) {
+        basecampsSet.add(name);
+      }
+    }
+  }
+
+  // 2. Parse real camps / Pos
+  const posRegex = /(Pos\s+(?:[0-9]+|[I|V|X]+)|Shelter\s+[0-9]+|Plawangan\s+[A-Z][a-z]+|Alun-Alun\s+[A-Z][a-z]+|Lembah\s+[A-Z][a-z]+)/gi;
+  const posMatches = wikitext.match(posRegex);
+  if (posMatches) {
+    for (const match of posMatches) {
+      const cleanCamp = match.trim().replace(/\s+/g, " ");
+      const capitalized = cleanCamp.replace(/\b\w/g, c => c.toUpperCase());
+      campsSet.add(capitalized);
+    }
+  }
+
+  // 3. Parse real water sources mentioned in the article
+  const sentences = wikitext.split(/[.!?\n]/);
+  for (const sentence of sentences) {
+    const sLower = sentence.toLowerCase();
+    if (sLower.includes("mata air") || sLower.includes("sumber air") || sLower.includes("air bersih") || sLower.includes("danau") || sLower.includes("sungai")) {
+      const posMatch = sentence.match(/(Pos\s+(?:[0-9]+|[I|V|X]+)|Shelter\s+[0-9]+)/i);
+      if (posMatch) {
+        waterSet.add(`${posMatch[1].trim().replace(/\b\w/g, c => c.toUpperCase())} (Mata Air)`);
+      } else {
+        if (sLower.includes("mata air")) {
+          waterSet.add("Mata Air Alami");
+        }
+      }
+    }
+  }
+
+  // 4. Parse flora and fauna
+  const floraFaunaKeywords = [
+    "edelweiss", "edelweis", "cantigi", "cemara", "pinus", "kantong semar", "anggrek", "casuarina",
+    "elang jawa", "owa jawa", "macan tutul", "harimau", "monyet", "rusa", "babi hutan", "jalak", "koak kaok",
+    "lutung", "burung"
+  ];
+  for (const keyword of floraFaunaKeywords) {
+    if (wikitext.toLowerCase().includes(keyword)) {
+      floraFaunaSet.add(keyword.replace(/\b\w/g, c => c.toUpperCase()));
+    }
+  }
+
+  // 5. Parse emergency numbers
+  const phoneRegex = /(\+62|08)[0-9-\s]{8,15}/g;
+  const phoneMatches = wikitext.match(phoneRegex);
+  if (phoneMatches) {
+    for (const match of phoneMatches) {
+      emergencySet.add(match.trim());
+    }
+  }
+
+  return {
+    camps: Array.from(campsSet),
+    water_sources: Array.from(waterSet),
+    basecamps: Array.from(basecampsSet),
+    flora_fauna: Array.from(floraFaunaSet),
+    emergency_contacts: Array.from(emergencySet)
+  };
+}
+
 // Extract actual, individual mountains listed as links in a Wikipedia index/list article
 async function extractMountainsFromList(listTitle: string): Promise<string[]> {
   try {
@@ -330,7 +432,7 @@ async function crawlSingleMountain(mountainName: string) {
     pvmbg_status: "Level I (Normal)",
     best_season: "Mei - Oktober",
     difficulty: "Medium",
-    flora_fauna: ["Edelweiss Jawa", "Elang Jawa", "Cemara Gunung"],
+    flora_fauna: [],
     emergency_contacts: [],
     camps: [],
     water_sources: [],
@@ -372,12 +474,7 @@ async function crawlSingleMountain(mountainName: string) {
           finalDescription = cleanWikipediaDescription(page.extract || "")?.slice(0, 500) || finalDescription;
 
           const wikitext = page.revisions?.[0]?.slots?.["*"]?.content || "";
-          
-          // Regex extraction for elevation (elevation_m / ketinggian)
-          const elevMatch = wikitext.match(/(?:ketinggian|elevation|elevation_m)\s*=\s*([0-9.,]+)/i);
-          if (elevMatch) {
-            finalElevation = parseInt(elevMatch[1].replace(/[^0-9]/g, "")) || finalElevation;
-          }
+          finalElevation = parseRealElevation(wikitext);
 
           // Dynamic difficulty and season estimation
           if (finalElevation > 3000) {
@@ -387,6 +484,16 @@ async function crawlSingleMountain(mountainName: string) {
           } else {
             finalMetadata.difficulty = "Easy";
           }
+
+          // Parse actual hiking details from the wikitext body
+          const wikiDetails = parseRealDetailsFromWikitext(wikitext, cleanName);
+          finalMetadata.basecamps = wikiDetails.basecamps;
+          finalMetadata.flora_fauna = wikiDetails.flora_fauna;
+          finalMetadata.emergency_contacts = wikiDetails.emergency_contacts;
+
+          // Temp set to track campsites and water sources
+          const campsSet = new Set<string>(wikiDetails.camps);
+          const waterSet = new Set<string>(wikiDetails.water_sources);
 
           // Get coordinates directly from the Wikipedia coordinates array
           const coords = page.coordinates?.[0];
@@ -405,9 +512,6 @@ async function crawlSingleMountain(mountainName: string) {
               );
 
               const elements = osmRes?.elements ?? [];
-              const campsSet = new Set<string>();
-              const waterSet = new Set<string>();
-
               for (const el of elements) {
                 const name = el.tags?.name?.trim();
                 if (!name) continue;
@@ -418,20 +522,27 @@ async function crawlSingleMountain(mountainName: string) {
                   waterSet.add(name);
                 }
               }
-
-              // Overwrite default checkpoints if OSM actually returned real mapped coordinates data
-              if (campsSet.size > 0) {
-                const sortedCamps = Array.from(campsSet);
-                // Prepend basecamp and append summit to make OSM list look like a complete timeline
-                finalMetadata.camps = ["Basecamp Registrasi", ...sortedCamps, `Puncak ${cleanName.replace(/gunung/gi, "").trim()}`];
-              }
-              if (waterSet.size > 0) {
-                finalMetadata.water_sources = Array.from(waterSet);
-              }
             } catch {
               // Fail-safe: OSM fetch down
             }
           }
+
+          // Format final list of camps ensuring we have Basecamp and Summit wrapper
+          const finalCamps = Array.from(campsSet);
+          if (finalCamps.length > 0) {
+            // Sort pos camps logically
+            const sortedCamps = finalCamps.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+            
+            // Clean up to ensure Basecamp Registrasi and Puncak are at the boundaries
+            const cleanMt = cleanName.replace(/gunung/gi, "").trim();
+            const startNode = "Basecamp Registrasi";
+            const endNode = `Puncak ${cleanMt}`;
+
+            const filteredCamps = sortedCamps.filter(c => c !== startNode && !c.includes("Puncak"));
+            finalMetadata.camps = [startNode, ...filteredCamps, endNode];
+          }
+
+          finalMetadata.water_sources = Array.from(waterSet);
         }
       }
     } catch {
