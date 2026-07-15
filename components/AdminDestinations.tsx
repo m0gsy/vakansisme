@@ -85,6 +85,13 @@ export default function AdminDestinations() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Importer Crawler States
+  const [crawlInput, setCrawlInput] = useState("");
+  const [crawlLoading, setCrawlLoading] = useState(false);
+  const [crawlResult, setCrawlResult] = useState<string | null>(null);
+  const [batchOffset, setBatchOffset] = useState(0);
+  const [batchLoading, setBatchLoading] = useState(false);
+
   function load() {
     Promise.all([
       fetch("/api/admin/locations").then((r) => r.json()),
@@ -102,6 +109,66 @@ export default function AdminDestinations() {
 
   useEffect(() => { load(); }, []);
 
+  async function triggerCrawl() {
+    if (!crawlInput.trim()) return;
+    setCrawlLoading(true);
+    setCrawlResult(null);
+    setError("");
+
+    try {
+      const res = await fetch("/api/admin/crawl", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mountainName: crawlInput.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Failed to crawl");
+      } else {
+        if (json.mode === "list-extraction") {
+          setCrawlResult(`Sukses! Mengekstrak & mengimpor ${json.extractedCount} gunung dari daftar: ${json.crawled.map((c: any) => c.name).join(", ")}`);
+        } else {
+          setCrawlResult(`Sukses! Mengimpor gunung: ${json.destination.name} (${json.destination.elevation_m || "?"} MDPL)`);
+        }
+        setCrawlInput("");
+        load();
+      }
+    } catch (e: any) {
+      setError(e.message || "Failed to trigger crawl");
+    } finally {
+      setCrawlLoading(false);
+    }
+  }
+
+  async function triggerBatchCrawl() {
+    setBatchLoading(true);
+    setCrawlResult(null);
+    setError("");
+
+    try {
+      const res = await fetch(`/api/admin/crawl?limit=5&offset=${batchOffset}`);
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Failed batch crawl");
+      } else {
+        if (json.crawled?.length) {
+          const successNames = json.crawled
+            .filter((c: any) => c.success)
+            .map((c: any) => c.name);
+          setCrawlResult(`Sukses! Batch ${batchOffset} berhasil mengimpor: ${successNames.join(", ")}`);
+          setBatchOffset(json.nextOffset ?? 0);
+        } else {
+          setCrawlResult("Selesai! Tidak ada gunung baru ditemukan.");
+        }
+        load();
+      }
+    } catch (e: any) {
+      setError(e.message || "Failed to trigger batch crawl");
+    } finally {
+      setBatchLoading(false);
+    }
+  }
+
   if (loading) return <p className="font-body text-muted-ink" style={{ fontSize: "0.82rem" }}>Loading...</p>;
 
   return (
@@ -112,6 +179,56 @@ export default function AdminDestinations() {
       </Section>
       <Section title="DESTINATION KINDS">
         <KindsSection kinds={kinds} destinations={destinations} onError={setError} reload={load} />
+      </Section>
+      <Section title="AUTOMATED WIKIPEDIA & OSM CRAWLER">
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px", background: "#1a1a1a", border: "1px solid rgba(74,59,42,0.35)", padding: "24px", borderRadius: "8px" }}>
+          {crawlResult && (
+            <div className="font-body" style={{ color: "#9BFF3C", fontSize: "0.78rem", background: "rgba(155,255,60,0.06)", border: "1px solid rgba(155,255,60,0.2)", padding: "10px 14px", borderRadius: "4px" }}>
+              ✓ {crawlResult}
+            </div>
+          )}
+          
+          {/* Search and Crawl single/list */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "end" }}>
+            <div style={{ flex: 1, minWidth: "260px" }}>
+              <label className="font-body font-semibold text-muted-ink uppercase block" style={{ fontSize: "0.55rem", letterSpacing: "0.12em", marginBottom: "4px" }}>
+                NAMA GUNUNG ATAU DAFTAR WILAYAH (WIKIPEDIA / OSM)
+              </label>
+              <input
+                value={crawlInput}
+                onChange={(e) => setCrawlInput(e.target.value)}
+                placeholder="Gunung Gede ATAU Daftar gunung di Kalimantan Selatan"
+                className="font-body text-off-white placeholder:text-muted-ink focus:outline-none"
+                style={fieldStyle}
+              />
+            </div>
+            <button
+              onClick={triggerCrawl}
+              disabled={crawlLoading || !crawlInput.trim()}
+              style={{ ...BTN.base, background: "#9BFF3C", color: "#111111", padding: "10px 20px", height: "38px", opacity: (crawlLoading || !crawlInput.trim()) ? 0.5 : 1 }}
+            >
+              {crawlLoading ? "CRAWLING..." : "CRAWL & IMPORT"}
+            </button>
+          </div>
+
+          <div style={{ borderTop: "1px solid rgba(74,59,42,0.25)", paddingTop: "20px" }}>
+            <p className="font-body text-muted-ink" style={{ fontSize: "0.65rem", letterSpacing: "0.08em", marginBottom: "12px" }}>
+              ATAU IMPORT MASAL GUNUNG INDONESIA SECARA BERTAHAP (CHUNKING)
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+              <button
+                onClick={triggerBatchCrawl}
+                disabled={batchLoading}
+                style={{ ...BTN.base, background: "transparent", color: "#F0EDEA", border: "1px solid rgba(155,255,60,0.4)", padding: "10px 20px", opacity: batchLoading ? 0.5 : 1 }}
+              >
+                {batchLoading ? "IMPORTING BATCH..." : "IMPORT 5 GUNUNG BERIKUTNYA"}
+              </button>
+              <span className="font-body text-muted-ink" style={{ fontSize: "0.72rem" }}>
+                Offset Kategori Saat Ini: <strong style={{ color: "#9BFF3C" }}>{batchOffset}</strong>
+              </span>
+            </div>
+          </div>
+        </div>
       </Section>
       <Section title="DESTINATIONS">
         <DestinationsSection destinations={destinations} locations={locations} kinds={kinds} onError={setError} reload={load} />
