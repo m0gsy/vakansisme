@@ -1,9 +1,13 @@
 {
   "enabledPlugins": {
-    "superpowers@claude-plugins-official": true,
+    "superpowers@superpowers-dev": true,
     "caveman@caveman": true,
     "taste-skill@taste-skill": true,
     "ponytail@ponytail": true,
-    "impeccable@impeccable": true
+    "impeccable@impeccable": true,
+    "claude-mem@thedotmack": true,
+    "marketing-skills@marketingskills": true,
+    "humanizer@humanizer": true,
+    "ecc@ecc": true
   }
 }
